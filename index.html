@@ -339,10 +339,15 @@
                     params.to = toDate.toISOString().split('T')[0];
                 }
                 const query = new URLSearchParams(params).toString();
-                const response = await fetch(`/api/ac-data?${query}`);
+                const [response, extraRes] = await Promise.all([
+                    fetch(`/api/ac-data?${query}`),
+                    fetch(`/api/ac-extra`).catch(()=>null)
+                ]);
                 const data = await response.json();
+                let extra = null;
+                try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
                 if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta en unos segundos.</div>'; return; }
-                renderDashboard(data);
+                renderDashboard(data, extra);
             } catch (error) {
                 console.error(error);
                 document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">Error de conexión con ActiveCampaign.</div>';
@@ -355,7 +360,7 @@
             return `${d}/${m}/${y}`;
         }
 
-        function renderDashboard(data) {
+        function renderDashboard(data, extra) {
             const p = data.pipeline;
             const w = data.won_count;
             const t = p.f1 + p.f2 + p.f3 + p.f4 + w;
@@ -421,32 +426,48 @@
                 <div class="section"><div class="section-title">Leads cualificados (F2) por día</div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
             `;
 
-            // Pipeline por País — Top 15 por volumen de tratos
-            if (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0) {
-                const rows = Object.entries(data.pais_pipeline).map(([pais,c])=>({
-                    pais, c, total:(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0)
-                })).sort((a,b)=> b.total-a.total || (b.c.won||0)-(a.c.won||0));
+            // Pipeline por País — Top 15 por volumen de tratos. Usa F1 si el endpoint extra está activo.
+            const hasF1 = extra && extra.by_pais && Object.keys(extra.by_pais).length > 0;
+            if (hasF1 || (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0)) {
+                let rows;
+                if (hasF1) {
+                    rows = Object.entries(extra.by_pais).map(([pais,c])=>({
+                        pais, c:{f1:c.f1||0,f2:c.f2||0,f3:c.f3||0,f4:c.f4||0,won:c.won||0}, total:c.total||((c.f1||0)+(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0))
+                    }));
+                } else {
+                    rows = Object.entries(data.pais_pipeline).map(([pais,c])=>({
+                        pais, c:{f1:null,f2:c.f2||0,f3:c.f3||0,f4:c.f4||0,won:c.won||0}, total:(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0)
+                    }));
+                }
+                rows.sort((a,b)=> b.total-a.total || (b.c.won||0)-(a.c.won||0));
                 const totalPaises = rows.length;
                 const top = rows.slice(0,15);
                 const maxTotal = Math.max(...top.map(r=>r.total),1);
                 const note = totalPaises>15 ? `Top 15 de ${totalPaises} países · por volumen de tratos` : `${totalPaises} países · por volumen de tratos`;
+                const f1Head = hasF1 ? `<th style="color:var(--slate)">F1</th>` : '';
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th><th>% del total</th></tr></thead><tbody>`;
+                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th>${f1Head}<th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th></tr></thead><tbody>`;
                 top.forEach(({pais,c,total}, i)=>{
-                    const pctg = t>0 ? Math.round((c.won||0)/t*100) : 0;
                     const ventaPct = total>0 ? Math.round((c.won||0)/total*100) : 0;
                     const z = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
                     const heat = (0.08 + 0.42*(total/maxTotal)).toFixed(2);
+                    const f1Cell = hasF1 ? z(c.f1) : '';
                     html += `<tr>
                         <td><span class="rank-badge">${i+1}</span></td>
                         <td class="cell-strong">${pais}</td>
                         <td class="cell-total" style="background:rgba(124,44,84,${heat})">${total}</td>
-                        ${z(c.f2)}${z(c.f3)}${z(c.f4)}
+                        ${f1Cell}${z(c.f2)}${z(c.f3)}${z(c.f4)}
                         <td class="num ${c.won?'cell-win':'cell-zero'}">${c.won||0}</td>
-                        <td class="num" style="font-weight:700;color:${ventaPct>0?'var(--green)':'#D6D1DA'}">${ventaPct}%</td>
-                        <td class="num">${pctg}%</td></tr>`;
+                        <td class="num" style="font-weight:700;color:${ventaPct>0?'var(--green)':'#D6D1DA'}">${ventaPct}%</td></tr>`;
                 });
                 html += `</tbody></table></div></div>`;
+            }
+
+            // ── Tablas EXTRA (solo si el endpoint ac-extra está activo) ──
+            if (extra) {
+                html += renderBreakdownTable('Tratos creados por curso', extra.by_curso, 'Curso', true);
+                html += renderTop10Paises(extra.by_pais);
+                html += renderOwnerTable(extra.by_owner);
             }
 
             // Matriz Curso x País — solo países con cierres, mapa de calor
@@ -474,6 +495,34 @@
 
             document.getElementById('dashboardContent').innerHTML = html;
             renderCharts(data);
+        }
+
+        function bdRows(obj){
+            return Object.entries(obj||{}).map(([k,c])=>({
+                k, f1:c.f1||0, f2:c.f2||0, f3:c.f3||0, f4:c.f4||0, won:c.won||0,
+                total:c.total||((c.f1||0)+(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0))
+            })).sort((a,b)=>b.total-a.total);
+        }
+        function bdTable(title, note, colLabel, rows, rateLabel){
+            if(!rows.length) return '';
+            const maxT = Math.max(...rows.map(r=>r.total),1);
+            let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>${title}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table"><thead><tr><th>${colLabel}</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">${rateLabel}</th></tr></thead><tbody>`;
+            rows.forEach((r,i)=>{
+                const rate = r.total>0?Math.round(r.won/r.total*100):0;
+                const z = v => v?`<td class="num">${v}</td>`:`<td class="cell-zero">·</td>`;
+                const heat=(0.08+0.42*(r.total/maxT)).toFixed(2);
+                h+=`<tr><td class="cell-strong">${r.k}</td><td class="cell-total" style="background:rgba(124,44,84,${heat})">${r.total}</td>${z(r.f1)}${z(r.f2)}${z(r.f3)}${z(r.f4)}<td class="num ${r.won?'cell-win':'cell-zero'}">${r.won}</td><td class="num" style="font-weight:700;color:${rate>0?'var(--green)':'#D6D1DA'}">${rate}%</td></tr>`;
+            });
+            return h + `</tbody></table></div></div>`;
+        }
+        function renderBreakdownTable(title, obj, colLabel){
+            return bdTable(title, 'Todos los tratos por etapa', colLabel, bdRows(obj), '% Venta');
+        }
+        function renderTop10Paises(obj){
+            return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta');
+        }
+        function renderOwnerTable(obj){
+            return bdTable('Rendimiento por vendedor', '% Rate = Won ÷ tratos totales', 'Vendedor', bdRows(obj), '% Rate');
         }
 
         function baseOpts(extra){
