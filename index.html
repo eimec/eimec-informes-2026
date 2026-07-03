@@ -377,16 +377,15 @@
                 {k:'WON', label:'Cerrados', val:w, color:'#2E9E6B'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
-            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial</div></div><div class="funnel-steps">`;
+            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial</div><div style="font-size:11px;color:var(--muted)">Estado actual del pipeline</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
-                const prev = i>0 ? stages[i-1].val : null;
-                const conv = (prev && prev>0) ? Math.round(s.val/prev*100) : null;
+                const share = t>0 ? Math.round(s.val/t*100) : 0;
                 funnel += `<div class="fstep">
                     <div class="fbar" style="background:linear-gradient(160deg,${s.color},${s.color}dd);height:${h}px">
                         <div class="fnum">${s.val}</div><div class="flabel">${s.k} · ${s.label}</div>
                     </div>
-                    <div class="fconv">${conv!==null? '▸ <b>'+conv+'%</b>' : '&nbsp;'}</div>
+                    <div class="fconv"><b>${share}%</b> del total</div>
                 </div>`;
             });
             funnel += `</div></div>`;
