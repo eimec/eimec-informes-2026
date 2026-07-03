@@ -203,7 +203,11 @@
         .table thead th:first-child { background: var(--brand-tint); }
         .cell-strong { font-weight: 700; }
         .cell-win { color: var(--green); font-weight: 700; }
-        .cell-zero { color: #C9C4CE; }
+        .cell-zero { color: #D6D1DA; text-align: center; }
+        .cell-total { font-weight: 800; color: var(--brand-dark); text-align: center; }
+        .cell-heat { color: #fff; font-weight: 700; text-align: center; }
+        .table td.num { text-align: center; }
+        .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:var(--brand-tint); color:var(--brand); font-size:10px; font-weight:700; margin-right:8px; }
 
         .chart-container { position: relative; height: 300px; }
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
@@ -417,28 +421,50 @@
                 <div class="section"><div class="section-title">Leads cualificados (F2) por día</div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
             `;
 
-            // Pipeline por País
+            // Pipeline por País — Top 15 por volumen de tratos
             if (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0) {
-                html += `<div class="section"><div class="section-title">Pipeline por país</div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>País</th><th>F2</th><th>F3</th><th>F4</th><th>Won</th><th>% del total</th></tr></thead><tbody>`;
-                Object.entries(data.pais_pipeline)
-                  .sort((a,b)=>(b[1].won||0)-(a[1].won||0) || (b[1].f2||0)-(a[1].f2||0))
-                  .forEach(([pais, c])=>{
+                const rows = Object.entries(data.pais_pipeline).map(([pais,c])=>({
+                    pais, c, total:(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0)
+                })).sort((a,b)=> b.total-a.total || (b.c.won||0)-(a.c.won||0));
+                const totalPaises = rows.length;
+                const top = rows.slice(0,15);
+                const maxTotal = Math.max(...top.map(r=>r.total),1);
+                const note = totalPaises>15 ? `Top 15 de ${totalPaises} países · por volumen de tratos` : `${totalPaises} países · por volumen de tratos`;
+                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Total</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th>% del total</th></tr></thead><tbody>`;
+                top.forEach(({pais,c,total}, i)=>{
                     const pctg = t>0 ? Math.round((c.won||0)/t*100) : 0;
-                    const z = v => v ? `<td>${v}</td>` : `<td class="cell-zero">0</td>`;
-                    html += `<tr><td class="cell-strong">${pais}</td>${z(c.f2)}${z(c.f3)}${z(c.f4)}<td class="${c.won?'cell-win':'cell-zero'}">${c.won||0}</td><td>${pctg}%</td></tr>`;
+                    const z = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
+                    const heat = (0.08 + 0.42*(total/maxTotal)).toFixed(2);
+                    html += `<tr>
+                        <td><span class="rank-badge">${i+1}</span></td>
+                        <td class="cell-strong">${pais}</td>
+                        <td class="cell-total" style="background:rgba(124,44,84,${heat})">${total}</td>
+                        ${z(c.f2)}${z(c.f3)}${z(c.f4)}
+                        <td class="num ${c.won?'cell-win':'cell-zero'}">${c.won||0}</td>
+                        <td class="num">${pctg}%</td></tr>`;
                 });
                 html += `</tbody></table></div></div>`;
             }
 
-            // Matriz Curso x País
+            // Matriz Curso x País — solo países con cierres, mapa de calor
             if (data.matrix && Object.keys(data.matrix).length > 0) {
-                const paises = Object.keys(data.pais_pipeline || {});
-                html += `<div class="section"><div class="section-title">Matriz curso × país · cierres</div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>Curso</th>${paises.map(p=>`<th>${p}</th>`).join('')}</tr></thead><tbody>`;
-                Object.entries(data.matrix).forEach(([curso, pv])=>{
-                    html += `<tr><td class="cell-strong">${curso||'Sin curso'}</td>${paises.map(p=>{
-                        const v = pv[p]||0; return v ? `<td class="cell-win">${v}</td>` : `<td class="cell-zero">0</td>`;
+                const paisWon = {};
+                Object.values(data.matrix).forEach(pv => Object.entries(pv).forEach(([p,v]) => { paisWon[p]=(paisWon[p]||0)+v; }));
+                const paises = Object.keys(paisWon).sort((a,b)=>paisWon[b]-paisWon[a]).slice(0,15);
+                const maxCell = Math.max(...Object.values(data.matrix).flatMap(pv=>Object.values(pv)),1);
+                // ordenar cursos por total de cierres
+                const cursosOrd = Object.entries(data.matrix).map(([curso,pv])=>({
+                    curso, pv, tot:Object.values(pv).reduce((a,b)=>a+b,0)
+                })).sort((a,b)=>b.tot-a.tot);
+                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Matriz curso × país · cierres</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Solo países con cierres · intensidad = nº de cierres</span></div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>Curso</th><th style="color:var(--brand)">Total</th>${paises.map(p=>`<th class="num">${p}</th>`).join('')}</tr></thead><tbody>`;
+                cursosOrd.forEach(({curso, pv, tot})=>{
+                    html += `<tr><td class="cell-strong">${curso||'Sin curso'}</td><td class="cell-total">${tot}</td>${paises.map(p=>{
+                        const v = pv[p]||0;
+                        if(!v) return `<td class="cell-zero">·</td>`;
+                        const a = (0.15 + 0.6*(v/maxCell)).toFixed(2);
+                        return `<td class="cell-heat" style="background:rgba(124,44,84,${a})">${v}</td>`;
                     }).join('')}</tr>`;
                 });
                 html += `</tbody></table></div></div>`;
