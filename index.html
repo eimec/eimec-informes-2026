@@ -501,13 +501,15 @@
             if (data.matrix && Object.keys(data.matrix).length > 0) {
                 const paisWon = {};
                 Object.values(data.matrix).forEach(pv => Object.entries(pv).forEach(([p,v]) => { paisWon[p]=(paisWon[p]||0)+v; }));
-                const paises = Object.keys(paisWon).sort((a,b)=>paisWon[b]-paisWon[a]).slice(0,15);
+                const paisTratos = {};
+                Object.entries(data.pais_pipeline||{}).forEach(([p,c])=>{ paisTratos[p]=(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0); });
+                const paises = Object.keys(paisWon).sort((a,b)=>(paisTratos[b]||0)-(paisTratos[a]||0) || paisWon[b]-paisWon[a]).slice(0,15);
                 const maxCell = Math.max(...Object.values(data.matrix).flatMap(pv=>Object.values(pv)),1);
                 // ordenar cursos por total de cierres
                 const cursosOrd = Object.entries(data.matrix).map(([curso,pv])=>({
                     curso, pv, tot:Object.values(pv).reduce((a,b)=>a+b,0)
                 })).sort((a,b)=>b.tot-a.tot);
-                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Matriz curso × país · cierres</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Solo países con cierres · intensidad = nº de cierres</span></div><div class="table-wrap"><table class="table">
+                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Matriz curso × país · cierres</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Países ordenados por nº de tratos · intensidad = nº de cierres</span></div><div class="table-wrap"><table class="table">
                     <thead><tr><th>Curso</th><th style="color:var(--brand)">Total</th>${paises.map(p=>`<th class="num">${p}</th>`).join('')}</tr></thead><tbody>`;
                 cursosOrd.forEach(({curso, pv, tot})=>{
                     html += `<tr><td class="cell-strong">${curso||'Sin curso'}</td><td class="cell-total">${tot}</td>${paises.map(p=>{
