@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EIMEC - Informe de Dirección</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; }
+
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-box h1 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #1e293b;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .login-box button:hover {
+            background: #5568d3;
+        }
+
+        .error {
+            color: #dc2626;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .dashboard-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .dashboard-header h1 {
+            font-size: 20px;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .dashboard-header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .status-badge {
+            background: #059669;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .filters-container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            max-width: 1600px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 12px;
+            width: 120px;
+        }
+
+        .apply-btn {
+            padding: 8px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .dashboard-content {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .card-label {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            text-align: left;
+            padding: 10px;
+            background: #f8fafc;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        [class*="whatsapp"],
+        [id*="whatsapp"],
+        [class*="floating"],
+        [class*="ai-"] {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .filters-container { flex-direction: column; align-items: stretch; }
+            .filter-btn, .filter-input { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <h1>🔐 EIMEC Informe</h1>
+            <div id="errorMsg" class="error"></div>
+            <input type="password" id="passwordInput" placeholder="Contraseña" />
+            <button onclick="checkPassword()">Entrar</button>
+        </div>
+    </div>
+
+    <div class="dashboard" id="dashboard">
+        <div class="dashboard-header">
+            <h1>EIMEC – Informe de Dirección</h1>
+            <div class="dashboard-header-right">
+                <div class="status-badge" id="statusBadge">AC Live</div>
+                <button class="logout-btn" onclick="logout()">Salir</button>
+            </div>
+        </div>
+
+        <div class="filters-container">
+            <button class="filter-btn active" data-range="7d" onclick="setDateRange('7d')">7D</button>
+            <button class="filter-btn" data-range="30d" onclick="setDateRange('30d')">30D</button>
+            <button class="filter-btn" data-range="90d" onclick="setDateRange('90d')">90D</button>
+            <button class="filter-btn" data-range="6m" onclick="setDateRange('6m')">6M</button>
+            <button class="filter-btn" data-range="1a" onclick="setDateRange('1a')">1A</button>
+
+            <input type="text" class="filter-input" id="fromDate" placeholder="dd/mm/aaaa" />
+            <input type="text" class="filter-input" id="toDate" placeholder="dd/mm/aaaa" />
+
+            <button class="apply-btn" onclick="applyCustomRange()">Aplicar</button>
+        </div>
+
+        <div class="dashboard-content" id="dashboardContent">
+            <div class="loading">Cargando datos...</div>
+        </div>
+    </div>
+
+    <script>
+        const PASSWORD = 'eimec2026';
+        let charts = {};
+
+        function checkPassword() {
+            const input = document.getElementById('passwordInput');
+            const error = document.getElementById('errorMsg');
+
+            if (input.value === PASSWORD) {
+                sessionStorage.setItem('authenticated', 'true');
+                showDashboard();
+                loadDashboardData();
+            } else {
+                error.textContent = 'Contraseña incorrecta';
+                input.value = '';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboard').classList.add('active');
+        }
+
+        function logout() {
+            sessionStorage.removeItem('authenticated');
+            document.getElementById('loginContainer').style.display = 'flex';
+            document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('passwordInput').value = '';
+        }
+
+        function setDateRange(range) {
+            const today = new Date();
+            let from = new Date();
+
+            switch(range) {
+                case '7d': from.setDate(today.getDate() - 7); break;
+                case '30d': from.setDate(today.getDate() - 30); break;
+                case '90d': from.setDate(today.getDate() - 90); break;
+                case '6m': from.setMonth(today.getMonth() - 6); break;
+                case '1a': from.setFullYear(today.getFullYear() - 1); break;
+            }
+
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            loadDashboardData(from, today);
+        }
+
+        function applyCustomRange() {
+            const fromStr = document.getElementById('fromDate').value;
+            const toStr = document.getElementById('toDate').value;
+
+            if (!fromStr || !toStr) {
+                alert('Por favor completa ambas fechas');
+                return;
+            }
+
+            const [fDay, fMonth, fYear] = fromStr.split('/');
+            const [tDay, tMonth, tYear] = toStr.split('/');
+
+            const from = new Date(fYear, fMonth - 1, fDay);
+            const to = new Date(tYear, tMonth - 1, tDay);
+
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+
+            loadDashboardData(from, to);
+        }
+
+        async function loadDashboardData(fromDate, toDate) {
+            try {
+                const params = {};
+                if (fromDate && toDate) {
+                    params.from = fromDate.toISOString().split('T')[0];
+                    params.to = toDate.toISOString().split('T')[0];
+                }
+
+                const query = new URLSearchParams(params).toString();
+                const response = await fetch(`/api/ac-data?${query}`);
+                const data = await response.json();
+
+                if (!data.ok) {
+                    document.getElementById('dashboardContent').innerHTML = '<div style="color: #dc2626;">Error al cargar datos</div>';
+                    return;
+                }
+
+                renderDashboard(data);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('dashboardContent').innerHTML = '<div style="color: #dc2626;">Error de conexión</div>';
+            }
+        }
+
+        function renderDashboard(data) {
+            const p = data.pipeline;
+            const w = data.won_count;
+            const t = p.f1 + p.f2 + p.f3 + p.f4 + w;
+            const f1f2 = p.f1 + p.f2;
+            const m1 = f1f2 > 0 ? Math.round(p.f2 / f1f2 * 100) : 0;
+            const m2 = p.f2 > 0 ? Math.round(w / p.f2 * 100) : 0;
+            const m3 = t > 0 ? Math.round(w / t * 100) : 0;
+            const sc = data.won_deals.filter(x => !x.curso || x.curso === '').length;
+
+            let html = `
+                <div class="cards-grid">
+                    <div class="card"><div class="card-label">F1 – SOLICITUD</div><div class="card-value">${p.f1}</div></div>
+                    <div class="card"><div class="card-label">F2 – CUALIFICADO</div><div class="card-value">${p.f2}</div></div>
+                    <div class="card"><div class="card-label">F3 – PROPUESTA</div><div class="card-value">${p.f3}</div></div>
+                    <div class="card"><div class="card-label">F4 – FACTURACIÓN</div><div class="card-value">${p.f4}</div></div>
+                    <div class="card"><div class="card-label">DESCARTADOS</div><div class="card-value">${p.trash}</div></div>
+                    <div class="card"><div class="card-label">WON – CERRADOS</div><div class="card-value">${w}</div></div>
+                </div>
+
+                <div class="cards-grid">
+                    <div class="card"><div class="card-label">F1 → F2</div><div class="card-value">${m1}%</div></div>
+                    <div class="card"><div class="card-label">F2 → WON</div><div class="card-value">${m2}%</div></div>
+                    <div class="card"><div class="card-label">WIN RATE GLOBAL</div><div class="card-value">${m3}%</div></div>
+                    <div class="card"><div class="card-label">SIN CURSO ASIGNADO</div><div class="card-value">${sc}</div></div>
+                </div>
+            `;
+
+            // Matriz Curso x País
+            if (data.matrix && Object.keys(data.matrix).length > 0) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">Matriz Curso x País - Won Deals</div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Curso</th>
+                                    ${Object.keys(data.pais_pipeline || {}).map(p => `<th>${p}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.entries(data.matrix).map(([curso, paises]) => `
+                                    <tr>
+                                        <td><strong>${curso || 'Sin Curso'}</strong></td>
+                                        ${Object.keys(data.pais_pipeline || {}).map(p => `<td>${paises[p] || 0}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Pipeline por País
+            if (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0) {
+                html += `
+                    <div class="section">
+                        <div class="section-title">Pipeline por País</div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>País</th>
+                                    <th>F2</th>
+                                    <th>F3</th>
+                                    <th>F4</th>
+                                    <th>WON</th>
+                                    <th>% SOBRE TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.entries(data.pais_pipeline).map(([pais, counts]) => {
+                                    const pctg = t > 0 ? Math.round(counts.won / t * 100) : 0;
+                                    return `
+                                        <tr>
+                                            <td><strong>${pais}</strong></td>
+                                            <td>${counts.f2 || 0}</td>
+                                            <td>${counts.f3 || 0}</td>
+                                            <td>${counts.f4 || 0}</td>
+                                            <td>${counts.won || 0}</td>
+                                            <td>${pctg}%</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Gráficos
+            html += `
+                <div class="grid-2">
+                    <div class="section">
+                        <div class="section-title">Won por Curso</div>
+                        <div class="chart-container">
+                            <canvas id="wonByCursoChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Won Cerrados por Día</div>
+                        <div class="chart-container">
+                            <canvas id="wonByDateChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">F2 Cualificados por Día</div>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="f2ByDateChart"></canvas>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dashboardContent').innerHTML = html;
+
+            // Renderizar gráficos
+            renderCharts(data);
+        }
+
+        function renderCharts(data) {
+            // Won por Curso
+            const cursoData = {};
+            data.won_deals.forEach(deal => {
+                const curso = deal.curso || 'Sin Curso';
+                cursoData[curso] = (cursoData[curso] || 0) + 1;
+            });
+
+            if (document.getElementById('wonByCursoChart')) {
+                const ctx1 = document.getElementById('wonByCursoChart').getContext('2d');
+                if (charts.wonByCurso) charts.wonByCurso.destroy();
+                charts.wonByCurso = new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(cursoData),
+                        datasets: [{
+                            data: Object.values(cursoData),
+                            backgroundColor: ['#667eea', '#764ba2', '#f59e0b', '#10b981', '#ef4444', '#3b82f6']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // Won por Día
+            if (data.won_by_date && document.getElementById('wonByDateChart')) {
+                const ctx2 = document.getElementById('wonByDateChart').getContext('2d');
+                if (charts.wonByDate) charts.wonByDate.destroy();
+                charts.wonByDate = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: Object.keys(data.won_by_date),
+                        datasets: [{
+                            label: 'Won',
+                            data: Object.values(data.won_by_date),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+
+            // F2 por Día
+            if (data.f2_by_date && document.getElementById('f2ByDateChart')) {
+                const ctx3 = document.getElementById('f2ByDateChart').getContext('2d');
+                if (charts.f2ByDate) charts.f2ByDate.destroy();
+                charts.f2ByDate = new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(data.f2_by_date),
+                        datasets: [{
+                            label: 'F2 Cualificados',
+                            data: Object.values(data.f2_by_date),
+                            backgroundColor: '#667eea'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+        }
+
+        // Verificar autenticación al cargar
+        if (sessionStorage.getItem('authenticated') === 'true') {
+            showDashboard();
+            loadDashboardData();
+        }
+
+        // Auto-reload cada 5 minutos
+        setInterval(() => {
+            if (sessionStorage.getItem('authenticated') === 'true') {
+                loadDashboardData();
+            }
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
