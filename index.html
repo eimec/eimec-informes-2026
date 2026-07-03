@@ -332,12 +332,13 @@
 
         async function loadDashboardData(fromDate, toDate) {
             document.getElementById('metaLine').innerHTML = 'Actualizando…';
+            // Por defecto (carga inicial) usa 30 días, así TODAS las tablas (incl. vendedor) respetan el mismo filtro
+            if (!fromDate || !toDate) { const _t=new Date(); const _f=new Date(); _f.setDate(_t.getDate()-30); fromDate=_f; toDate=_t; }
             try {
-                const params = {};
-                if (fromDate && toDate) {
-                    params.from = fromDate.toISOString().split('T')[0];
-                    params.to = toDate.toISOString().split('T')[0];
-                }
+                const params = {
+                    from: fromDate.toISOString().split('T')[0],
+                    to: toDate.toISOString().split('T')[0]
+                };
                 const query = new URLSearchParams(params).toString();
                 const response = await fetch(`/api/ac-data?${query}`);
                 const data = await response.json();
