@@ -450,8 +450,8 @@
                 </div>
             `;
 
-            // 6 insights + recomendaciones (del periodo, cuando ac-extra está disponible)
-            if (extra && extra.ok) html += renderInsights(extra);
+            // 6 insights + recomendaciones (país/curso desde won del proxy; vendedor desde ac-extra)
+            if (extra && extra.ok) html += renderInsights(extra, data);
 
             // Charts row
             html += `
@@ -462,8 +462,8 @@
                 <div class="section"><div class="section-title">Leads cualificados (F2) por día</div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
             `;
 
-            // Pipeline por País — tratos totales (con F1) del periodo, matcheando trato→contacto→país (ac-extra).
-            const hasF1 = !!(extra && extra.by_pais && Object.keys(extra.by_pais).length > 0);
+            // Pipeline por País — desde datos con país (won/cualificado del proxy). Los F1 recientes NO tienen país en el CRM.
+            const hasF1 = false;
             if (hasF1 || (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0)) {
                 let rows;
                 if (hasF1) {
@@ -516,11 +516,10 @@
                 html += `</tbody></table></div></div>`;
             }
 
-            // ── Tablas EXTRA (ac-extra, del periodo): cursos + vendedor ──
-            if (extra && extra.ok) {
-                if (extra.by_curso) html += renderCursoTable(extra.by_curso);
-                if (extra.by_owner && Object.keys(extra.by_owner).length) html += renderOwnerTable(extra.by_owner);
-                if (extra.sin_pais) html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E"><strong>⚠️ Calidad de dato:</strong> ${extra.sin_pais.toLocaleString('es')} tratos <b>sin país</b> en el CRM (campo vacío). Completar el campo País en los contactos afina este análisis.</div>`;
+            // ── Tabla EXTRA: Rendimiento por vendedor (ac-extra, del periodo, dato fiable) ──
+            if (extra && extra.ok && extra.by_owner && Object.keys(extra.by_owner).length) {
+                html += renderOwnerTable(extra.by_owner);
+                if (extra.sin_pais) html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E"><strong>⚠️ Calidad de dato en el CRM:</strong> los tratos abiertos (F1-F4) recientes <b>no tienen País ni Curso</b> — esos campos solo están en los cerrados. Por eso el desglose por país/curso usa los <b>cierres</b>. Recomendado: exigir País y Curso en el formulario de entrada.</div>`;
             }
 
             // Matriz Curso x País — solo países con cierres, mapa de calor. Países unificados (US=United States).
@@ -591,34 +590,42 @@
             return Object.entries(obj||{}).filter(([k])=>!(exclude||[]).includes(k))
                 .map(([k,v])=>({k, ...v})).sort((a,b)=>(b[metric]||0)-(a[metric]||0));
         }
-        function renderInsights(extra){
-            const EXC_C = ['Sin curso','Sin dato'];
-            const EXC_P = ['Sin país','Sin dato'];
-            const EXC_O = ['Sin asignar','Pacientes modelo EIMEC Formación'];
-            const cursoWon = topBy(extra.by_curso, 'won', EXC_C);
-            const cursoVol = topBy(extra.by_curso, 'total', EXC_C);
-            const cursoStuck = topBy(extra.by_curso, 'f2', EXC_C).filter(c=>c.won===0);
-            const paisWon = topBy(extra.by_pais, 'won', EXC_P);
-            const paisQual = topBy(extra.by_pais, 'f2', EXC_P);
-            const owners = topBy(extra.by_owner, 'won', EXC_O);
-            const T = extra.totals||{};
-            const conv = (T.total>0)? Math.round((T.won||0)/T.total*100):0;
+        function renderInsights(extra, data){
+            const EXC_O = ['Sin asignar','Pacientes modelo EIMEC Formación','EIMEC Formación'];
+            // País (con cierres) desde el proxy — tiene país
+            const paisArr = Object.entries(data.pais_pipeline||{})
+                .filter(([k])=> k!=='Sin pais' && k!=='Sin país')
+                .map(([k,c])=>({k, won:c.won||0, f2:c.f2||0, f3:c.f3||0, f4:c.f4||0}));
+            const paisWon = [...paisArr].sort((a,b)=>b.won-a.won);
+            const paisQual = [...paisArr].sort((a,b)=>b.f2-a.f2);
+            // Curso (cierres) desde el proxy
+            const cursoArr = Object.entries(data.curso_totals||{})
+                .filter(([k])=> k!=='Sin curso')
+                .map(([k,v])=>({k, won:v})).sort((a,b)=>b.won-a.won);
+            // Vendedor desde ac-extra (del periodo)
+            const owners = (extra && extra.by_owner)
+                ? Object.entries(extra.by_owner).filter(([k])=>!EXC_O.includes(k)).map(([k,v])=>({k,...v})).sort((a,b)=>(b.won||0)-(a.won||0))
+                : [];
+            const p = data.pipeline, w = data.won_count;
+            const totalPipe = p.f1+p.f2+p.f3+p.f4+w;
+            const winGlobal = totalPipe>0 ? Math.round(w/totalPipe*100) : 0;
+            const f2Won = (p.f2+p.f3+p.f4+w)>0 ? Math.round(w/(p.f2+p.f3+p.f4+w)*100) : 0;
             const cards = [
-                {t:'Curso más vendido', v: cursoWon[0]?cursoWon[0].k:'—', s: cursoWon[0]?cursoWon[0].won+' cierres':'sin datos'},
-                {t:'Curso con más tratos', v: cursoVol[0]?cursoVol[0].k:'—', s: cursoVol[0]?cursoVol[0].total+' tratos':'sin datos'},
-                {t:'Curso estancado (F2, 0 cierres)', v: cursoStuck[0]?cursoStuck[0].k:'—', s: cursoStuck[0]?cursoStuck[0].f2+' en F2 sin cerrar':'—'},
-                {t:'País que más cierra', v: paisWon[0]?paisWon[0].k:'—', s: paisWon[0]?paisWon[0].won+' cierres':'sin datos'},
-                {t:'País con más cualificados', v: paisQual[0]?paisQual[0].k:'—', s: paisQual[0]?paisQual[0].f2+' en F2 (oportunidad)':'sin datos'},
-                {t:'Conversión global del periodo', v: conv+'%', s: (T.won||0)+' won de '+(T.total||0)+' tratos'}
+                {t:'Curso más vendido', v: cursoArr[0]?cursoArr[0].k:'—', s: cursoArr[0]?cursoArr[0].won+' cierres':'—'},
+                {t:'País que más cierra', v: paisWon[0]&&paisWon[0].won?paisWon[0].k:'—', s: paisWon[0]&&paisWon[0].won?paisWon[0].won+' cierres':'—'},
+                {t:'País con más cualificados (F2)', v: paisQual[0]&&paisQual[0].f2?paisQual[0].k:'—', s: paisQual[0]&&paisQual[0].f2?paisQual[0].f2+' en F2 · oportunidad':'—'},
+                {t:'Mejor vendedor (cierres)', v: owners[0]?owners[0].k:'—', s: owners[0]?owners[0].won+' cierres':'—'},
+                {t:'Conversión F2 → Won', v: f2Won+'%', s: 'cualificados que cierran'},
+                {t:'Win rate global', v: winGlobal+'%', s: w+' won de '+totalPipe+' tratos'}
             ];
-            let h = `<div class="section"><div class="section-title">6 insights del periodo · ${fmtDate((extra.period&&extra.period.from)||'')} — ${fmtDate((extra.period&&extra.period.to)||'')}</div><div class="cards-grid">`;
+            let h = `<div class="section"><div class="section-title">6 insights del periodo${data.period?' · '+fmtDate(data.period.from)+' — '+fmtDate(data.period.to):''}</div><div class="cards-grid">`;
             cards.forEach(c=> h += `<div class="card"><div class="card-label">${c.t}</div><div class="card-value" style="font-size:19px;line-height:1.15">${c.v}</div><div class="card-foot">${c.s}</div></div>`);
             h += `</div>`;
             const recs = [];
-            if (paisQual[0]) recs.push(`<b>${paisQual[0].k}</b>: ${paisQual[0].f2} cualificados (F2) sin cerrar — priorizar seguimiento comercial esta semana.`);
-            if (cursoStuck[0]) recs.push(`Curso <b>${cursoStuck[0].k}</b>: ${cursoStuck[0].f2} tratos en F2 sin ningún cierre — revisar propuesta/precio.`);
-            if (paisWon[0]) recs.push(`<b>${paisWon[0].k}</b> es el país que más cierra (${paisWon[0].won}) — reforzar inversión y replicar en países similares.`);
-            if (cursoWon[0]) recs.push(`Empujar <b>${cursoWon[0].k}</b> (curso top en cierres) con campañas específicas.`);
+            if (paisQual[0] && paisQual[0].f2) recs.push(`<b>${paisQual[0].k}</b>: ${paisQual[0].f2} cualificados (F2) sin cerrar — priorizar seguimiento comercial esta semana.`);
+            if (paisWon[0] && paisWon[0].won) recs.push(`<b>${paisWon[0].k}</b> lidera cierres (${paisWon[0].won}) — reforzar inversión y replicar en países similares.`);
+            if (cursoArr[0]) recs.push(`<b>${cursoArr[0].k}</b> es el curso top en ventas (${cursoArr[0].won}) — empujar con campañas específicas.`);
+            if (owners[0]) recs.push(`<b>${owners[0].k}</b> es el vendedor con más cierres — compartir sus buenas prácticas con el equipo.`);
             h += `<div style="margin-top:14px;background:var(--brand-tint);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--ink)"><b style="color:var(--brand)">Recomendaciones — dónde atacar la semana que viene:</b><ul style="margin:8px 0 0 18px">${recs.map(r=>`<li style="margin-bottom:5px">${r}</li>`).join('')}</ul></div>`;
             return h + `</div>`;
         }
