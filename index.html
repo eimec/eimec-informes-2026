@@ -344,7 +344,7 @@
                 if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta en unos segundos.</div>'; return; }
                 renderDashboard(data, null);   // render inmediato (rápido)
                 // ac-extra es pesado (~40s la 1ª vez, luego cacheado); se carga en segundo plano y re-renderiza con la tabla de vendedor
-                fetch(`/api/ac-extra`).then(r=>r.json()).then(extra=>{
+                fetch(`/api/ac-extra?${query}`).then(r=>r.json()).then(extra=>{
                     if (extra && extra.ok) renderDashboard(data, extra);
                 }).catch(()=>{});
             } catch (error) {
@@ -450,6 +450,9 @@
                 </div>
             `;
 
+            // 6 insights + recomendaciones (del periodo, cuando ac-extra está disponible)
+            if (extra && extra.ok) html += renderInsights(extra);
+
             // Charts row
             html += `
                 <div class="grid-2" style="margin-bottom:22px">
@@ -459,9 +462,8 @@
                 <div class="section"><div class="section-title">Leads cualificados (F2) por día</div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
             `;
 
-            // Pipeline por País — Top 15 por volumen (periodo). NO usamos el F1 de ac-extra porque el país
-            // está vacío en 8k+ tratos del CRM y sería histórico (no del periodo) → rompería la consistencia.
-            const hasF1 = false;
+            // Pipeline por País — tratos totales (con F1) del periodo, matcheando trato→contacto→país (ac-extra).
+            const hasF1 = !!(extra && extra.by_pais && Object.keys(extra.by_pais).length > 0);
             if (hasF1 || (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0)) {
                 let rows;
                 if (hasF1) {
@@ -477,7 +479,7 @@
                 const totalPaises = rows.length;
                 const top = rows.slice(0,15);
                 const maxTotal = Math.max(...top.map(r=>r.total),1);
-                const note = `Top 15 de ${totalPaises} países · Tratos F2→Won del periodo (F1 sin país fiable en el CRM)`;
+                const note = hasF1 ? `Top 15 de ${totalPaises} países · Tratos totales (F1+F2+F3+F4+Won) creados en el periodo` : `Top 15 de ${totalPaises} países · Tratos F2→Won del periodo`;
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table">
                     <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos${hasF1?'':'<span style="font-weight:400;font-size:9px"> F2→Won</span>'}</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th></tr></thead><tbody>`;
                 const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
@@ -494,33 +496,31 @@
                         <td class="num" style="font-weight:700;color:${ventaPct>0?'var(--green)':'#D6D1DA'}">${ventaPct}%</td></tr>`;
                 });
                 // Fila TOTAL (global, TODOS los países). Sin clave AC, "Tratos" = F2+F3+F4+Won para que CUADRE con las filas.
-                const gTot = hasF1 ? (p.f1+p.f2+p.f3+p.f4+w) : (p.f2+p.f3+p.f4+w);
-                const gVenta = gTot>0 ? Math.round(w/gTot*100) : 0;
+                const T = (hasF1 && extra.totals) ? extra.totals : {f1:p.f1,f2:p.f2,f3:p.f3,f4:p.f4,won:w,total:(p.f2+p.f3+p.f4+w)};
+                const gTot = hasF1 ? (T.total||0) : (p.f2+p.f3+p.f4+w);
+                const gWon = hasF1 ? (T.won||0) : w;
+                const gVenta = gTot>0 ? Math.round(gWon/gTot*100) : 0;
                 const f1TotCell = hasF1
-                    ? `<td class="num" style="font-weight:800">${p.f1}</td>`
-                    : `<td class="num" style="font-weight:800;color:var(--muted)" title="F1 global, aún sin repartir por país">(${p.f1})</td>`;
+                    ? `<td class="num" style="font-weight:800">${T.f1||0}</td>`
+                    : `<td class="num" style="font-weight:800;color:var(--muted)">(${p.f1})</td>`;
                 html += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                     <td></td>
                     <td class="cell-strong" style="color:var(--brand-dark)">TOTAL${hasF1?' (con F1)':' (F2→Won)'} · ${totalPaises} países</td>
                     <td class="num" style="font-weight:800;color:var(--brand-dark)">${gTot}</td>
                     ${f1TotCell}
-                    <td class="num" style="font-weight:800">${p.f2}</td>
-                    <td class="num" style="font-weight:800">${p.f3}</td>
-                    <td class="num" style="font-weight:800">${p.f4}</td>
-                    <td class="num cell-win" style="font-weight:800">${w}</td>
+                    <td class="num" style="font-weight:800">${hasF1?(T.f2||0):p.f2}</td>
+                    <td class="num" style="font-weight:800">${hasF1?(T.f3||0):p.f3}</td>
+                    <td class="num" style="font-weight:800">${hasF1?(T.f4||0):p.f4}</td>
+                    <td class="num cell-win" style="font-weight:800">${gWon}</td>
                     <td class="num" style="font-weight:800;color:var(--green)">${gVenta}%</td></tr>`;
                 html += `</tbody></table></div></div>`;
             }
 
-            // ── Tabla EXTRA: Rendimiento por vendedor (dato fiable). País/curso omitidos por datos vacíos en el CRM.
-            if (extra && extra.by_owner && Object.keys(extra.by_owner).length) {
-                html += renderOwnerTable(extra.by_owner);
-                if (extra.data_quality) {
-                    const dq = extra.data_quality;
-                    html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E">
-                        <strong>⚠️ Calidad de dato en el CRM:</strong> ${(dq.tratos_sin_pais_final||0).toLocaleString('es')} tratos <b>sin país</b> y la mayoría <b>sin curso</b> en ActiveCampaign (solo ${dq.recuperados_por_telefono||0} recuperados por teléfono). Por eso el ranking por país/curso no es fiable sobre el total. <b>Recomendado:</b> completar los campos País y Curso en los contactos para desbloquear esos análisis.
-                    </div>`;
-                }
+            // ── Tablas EXTRA (ac-extra, del periodo): cursos + vendedor ──
+            if (extra && extra.ok) {
+                if (extra.by_curso) html += renderCursoTable(extra.by_curso);
+                if (extra.by_owner && Object.keys(extra.by_owner).length) html += renderOwnerTable(extra.by_owner);
+                if (extra.sin_pais) html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E"><strong>⚠️ Calidad de dato:</strong> ${extra.sin_pais.toLocaleString('es')} tratos <b>sin país</b> en el CRM (campo vacío). Completar el campo País en los contactos afina este análisis.</div>`;
             }
 
             // Matriz Curso x País — solo países con cierres, mapa de calor. Países unificados (US=United States).
@@ -582,7 +582,45 @@
             return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta');
         }
         function renderOwnerTable(obj){
-            return bdTable('Rendimiento por vendedor', 'Histórico · todos los tratos · % Rate = Won ÷ total', 'Vendedor', bdRows(obj), '% Rate');
+            return bdTable('Rendimiento por vendedor', 'Tratos creados en el periodo · % Rate = Won ÷ total', 'Vendedor', bdRows(obj), '% Rate');
+        }
+        function renderCursoTable(obj){
+            return bdTable('Tratos por curso', 'Tratos creados en el periodo · ordenado por volumen', 'Curso', bdRows(obj), '% Venta');
+        }
+        function topBy(obj, metric, exclude){
+            return Object.entries(obj||{}).filter(([k])=>!(exclude||[]).includes(k))
+                .map(([k,v])=>({k, ...v})).sort((a,b)=>(b[metric]||0)-(a[metric]||0));
+        }
+        function renderInsights(extra){
+            const EXC_C = ['Sin curso','Sin dato'];
+            const EXC_P = ['Sin país','Sin dato'];
+            const EXC_O = ['Sin asignar','Pacientes modelo EIMEC Formación'];
+            const cursoWon = topBy(extra.by_curso, 'won', EXC_C);
+            const cursoVol = topBy(extra.by_curso, 'total', EXC_C);
+            const cursoStuck = topBy(extra.by_curso, 'f2', EXC_C).filter(c=>c.won===0);
+            const paisWon = topBy(extra.by_pais, 'won', EXC_P);
+            const paisQual = topBy(extra.by_pais, 'f2', EXC_P);
+            const owners = topBy(extra.by_owner, 'won', EXC_O);
+            const T = extra.totals||{};
+            const conv = (T.total>0)? Math.round((T.won||0)/T.total*100):0;
+            const cards = [
+                {t:'Curso más vendido', v: cursoWon[0]?cursoWon[0].k:'—', s: cursoWon[0]?cursoWon[0].won+' cierres':'sin datos'},
+                {t:'Curso con más tratos', v: cursoVol[0]?cursoVol[0].k:'—', s: cursoVol[0]?cursoVol[0].total+' tratos':'sin datos'},
+                {t:'Curso estancado (F2, 0 cierres)', v: cursoStuck[0]?cursoStuck[0].k:'—', s: cursoStuck[0]?cursoStuck[0].f2+' en F2 sin cerrar':'—'},
+                {t:'País que más cierra', v: paisWon[0]?paisWon[0].k:'—', s: paisWon[0]?paisWon[0].won+' cierres':'sin datos'},
+                {t:'País con más cualificados', v: paisQual[0]?paisQual[0].k:'—', s: paisQual[0]?paisQual[0].f2+' en F2 (oportunidad)':'sin datos'},
+                {t:'Conversión global del periodo', v: conv+'%', s: (T.won||0)+' won de '+(T.total||0)+' tratos'}
+            ];
+            let h = `<div class="section"><div class="section-title">6 insights del periodo · ${fmtDate((extra.period&&extra.period.from)||'')} — ${fmtDate((extra.period&&extra.period.to)||'')}</div><div class="cards-grid">`;
+            cards.forEach(c=> h += `<div class="card"><div class="card-label">${c.t}</div><div class="card-value" style="font-size:19px;line-height:1.15">${c.v}</div><div class="card-foot">${c.s}</div></div>`);
+            h += `</div>`;
+            const recs = [];
+            if (paisQual[0]) recs.push(`<b>${paisQual[0].k}</b>: ${paisQual[0].f2} cualificados (F2) sin cerrar — priorizar seguimiento comercial esta semana.`);
+            if (cursoStuck[0]) recs.push(`Curso <b>${cursoStuck[0].k}</b>: ${cursoStuck[0].f2} tratos en F2 sin ningún cierre — revisar propuesta/precio.`);
+            if (paisWon[0]) recs.push(`<b>${paisWon[0].k}</b> es el país que más cierra (${paisWon[0].won}) — reforzar inversión y replicar en países similares.`);
+            if (cursoWon[0]) recs.push(`Empujar <b>${cursoWon[0].k}</b> (curso top en cierres) con campañas específicas.`);
+            h += `<div style="margin-top:14px;background:var(--brand-tint);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--ink)"><b style="color:var(--brand)">Recomendaciones — dónde atacar la semana que viene:</b><ul style="margin:8px 0 0 18px">${recs.map(r=>`<li style="margin-bottom:5px">${r}</li>`).join('')}</ul></div>`;
+            return h + `</div>`;
         }
 
         function baseOpts(extra){
