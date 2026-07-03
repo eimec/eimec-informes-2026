@@ -3,325 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EIMEC - Informe de Dirección</title>
+    <title>EIMEC · Informe de Dirección</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --brand: #7C2C54;
+            --brand-dark: #5A1F3D;
+            --brand-light: #9D4470;
+            --brand-soft: #C2708F;
+            --brand-tint: #F6EDF2;
+            --gold: #C79A4B;
+            --green: #2E9E6B;
+            --red: #B4474C;
+            --slate: #8A94A6;
+            --ink: #1B1420;
+            --muted: #6B6472;
+            --line: #EBE7EC;
+            --bg: #F6F4F7;
+            --card: #FFFFFF;
+            --shadow: 0 1px 2px rgba(27,20,32,.04), 0 8px 24px -12px rgba(27,20,32,.12);
+            --shadow-lg: 0 2px 4px rgba(27,20,32,.05), 0 24px 48px -20px rgba(124,44,84,.22);
+            --radius: 16px;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+            font-variant-numeric: tabular-nums;
+        }
+        .serif { font-family: 'Fraunces', Georgia, serif; }
 
+        /* ---------- LOGIN ---------- */
         .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; padding: 24px;
+            background:
+              radial-gradient(1200px 600px at 20% -10%, rgba(157,68,112,.55), transparent 55%),
+              radial-gradient(900px 500px at 100% 110%, rgba(90,31,61,.85), transparent 50%),
+              linear-gradient(140deg, #5A1F3D 0%, #7C2C54 55%, #47172F 100%);
         }
-
         .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
+            background: rgba(255,255,255,.98);
+            padding: 44px 40px; border-radius: 20px;
+            box-shadow: 0 40px 80px -24px rgba(0,0,0,.5);
+            width: 100%; max-width: 400px; text-align: center;
         }
-
-        .login-box h1 {
-            font-size: 24px;
-            margin-bottom: 30px;
-            text-align: center;
-            color: #1e293b;
+        .login-logo {
+            width: 56px; height: 56px; margin: 0 auto 18px;
+            border-radius: 14px; background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-family: 'Fraunces', serif; font-weight: 700; font-size: 28px;
+            box-shadow: 0 10px 24px -8px rgba(124,44,84,.6);
         }
-
+        .login-box h1 { font-size: 20px; margin-bottom: 4px; color: var(--ink); font-weight: 700; }
+        .login-box .sub { font-size: 13px; color: var(--muted); margin-bottom: 26px; }
         .login-box input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 16px;
+            width: 100%; padding: 13px 14px; margin-bottom: 16px;
+            border: 1.5px solid var(--line); border-radius: 10px; font-size: 15px;
+            transition: border-color .2s, box-shadow .2s; font-family: inherit;
         }
-
-        .login-box input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
+        .login-box input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px rgba(124,44,84,.12); }
         .login-box button {
-            width: 100%;
-            padding: 12px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
+            width: 100%; padding: 13px; background: var(--brand); color: #fff;
+            border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: background .2s, transform .1s; font-family: inherit;
         }
+        .login-box button:hover { background: var(--brand-dark); }
+        .login-box button:active { transform: translateY(1px); }
+        .error { color: var(--red); font-size: 13px; margin-bottom: 12px; min-height: 16px; }
 
-        .login-box button:hover {
-            background: #5568d3;
+        /* ---------- SHELL ---------- */
+        .dashboard { display: none; min-height: 100vh; }
+        .dashboard.active { display: block; }
+
+        .topbar {
+            background: linear-gradient(120deg, var(--brand-dark) 0%, var(--brand) 60%, #6A2648 100%);
+            color: #fff; padding: 22px 32px;
         }
-
-        .error {
-            color: #dc2626;
-            font-size: 14px;
-            margin-bottom: 15px;
+        .topbar-inner { max-width: 1440px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+        .brand-lockup { display: flex; align-items: center; gap: 14px; }
+        .brand-mark {
+            width: 44px; height: 44px; border-radius: 11px;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: #fff;
         }
-
-        .dashboard {
-            display: none;
-            min-height: 100vh;
-            padding: 20px;
+        .brand-text h1 { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 600; letter-spacing: .2px; line-height: 1.1; }
+        .brand-text .tag { font-size: 12px; opacity: .78; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 3px; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: rgba(46,158,107,.18); border: 1px solid rgba(120,230,180,.4);
+            color: #C9F5E1; padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
         }
-
-        .dashboard.active {
-            display: block;
-        }
-
-        .dashboard-header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .dashboard-header h1 {
-            font-size: 20px;
-            color: #1e293b;
-            margin: 0;
-        }
-
-        .dashboard-header-right {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .status-badge {
-            background: #059669;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
+        .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #45E29B; box-shadow: 0 0 0 0 rgba(69,226,155,.7); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(69,226,155,.6)} 70%{box-shadow:0 0 0 8px rgba(69,226,155,0)} 100%{box-shadow:0 0 0 0 rgba(69,226,155,0)} }
         .logout-btn {
-            background: #dc2626;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
+            background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25);
+            padding: 8px 15px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: background .2s;
         }
+        .logout-btn:hover { background: rgba(255,255,255,.22); }
 
-        .filters-container {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            max-width: 1600px;
-            margin-left: auto;
-            margin-right: auto;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
+        .subbar {
+            max-width: 1440px; margin: 0 auto; padding: 16px 32px 0;
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
         }
+        .meta-line { font-size: 13px; color: var(--muted); }
+        .meta-line strong { color: var(--brand); font-weight: 600; }
 
+        .filters {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            background: var(--card); padding: 8px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--line);
+        }
+        .seg { display: flex; gap: 2px; background: var(--brand-tint); padding: 3px; border-radius: 9px; }
         .filter-btn {
-            padding: 8px 16px;
-            border: 2px solid #e2e8f0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
+            padding: 7px 14px; border: none; background: transparent; border-radius: 7px;
+            cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--brand); font-family: inherit; transition: all .15s;
         }
-
-        .filter-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
+        .filter-btn:hover { background: rgba(124,44,84,.08); }
+        .filter-btn.active { background: var(--brand); color: #fff; box-shadow: 0 4px 10px -4px rgba(124,44,84,.5); }
+        .filter-divider { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
         .filter-input {
-            padding: 8px 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 12px;
-            width: 120px;
+            padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 12.5px; width: 118px; font-family: inherit; color: var(--ink);
         }
-
+        .filter-input:focus { outline: none; border-color: var(--brand); }
         .apply-btn {
-            padding: 8px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
+            padding: 8px 16px; background: var(--ink); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12.5px; font-family: inherit;
         }
+        .apply-btn:hover { background: #000; }
 
-        .dashboard-content {
-            max-width: 1600px;
-            margin: 0 auto;
+        .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px 48px; }
+
+        /* ---------- FUNNEL ---------- */
+        .funnel {
+            background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 24px 26px; margin-bottom: 22px;
         }
-
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
+        .funnel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+        .funnel-steps { display: flex; align-items: stretch; gap: 10px; }
+        .fstep { flex: 1; text-align: center; position: relative; }
+        .fbar {
+            border-radius: 10px; color: #fff; padding: 16px 8px 14px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            min-height: 96px; transition: transform .2s; box-shadow: inset 0 -30px 40px -20px rgba(0,0,0,.25);
         }
+        .fbar:hover { transform: translateY(-2px); }
+        .fbar .fnum { font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.5px; }
+        .fbar .flabel { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; opacity: .92; margin-top: 6px; }
+        .fconv { font-size: 11px; color: var(--muted); margin-top: 9px; font-weight: 600; }
+        .fconv b { color: var(--brand); }
 
+        /* ---------- KPI CARDS ---------- */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 14px; margin-bottom: 22px; }
         .card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 4px solid #667eea;
+            background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+            padding: 18px 18px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s;
         }
+        .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        .card::before { content:""; position: absolute; top:0; left:0; right:0; height: 3px; background: var(--slate); }
+        .card--f1::before{background:var(--slate)} .card--f2::before{background:var(--brand)}
+        .card--f3::before{background:var(--brand-soft)} .card--f4::before{background:var(--gold)}
+        .card--trash::before{background:var(--red)} .card--won::before{background:var(--green)}
+        .card-label { font-size: 10.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .7px; margin-bottom: 12px; }
+        .card-value { font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -.8px; line-height: 1; }
+        .card-foot { font-size: 11px; color: var(--muted); margin-top: 8px; }
 
-        .card-label {
-            font-size: 10px;
-            color: #64748b;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
+        .cards-grid.metrics .card { background: linear-gradient(160deg, #fff, var(--brand-tint)); }
+        .cards-grid.metrics .card::before { background: linear-gradient(90deg, var(--brand), var(--brand-soft)); }
+        .cards-grid.metrics .card-value { color: var(--brand); }
 
-        .card-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
+        /* ---------- SECTIONS ---------- */
         .section {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 22px;
         }
-
         .section-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 15px;
-            text-transform: uppercase;
+            font-size: 12px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 1.2px;
+            margin-bottom: 18px; padding-left: 12px; position: relative;
         }
+        .section-title::before { content:""; position:absolute; left:0; top:1px; bottom:1px; width:4px; border-radius:3px; background: var(--brand); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+        .grid-2 .section { margin-bottom: 0; }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .table {
-            width: 100%;
-            font-size: 12px;
-            border-collapse: collapse;
-        }
-
+        /* ---------- TABLES ---------- */
+        .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+        .table { width: 100%; font-size: 13px; border-collapse: collapse; min-width: 480px; }
         .table th {
-            text-align: left;
-            padding: 10px;
-            background: #f8fafc;
-            font-weight: 600;
-            border-bottom: 2px solid #e2e8f0;
+            text-align: left; padding: 11px 14px; background: var(--brand-tint); color: var(--brand-dark);
+            font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; position: sticky; top: 0;
         }
+        .table td { padding: 11px 14px; border-top: 1px solid var(--line); white-space: nowrap; color: var(--ink); }
+        .table tbody tr:nth-child(even) { background: #FBFAFB; }
+        .table tbody tr:hover { background: var(--brand-tint); }
+        .table td:first-child, .table th:first-child { position: sticky; left: 0; background: inherit; }
+        .table thead th:first-child { background: var(--brand-tint); }
+        .cell-strong { font-weight: 700; }
+        .cell-win { color: var(--green); font-weight: 700; }
+        .cell-zero { color: #C9C4CE; }
 
-        .table td {
-            padding: 10px;
-            border-bottom: 1px solid #e2e8f0;
-        }
+        .chart-container { position: relative; height: 300px; }
+        .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
 
-        .table tr:hover {
-            background: #f8fafc;
-        }
+        .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
+        .footer .brand-foot { font-family: 'Fraunces', serif; color: var(--brand); font-weight: 600; }
 
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin-bottom: 20px;
-        }
+        [class*="whatsapp"],[id*="whatsapp"],[class*="floating"],[class*="ai-"]{display:none!important}
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #64748b;
-        }
-
-        [class*="whatsapp"],
-        [id*="whatsapp"],
-        [class*="floating"],
-        [class*="ai-"] {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
+        @media (max-width: 860px){
             .grid-2 { grid-template-columns: 1fr; }
-            .filters-container { flex-direction: column; align-items: stretch; }
-            .filter-btn, .filter-input { width: 100%; }
+            .topbar, .subbar, .content, .footer { padding-left: 18px; padding-right: 18px; }
+            .funnel-steps { flex-wrap: wrap; }
+            .fstep { flex: 1 1 30%; }
         }
     </style>
 </head>
 <body>
     <div class="login-container" id="loginContainer">
         <div class="login-box">
-            <h1>🔐 EIMEC Informe</h1>
+            <div class="login-logo">E</div>
+            <h1>Informe de Dirección</h1>
+            <div class="sub">EIMEC · Acceso restringido</div>
             <div id="errorMsg" class="error"></div>
-            <input type="password" id="passwordInput" placeholder="Contraseña" />
-            <button onclick="checkPassword()">Entrar</button>
+            <input type="password" id="passwordInput" placeholder="Contraseña de acceso" onkeydown="if(event.key==='Enter')checkPassword()" />
+            <button onclick="checkPassword()">Entrar al informe</button>
         </div>
     </div>
 
     <div class="dashboard" id="dashboard">
-        <div class="dashboard-header">
-            <h1>EIMEC – Informe de Dirección</h1>
-            <div class="dashboard-header-right">
-                <div class="status-badge" id="statusBadge">AC Live</div>
-                <button class="logout-btn" onclick="logout()">Salir</button>
+        <header class="topbar">
+            <div class="topbar-inner">
+                <div class="brand-lockup">
+                    <div class="brand-mark">E</div>
+                    <div class="brand-text">
+                        <h1>Informe de Dirección</h1>
+                        <div class="tag">EIMEC · Business Intelligence</div>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <span class="live-badge"><span class="live-dot"></span> ActiveCampaign · En vivo</span>
+                    <button class="logout-btn" onclick="logout()">Salir</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="subbar">
+            <div class="meta-line" id="metaLine">Cargando periodo…</div>
+            <div class="filters">
+                <div class="seg">
+                    <button class="filter-btn" data-range="7d" onclick="setDateRange('7d')">7 días</button>
+                    <button class="filter-btn active" data-range="30d" onclick="setDateRange('30d')">30 días</button>
+                    <button class="filter-btn" data-range="90d" onclick="setDateRange('90d')">90 días</button>
+                    <button class="filter-btn" data-range="6m" onclick="setDateRange('6m')">6 meses</button>
+                    <button class="filter-btn" data-range="1a" onclick="setDateRange('1a')">1 año</button>
+                </div>
+                <div class="filter-divider"></div>
+                <input type="date" class="filter-input" id="fromDate" />
+                <input type="date" class="filter-input" id="toDate" />
+                <button class="apply-btn" onclick="applyCustomRange()">Aplicar</button>
             </div>
         </div>
 
-        <div class="filters-container">
-            <button class="filter-btn" data-range="7d" onclick="setDateRange('7d')">7D</button>
-            <button class="filter-btn active" data-range="30d" onclick="setDateRange('30d')">30D</button>
-            <button class="filter-btn" data-range="90d" onclick="setDateRange('90d')">90D</button>
-            <button class="filter-btn" data-range="6m" onclick="setDateRange('6m')">6M</button>
-            <button class="filter-btn" data-range="1a" onclick="setDateRange('1a')">1A</button>
-
-            <input type="text" class="filter-input" id="fromDate" placeholder="dd/mm/aaaa" />
-            <input type="text" class="filter-input" id="toDate" placeholder="dd/mm/aaaa" />
-
-            <button class="apply-btn" onclick="applyCustomRange()">Aplicar</button>
+        <div class="content" id="dashboardContent">
+            <div class="loading">Cargando datos de ActiveCampaign…</div>
         </div>
 
-        <div class="dashboard-content" id="dashboardContent">
-            <div class="loading">Cargando datos...</div>
+        <div class="footer">
+            Datos en vivo desde <b>ActiveCampaign</b> · Actualización automática cada 5 min · <span class="brand-foot">EIMEC</span> <span id="genStamp"></span>
         </div>
     </div>
 
     <script>
         const PASSWORD = 'eimec2026';
+        const PALETTE = ['#7C2C54','#C2708F','#C79A4B','#2E9E6B','#B4474C','#5B8DEF','#9D4470','#D4A5BC','#5A1F3D','#8A94A6'];
         let charts = {};
 
         function checkPassword() {
             const input = document.getElementById('passwordInput');
             const error = document.getElementById('errorMsg');
-
             if (input.value === PASSWORD) {
                 sessionStorage.setItem('authenticated', 'true');
                 showDashboard();
@@ -331,12 +293,10 @@
                 input.value = '';
             }
         }
-
         function showDashboard() {
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('dashboard').classList.add('active');
         }
-
         function logout() {
             sessionStorage.removeItem('authenticated');
             document.getElementById('loginContainer').style.display = 'flex';
@@ -347,7 +307,6 @@
         function setDateRange(range) {
             const today = new Date();
             let from = new Date();
-
             switch(range) {
                 case '7d': from.setDate(today.getDate() - 7); break;
                 case '30d': from.setDate(today.getDate() - 30); break;
@@ -355,55 +314,41 @@
                 case '6m': from.setMonth(today.getMonth() - 6); break;
                 case '1a': from.setFullYear(today.getFullYear() - 1); break;
             }
-
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
+            if (event && event.target) event.target.classList.add('active');
             loadDashboardData(from, today);
         }
-
         function applyCustomRange() {
             const fromStr = document.getElementById('fromDate').value;
             const toStr = document.getElementById('toDate').value;
-
-            if (!fromStr || !toStr) {
-                alert('Por favor completa ambas fechas');
-                return;
-            }
-
-            const [fDay, fMonth, fYear] = fromStr.split('/');
-            const [tDay, tMonth, tYear] = toStr.split('/');
-
-            const from = new Date(fYear, fMonth - 1, fDay);
-            const to = new Date(tYear, tMonth - 1, tDay);
-
+            if (!fromStr || !toStr) { alert('Selecciona ambas fechas'); return; }
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-
-            loadDashboardData(from, to);
+            loadDashboardData(new Date(fromStr), new Date(toStr));
         }
 
         async function loadDashboardData(fromDate, toDate) {
+            document.getElementById('metaLine').innerHTML = 'Actualizando…';
             try {
                 const params = {};
                 if (fromDate && toDate) {
                     params.from = fromDate.toISOString().split('T')[0];
                     params.to = toDate.toISOString().split('T')[0];
                 }
-
                 const query = new URLSearchParams(params).toString();
                 const response = await fetch(`/api/ac-data?${query}`);
                 const data = await response.json();
-
-                if (!data.ok) {
-                    document.getElementById('dashboardContent').innerHTML = '<div style="color: #dc2626;">Error al cargar datos</div>';
-                    return;
-                }
-
+                if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta en unos segundos.</div>'; return; }
                 renderDashboard(data);
             } catch (error) {
                 console.error(error);
-                document.getElementById('dashboardContent').innerHTML = '<div style="color: #dc2626;">Error de conexión</div>';
+                document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">Error de conexión con ActiveCampaign.</div>';
             }
+        }
+
+        function fmtDate(iso){
+            if(!iso) return '';
+            const [y,m,d] = iso.split(' ')[0].split('-');
+            return `${d}/${m}/${y}`;
         }
 
         function renderDashboard(data) {
@@ -416,191 +361,136 @@
             const m3 = t > 0 ? Math.round(w / t * 100) : 0;
             const sc = data.won_deals.filter(x => !x.curso || x.curso === '').length;
 
-            let html = `
-                <div class="cards-grid">
-                    <div class="card"><div class="card-label">F1 – SOLICITUD</div><div class="card-value">${p.f1}</div></div>
-                    <div class="card"><div class="card-label">F2 – CUALIFICADO</div><div class="card-value">${p.f2}</div></div>
-                    <div class="card"><div class="card-label">F3 – PROPUESTA</div><div class="card-value">${p.f3}</div></div>
-                    <div class="card"><div class="card-label">F4 – FACTURACIÓN</div><div class="card-value">${p.f4}</div></div>
-                    <div class="card"><div class="card-label">DESCARTADOS</div><div class="card-value">${p.trash}</div></div>
-                    <div class="card"><div class="card-label">WON – CERRADOS</div><div class="card-value">${w}</div></div>
-                </div>
+            // meta
+            if (data.period) {
+                document.getElementById('metaLine').innerHTML =
+                    `Periodo analizado: <strong>${fmtDate(data.period.from)} — ${fmtDate(data.period.to)}</strong>`;
+            }
+            if (data.generated) document.getElementById('genStamp').textContent = '· ' + fmtDate(data.generated) + ' ' + (data.generated.split(' ')[1]||'');
 
+            // FUNNEL
+            const stages = [
+                {k:'F1', label:'Solicitud', val:p.f1, color:'#8A94A6'},
+                {k:'F2', label:'Cualificado', val:p.f2, color:'#7C2C54'},
+                {k:'F3', label:'Propuesta', val:p.f3, color:'#C2708F'},
+                {k:'F4', label:'Facturación', val:p.f4, color:'#C79A4B'},
+                {k:'WON', label:'Cerrados', val:w, color:'#2E9E6B'}
+            ];
+            const maxV = Math.max(...stages.map(s=>s.val), 1);
+            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial</div></div><div class="funnel-steps">`;
+            stages.forEach((s,i)=>{
+                const h = 60 + Math.round((s.val/maxV)*90);
+                const prev = i>0 ? stages[i-1].val : null;
+                const conv = (prev && prev>0) ? Math.round(s.val/prev*100) : null;
+                funnel += `<div class="fstep">
+                    <div class="fbar" style="background:linear-gradient(160deg,${s.color},${s.color}dd);height:${h}px">
+                        <div class="fnum">${s.val}</div><div class="flabel">${s.k} · ${s.label}</div>
+                    </div>
+                    <div class="fconv">${conv!==null? '▸ <b>'+conv+'%</b>' : '&nbsp;'}</div>
+                </div>`;
+            });
+            funnel += `</div></div>`;
+
+            // KPI CARDS
+            let html = funnel + `
                 <div class="cards-grid">
-                    <div class="card"><div class="card-label">F1 → F2</div><div class="card-value">${m1}%</div></div>
-                    <div class="card"><div class="card-label">F2 → WON</div><div class="card-value">${m2}%</div></div>
-                    <div class="card"><div class="card-label">WIN RATE GLOBAL</div><div class="card-value">${m3}%</div></div>
-                    <div class="card"><div class="card-label">SIN CURSO ASIGNADO</div><div class="card-value">${sc}</div></div>
+                    <div class="card card--f1"><div class="card-label">F1 · Solicitud</div><div class="card-value">${p.f1}</div></div>
+                    <div class="card card--f2"><div class="card-label">F2 · Cualificado</div><div class="card-value">${p.f2}</div></div>
+                    <div class="card card--f3"><div class="card-label">F3 · Propuesta</div><div class="card-value">${p.f3}</div></div>
+                    <div class="card card--f4"><div class="card-label">F4 · Facturación</div><div class="card-value">${p.f4}</div></div>
+                    <div class="card card--trash"><div class="card-label">Descartados</div><div class="card-value">${p.trash}</div></div>
+                    <div class="card card--won"><div class="card-label">Won · Cerrados</div><div class="card-value">${w}</div></div>
+                </div>
+                <div class="cards-grid metrics">
+                    <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">Leads que cualifican</div></div>
+                    <div class="card"><div class="card-label">Conversión F2 → Won</div><div class="card-value">${m2}%</div><div class="card-foot">Cualificados que cierran</div></div>
+                    <div class="card"><div class="card-label">Win Rate Global</div><div class="card-value">${m3}%</div><div class="card-foot">Won sobre total pipeline</div></div>
+                    <div class="card"><div class="card-label">Sin curso asignado</div><div class="card-value">${sc}</div><div class="card-foot">Won sin programa etiquetado</div></div>
                 </div>
             `;
 
-            // Matriz Curso x País
-            if (data.matrix && Object.keys(data.matrix).length > 0) {
-                html += `
-                    <div class="section">
-                        <div class="section-title">Matriz Curso x País - Won Deals</div>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Curso</th>
-                                    ${Object.keys(data.pais_pipeline || {}).map(p => `<th>${p}</th>`).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${Object.entries(data.matrix).map(([curso, paises]) => `
-                                    <tr>
-                                        <td><strong>${curso || 'Sin Curso'}</strong></td>
-                                        ${Object.keys(data.pais_pipeline || {}).map(p => `<td>${paises[p] || 0}</td>`).join('')}
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
+            // Charts row
+            html += `
+                <div class="grid-2" style="margin-bottom:22px">
+                    <div class="section"><div class="section-title">Distribución de cierres por curso</div><div class="chart-container"><canvas id="wonByCursoChart"></canvas></div></div>
+                    <div class="section"><div class="section-title">Evolución de cierres por día</div><div class="chart-container"><canvas id="wonByDateChart"></canvas></div></div>
+                </div>
+                <div class="section"><div class="section-title">Leads cualificados (F2) por día</div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
+            `;
 
             // Pipeline por País
             if (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0) {
-                html += `
-                    <div class="section">
-                        <div class="section-title">Pipeline por País</div>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>País</th>
-                                    <th>F2</th>
-                                    <th>F3</th>
-                                    <th>F4</th>
-                                    <th>WON</th>
-                                    <th>% SOBRE TOTAL</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${Object.entries(data.pais_pipeline).map(([pais, counts]) => {
-                                    const pctg = t > 0 ? Math.round(counts.won / t * 100) : 0;
-                                    return `
-                                        <tr>
-                                            <td><strong>${pais}</strong></td>
-                                            <td>${counts.f2 || 0}</td>
-                                            <td>${counts.f3 || 0}</td>
-                                            <td>${counts.f4 || 0}</td>
-                                            <td>${counts.won || 0}</td>
-                                            <td>${pctg}%</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+                html += `<div class="section"><div class="section-title">Pipeline por país</div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>País</th><th>F2</th><th>F3</th><th>F4</th><th>Won</th><th>% del total</th></tr></thead><tbody>`;
+                Object.entries(data.pais_pipeline)
+                  .sort((a,b)=>(b[1].won||0)-(a[1].won||0) || (b[1].f2||0)-(a[1].f2||0))
+                  .forEach(([pais, c])=>{
+                    const pctg = t>0 ? Math.round((c.won||0)/t*100) : 0;
+                    const z = v => v ? `<td>${v}</td>` : `<td class="cell-zero">0</td>`;
+                    html += `<tr><td class="cell-strong">${pais}</td>${z(c.f2)}${z(c.f3)}${z(c.f4)}<td class="${c.won?'cell-win':'cell-zero'}">${c.won||0}</td><td>${pctg}%</td></tr>`;
+                });
+                html += `</tbody></table></div></div>`;
             }
 
-            // Gráficos
-            html += `
-                <div class="grid-2">
-                    <div class="section">
-                        <div class="section-title">Won por Curso</div>
-                        <div class="chart-container">
-                            <canvas id="wonByCursoChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="section">
-                        <div class="section-title">Won Cerrados por Día</div>
-                        <div class="chart-container">
-                            <canvas id="wonByDateChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">F2 Cualificados por Día</div>
-                    <div class="chart-container" style="height: 250px;">
-                        <canvas id="f2ByDateChart"></canvas>
-                    </div>
-                </div>
-            `;
+            // Matriz Curso x País
+            if (data.matrix && Object.keys(data.matrix).length > 0) {
+                const paises = Object.keys(data.pais_pipeline || {});
+                html += `<div class="section"><div class="section-title">Matriz curso × país · cierres</div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>Curso</th>${paises.map(p=>`<th>${p}</th>`).join('')}</tr></thead><tbody>`;
+                Object.entries(data.matrix).forEach(([curso, pv])=>{
+                    html += `<tr><td class="cell-strong">${curso||'Sin curso'}</td>${paises.map(p=>{
+                        const v = pv[p]||0; return v ? `<td class="cell-win">${v}</td>` : `<td class="cell-zero">0</td>`;
+                    }).join('')}</tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+            }
 
             document.getElementById('dashboardContent').innerHTML = html;
-
-            // Renderizar gráficos
             renderCharts(data);
         }
 
+        function baseOpts(extra){
+            return Object.assign({
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ labels:{ font:{family:'Inter',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:14 } } }
+            }, extra||{});
+        }
+
         function renderCharts(data) {
-            // Won por Curso
             const cursoData = {};
-            data.won_deals.forEach(deal => {
-                const curso = deal.curso || 'Sin Curso';
-                cursoData[curso] = (cursoData[curso] || 0) + 1;
-            });
+            data.won_deals.forEach(d => { const c = d.curso || 'Sin curso'; cursoData[c]=(cursoData[c]||0)+1; });
 
             if (document.getElementById('wonByCursoChart')) {
-                const ctx1 = document.getElementById('wonByCursoChart').getContext('2d');
                 if (charts.wonByCurso) charts.wonByCurso.destroy();
-                charts.wonByCurso = new Chart(ctx1, {
-                    type: 'doughnut',
-                    data: {
-                        labels: Object.keys(cursoData),
-                        datasets: [{
-                            data: Object.values(cursoData),
-                            backgroundColor: ['#667eea', '#764ba2', '#f59e0b', '#10b981', '#ef4444', '#3b82f6']
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
+                charts.wonByCurso = new Chart(document.getElementById('wonByCursoChart'), {
+                    type:'doughnut',
+                    data:{ labels:Object.keys(cursoData), datasets:[{ data:Object.values(cursoData), backgroundColor:PALETTE, borderWidth:2, borderColor:'#fff' }] },
+                    options: baseOpts({ cutout:'62%', plugins:{ legend:{ position:'right', labels:{ font:{family:'Inter',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:12 } } } })
                 });
             }
-
-            // Won por Día
             if (data.won_by_date && document.getElementById('wonByDateChart')) {
-                const ctx2 = document.getElementById('wonByDateChart').getContext('2d');
                 if (charts.wonByDate) charts.wonByDate.destroy();
-                charts.wonByDate = new Chart(ctx2, {
-                    type: 'line',
-                    data: {
-                        labels: Object.keys(data.won_by_date),
-                        datasets: [{
-                            label: 'Won',
-                            data: Object.values(data.won_by_date),
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                const ctx = document.getElementById('wonByDateChart').getContext('2d');
+                const grad = ctx.createLinearGradient(0,0,0,300);
+                grad.addColorStop(0,'rgba(46,158,107,.28)'); grad.addColorStop(1,'rgba(46,158,107,0)');
+                charts.wonByDate = new Chart(ctx, {
+                    type:'line',
+                    data:{ labels:Object.keys(data.won_by_date), datasets:[{ label:'Cierres', data:Object.values(data.won_by_date), borderColor:'#2E9E6B', backgroundColor:grad, fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#2E9E6B', borderWidth:2.5 }] },
+                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Inter',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
-
-            // F2 por Día
             if (data.f2_by_date && document.getElementById('f2ByDateChart')) {
-                const ctx3 = document.getElementById('f2ByDateChart').getContext('2d');
                 if (charts.f2ByDate) charts.f2ByDate.destroy();
-                charts.f2ByDate = new Chart(ctx3, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(data.f2_by_date),
-                        datasets: [{
-                            label: 'F2 Cualificados',
-                            data: Object.values(data.f2_by_date),
-                            backgroundColor: '#667eea'
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                charts.f2ByDate = new Chart(document.getElementById('f2ByDateChart'), {
+                    type:'bar',
+                    data:{ labels:Object.keys(data.f2_by_date), datasets:[{ label:'F2 cualificados', data:Object.values(data.f2_by_date), backgroundColor:'#7C2C54', borderRadius:4, maxBarThickness:22 }] },
+                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Inter',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
         }
 
-        // Verificar autenticación al cargar
-        if (sessionStorage.getItem('authenticated') === 'true') {
-            showDashboard();
-            loadDashboardData();
-        }
-
-        // Auto-reload cada 5 minutos
-        setInterval(() => {
-            if (sessionStorage.getItem('authenticated') === 'true') {
-                loadDashboardData();
-            }
-        }, 5 * 60 * 1000);
+        if (sessionStorage.getItem('authenticated') === 'true') { showDashboard(); loadDashboardData(); }
+        setInterval(() => { if (sessionStorage.getItem('authenticated') === 'true') loadDashboardData(); }, 5 * 60 * 1000);
     </script>
 </body>
 </html>
