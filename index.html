@@ -384,6 +384,21 @@
         function renderDashboard(data, extra) {
             const p = data.pipeline;
             const paisPP = mergePipeline(data.pais_pipeline);
+            // Cruzar los GANADOS del periodo (proxy won_deals = ganados por fecha de cierre, con país/curso)
+            // con el vendedor (ac-extra won_owner). Así F1-F4 = creados en periodo y Won = ganados en periodo (cuadra con el funnel).
+            if (extra && extra.ok && Array.isArray(data.won_deals)) {
+                const paisKey = v => { let k = v ? String(v).trim() : ''; return (!k || k.toLowerCase()==='sin pais' || k.toLowerCase()==='sin país') ? 'Sin país' : normPais(k); };
+                const addWon = (b,k)=>{ if(!k) k='Sin dato'; if(!b[k]) b[k]={f1:0,f2:0,f3:0,f4:0,won:0,total:0}; b[k].won++; b[k].total++; };
+                extra.by_owner=extra.by_owner||{}; extra.by_pais=extra.by_pais||{}; extra.by_curso=extra.by_curso||{};
+                data.won_deals.forEach(wd=>{
+                    addWon(extra.by_owner, (extra.won_owner&&extra.won_owner[wd.id])||'Sin asignar');
+                    addWon(extra.by_pais, paisKey(wd.pais));
+                    addWon(extra.by_curso, (wd.curso&&wd.curso.trim())?wd.curso.trim():'Sin curso');
+                });
+                const T={f1:0,f2:0,f3:0,f4:0,won:0,total:0};
+                Object.values(extra.by_pais).forEach(b=>{T.f1+=b.f1;T.f2+=b.f2;T.f3+=b.f3;T.f4+=b.f4;T.won+=b.won;T.total+=b.total;});
+                extra.totals=T;
+            }
             const w = data.won_count;
             const t = p.f1 + p.f2 + p.f3 + p.f4 + w;   // total oportunidades activas
             // Embudo ACUMULADO: cuántos PASARON por cada fase (asume avance secuencial F1→F2→F3→F4→Won)

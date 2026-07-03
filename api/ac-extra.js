@@ -93,31 +93,20 @@ export default async function handler(req, res) {
     for (const [sk, sid] of Object.entries(STAGES)) {
       await fetchStage({ 'filters[stage]': sid, 'filters[status]': 0, ...dateParams }, sk);
     }
-    // Won: por FECHA DE GANADO (campo 5 del trato) en el periodo → cuadra con el funnel (no por creación)
-    const processWon = (resp) => {
-      const cf = {};
-      (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
-      (resp.deals || []).forEach(d => {
-        const c = cf[d.id] || {};
-        let wd = c['5'] ? String(c['5']).slice(0, 10) : (d.mdate ? String(d.mdate).slice(0, 10) : null);
-        if (!wd) return;
-        if (from && wd < from) return;
-        if (to && wd > to) return;
-        add(by_owner, ownerMap[d.owner] || 'Sin asignar', 'won');
-        add(by_pais, normPais(c[M_PAIS]), 'won');
-        const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', 'won');
-      });
-    };
+    // Mapa deal_id -> vendedor de TODOS los ganados. El front lo cruza con won_deals del proxy
+    // (= ganados EN el periodo por fecha de cierre) para que el Won cuadre con el funnel (14).
+    const won_owner = {};
     {
-      const first = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', limit: 100, offset: 0 });
-      processWon(first);
-      const total = (first.meta && first.meta.total) ? Math.min(parseInt(first.meta.total, 10), 30000) : (first.deals || []).length;
+      const grab = async (off) => {
+        const d = await acGet(KEY, '/deals', { 'filters[status]': 1, limit: 100, offset: off });
+        (d.deals || []).forEach(x => { won_owner[x.id] = ownerMap[x.owner] || 'Sin asignar'; });
+        return d;
+      };
+      const first = await grab(0);
+      const total = (first.meta && first.meta.total) ? Math.min(parseInt(first.meta.total, 10), 30000) : 0;
       const offs = []; for (let o = 100; o < total; o += 100) offs.push(o);
       const B = 10;
-      for (let i = 0; i < offs.length; i += B) {
-        const r = await Promise.all(offs.slice(i, i + B).map(o => acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', limit: 100, offset: o })));
-        r.forEach(processWon);
-      }
+      for (let i = 0; i < offs.length; i += B) { await Promise.all(offs.slice(i, i + B).map(o => grab(o))); }
     }
 
     let tot = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 };
@@ -125,7 +114,7 @@ export default async function handler(req, res) {
     const sinPais = by_pais['Sin país'] ? by_pais['Sin país'].total : 0;
 
     res.status(200).json({
-      ok: true, by_owner, by_pais, by_curso, totals: tot, sin_pais: sinPais,
+      ok: true, by_owner, by_pais, by_curso, won_owner, totals: tot, sin_pais: sinPais,
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
   } catch (error) {
