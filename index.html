@@ -331,23 +331,23 @@
         }
 
         async function loadDashboardData(fromDate, toDate) {
-            document.getElementById('metaLine').innerHTML = 'Actualizando…';
-            // Por defecto (carga inicial) usa 30 días, así TODAS las tablas (incl. vendedor) respetan el mismo filtro
+            // FILTRO GLOBAL: por defecto 30 días. Todas las fuentes usan EXACTAMENTE el mismo rango.
             if (!fromDate || !toDate) { const _t=new Date(); const _f=new Date(); _f.setDate(_t.getDate()-30); fromDate=_f; toDate=_t; }
+            const params = { from: fromDate.toISOString().split('T')[0], to: toDate.toISOString().split('T')[0] };
+            const query = new URLSearchParams(params).toString();
+            document.getElementById('metaLine').innerHTML = 'Calculando…';
+            document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando TODO el periodo (embudo · país · curso · vendedor)… puede tardar unos segundos la primera vez.</div>';
             try {
-                const params = {
-                    from: fromDate.toISOString().split('T')[0],
-                    to: toDate.toISOString().split('T')[0]
-                };
-                const query = new URLSearchParams(params).toString();
-                const response = await fetch(`/api/ac-data?${query}`);
-                const data = await response.json();
-                if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta en unos segundos.</div>'; return; }
-                renderDashboard(data, null);   // render inmediato (rápido)
-                // ac-extra es pesado (~40s la 1ª vez, luego cacheado); se carga en segundo plano y re-renderiza con la tabla de vendedor
-                fetch(`/api/ac-extra?${query}`).then(r=>r.json()).then(extra=>{
-                    if (extra && extra.ok) renderDashboard(data, extra);
-                }).catch(()=>{});
+                // RENDER ATÓMICO: esperamos ambas fuentes y pintamos UNA sola vez → todo cuadra con el mismo rango
+                const [dataRes, extraRes] = await Promise.all([
+                    fetch(`/api/ac-data?${query}`),
+                    fetch(`/api/ac-extra?${query}`).catch(()=>null)
+                ]);
+                const data = await dataRes.json();
+                let extra = null;
+                try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
+                if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta.</div>'; return; }
+                renderDashboard(data, extra);
             } catch (error) {
                 console.error(error);
                 document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">Error de conexión con ActiveCampaign.</div>';
