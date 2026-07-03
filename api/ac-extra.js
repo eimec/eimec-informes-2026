@@ -10,6 +10,29 @@ const STAGES = { f1: 33, f2: 34, f3: 36, f4: 37 };
 const CF_PAIS = 40;
 const CF_CURSO = 3;
 
+// Prefijos telefónicos → país (para rellenar contactos sin país). Más largo primero al buscar.
+const PHONE_PREFIX = {
+  '34':'Spain','52':'Mexico','56':'Chile','51':'Peru','54':'Argentina','57':'Colombia',
+  '58':'Venezuela','593':'Ecuador','591':'Bolivia','598':'Uruguay','595':'Paraguay',
+  '506':'Costa Rica','502':'Guatemala','503':'El Salvador','504':'Honduras','505':'Nicaragua','507':'Panama','1':'United States',
+  '39':'Italy','44':'United Kingdom','33':'France','49':'Germany','351':'Portugal','353':'Ireland','41':'Switzerland',
+  '31':'Netherlands','32':'Belgium','43':'Austria','45':'Denmark','46':'Sweden','47':'Norway','48':'Poland','40':'Romania','30':'Greece',
+  '380':'Ukraine','7':'Russia','90':'Turkey','972':'Israel','971':'United Arab Emirates','966':'Saudi Arabia','974':'Qatar','973':'Bahrain','965':'Kuwait',
+  '55':'Brazil','92':'Pakistan','91':'India','63':'Philippines','234':'Nigeria','218':'Libya','212':'Morocco','20':'Egypt','356':'Malta','61':'Australia'
+};
+function countryFromPhone(phone) {
+  if (!phone) return '';
+  let p = String(phone).replace(/[^\d+]/g, '');
+  if (p[0] === '+') p = p.slice(1);
+  else if (p.startsWith('00')) p = p.slice(2);
+  else return ''; // sin prefijo internacional no podemos inferir con fiabilidad
+  for (let len = 4; len >= 1; len--) {
+    const pre = p.slice(0, len);
+    if (PHONE_PREFIX[pre]) return PHONE_PREFIX[pre];
+  }
+  return '';
+}
+
 async function acGet(key, path, params = {}) {
   const qs = new URLSearchParams({ ...params, api_token: key }).toString();
   try {
@@ -85,12 +108,33 @@ export default async function handler(req, res) {
     const paisOk = await mapField(CF_PAIS, paisMap);
     const cursoOk = await mapField(CF_CURSO, cursoMap);
 
+    // 4b) Contactos SIN país → buscar teléfono e inferir país del prefijo
+    const phonePais = {};
+    let phoneRecovered = 0, sinPaisAntes = 0;
+    if (paisOk) {
+      const needPhone = [...new Set(deals.map(d => d.contact).filter(c => c && !(paisMap[c] && paisMap[c].trim())))];
+      sinPaisAntes = needPhone.length;
+      for (const cid of needPhone) {
+        if (!budget()) break;
+        const d = await acGet(KEY, `/contacts/${cid}`);
+        const ph = d.contact && d.contact.phone ? d.contact.phone : '';
+        const inferred = countryFromPhone(ph);
+        if (inferred) { phonePais[cid] = inferred; phoneRecovered++; }
+      }
+    }
+    const resolvePais = (c) => {
+      const pv = paisMap[c];
+      if (pv && pv.trim() !== '') return pv;
+      return phonePais[c] || 'Sin pais';
+    };
+
     // 5) by_pais / by_curso
     const by_pais = {}, by_curso = {};
-    if (paisOk) deals.forEach(d => addTo(by_pais, paisMap[d.contact] || 'Sin pais', d.sk));
+    if (paisOk) deals.forEach(d => addTo(by_pais, resolvePais(d.contact), d.sk));
     if (cursoOk) deals.forEach(d => addTo(by_curso, cursoMap[d.contact] || 'Sin curso', d.sk));
 
     let tot_f1 = 0; Object.values(by_pais).forEach(b => tot_f1 += b.f1);
+    const sinPaisDespues = by_pais['Sin pais'] ? by_pais['Sin pais'].total : 0;
 
     res.status(200).json({
       ok: true,
@@ -98,6 +142,11 @@ export default async function handler(req, res) {
       by_pais: paisOk ? by_pais : {},
       by_curso: cursoOk ? by_curso : {},
       total_f1: tot_f1,
+      data_quality: {
+        contactos_sin_pais: sinPaisAntes,
+        recuperados_por_telefono: phoneRecovered,
+        tratos_sin_pais_final: sinPaisDespues
+      },
       partial: !(paisOk && cursoOk),
       ms: Date.now() - start
     });
