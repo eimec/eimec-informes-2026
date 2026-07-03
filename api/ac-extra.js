@@ -34,9 +34,10 @@ function countryFromPhone(phone) {
 }
 
 async function acGet(key, path, params = {}) {
-  const qs = new URLSearchParams({ ...params, api_token: key }).toString();
+  const qs = new URLSearchParams(params).toString();
+  const url = `${AC_BASE}${path}${qs ? ('?' + qs) : ''}`;
   try {
-    const r = await fetch(`${AC_BASE}${path}?${qs}`, { headers: { Accept: 'application/json' } });
+    const r = await fetch(url, { headers: { Accept: 'application/json', 'Api-Token': key } });
     if (!r.ok) return {};
     return await r.json();
   } catch (_) { return {}; }
