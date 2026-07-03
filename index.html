@@ -363,11 +363,15 @@
         function renderDashboard(data, extra) {
             const p = data.pipeline;
             const w = data.won_count;
-            const t = p.f1 + p.f2 + p.f3 + p.f4 + w;
-            const f1f2 = p.f1 + p.f2;
-            const m1 = f1f2 > 0 ? Math.round(p.f2 / f1f2 * 100) : 0;
-            const m2 = p.f2 > 0 ? Math.round(w / p.f2 * 100) : 0;
-            const m3 = t > 0 ? Math.round(w / t * 100) : 0;
+            const t = p.f1 + p.f2 + p.f3 + p.f4 + w;   // total oportunidades activas
+            // Embudo ACUMULADO: cuántos PASARON por cada fase (asume avance secuencial F1→F2→F3→F4→Won)
+            const reachedF1 = p.f1 + p.f2 + p.f3 + p.f4 + w;   // = total (todos entran por F1)
+            const reachedF2 = p.f2 + p.f3 + p.f4 + w;
+            const reachedF3 = p.f3 + p.f4 + w;
+            const reachedF4 = p.f4 + w;
+            const m1 = reachedF1 > 0 ? Math.round(reachedF2 / reachedF1 * 100) : 0;   // F1→F2
+            const m2 = reachedF2 > 0 ? Math.round(w / reachedF2 * 100) : 0;           // F2→Won
+            const m3 = t > 0 ? Math.round(w / t * 100) : 0;                           // win rate global
             const sc = data.won_deals.filter(x => !x.curso || x.curso === '').length;
             const _pto = (data.period && data.period.to) ? new Date(data.period.to + 'T00:00:00') : new Date();
             const _curYM = `${_pto.getFullYear()}-${String(_pto.getMonth()+1).padStart(2,'0')}`;
@@ -383,28 +387,31 @@
 
             // FUNNEL
             const stages = [
-                {k:'F1', label:'Solicitud', val:p.f1, color:'#8A94A6'},
-                {k:'F2', label:'Cualificado', val:p.f2, color:'#7C2C54'},
-                {k:'F3', label:'Propuesta', val:p.f3, color:'#C2708F'},
-                {k:'F4', label:'Facturación', val:p.f4, color:'#C79A4B'},
-                {k:'WON', label:'Cerrados', val:w, color:'#2E9E6B'}
+                {k:'F1', label:'Solicitud', val:reachedF1, color:'#8A94A6'},
+                {k:'F2', label:'Cualificado', val:reachedF2, color:'#7C2C54'},
+                {k:'F3', label:'Propuesta', val:reachedF3, color:'#C2708F'},
+                {k:'F4', label:'Facturación', val:reachedF4, color:'#C79A4B'},
+                {k:'WON', label:'Ganado', val:w, color:'#2E9E6B'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
-            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial</div><div style="font-size:11px;color:var(--muted)">Estado actual del pipeline</div></div><div class="funnel-steps">`;
+            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades</div><div style="font-size:11px;color:var(--muted)">Acumulado · los que pasaron por cada fase</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
+                const prev = i>0 ? stages[i-1].val : null;
+                const conv = (prev && prev>0) ? Math.round(s.val/prev*100) : 100;
                 const share = t>0 ? Math.round(s.val/t*100) : 0;
                 funnel += `<div class="fstep">
                     <div class="fbar" style="background:linear-gradient(160deg,${s.color},${s.color}dd);height:${h}px">
                         <div class="fnum">${s.val}</div><div class="flabel">${s.k} · ${s.label}</div>
                     </div>
-                    <div class="fconv"><b>${share}%</b> del total</div>
+                    <div class="fconv">${i===0 ? '<b>100%</b> · base' : '▸ <b>'+conv+'%</b> · '+share+'% del total'}</div>
                 </div>`;
             });
             funnel += `</div></div>`;
 
             // KPI CARDS
             let html = funnel + `
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:6px 0 10px 2px">Estado actual · en qué fase están AHORA (no acumulado)</div>
                 <div class="cards-grid">
                     <div class="card card--f1"><div class="card-label">F1 · Solicitud</div><div class="card-value">${p.f1}</div></div>
                     <div class="card card--f2"><div class="card-label">F2 · Cualificado</div><div class="card-value">${p.f2}</div></div>
