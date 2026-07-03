@@ -360,8 +360,30 @@
             return `${d}/${m}/${y}`;
         }
 
+        function normPais(p){
+            if(!p) return 'Sin pais';
+            const k = String(p).trim();
+            const m = {
+                'US':'United States','USA':'United States','U.S.':'United States','U.S':'United States','EEUU':'United States','EE.UU.':'United States','Estados Unidos':'United States','United States of America':'United States',
+                'UK':'United Kingdom','U.K.':'United Kingdom','Reino Unido':'United Kingdom','England':'United Kingdom','Great Britain':'United Kingdom',
+                'España':'Spain','Espana':'Spain','ES':'Spain',
+                'México':'Mexico','Mejico':'Mexico','Méjico':'Mexico',
+                'Sin país':'Sin pais','':'Sin pais'
+            };
+            return m[k] || k;
+        }
+        function mergePipeline(pp){
+            const out = {};
+            Object.entries(pp||{}).forEach(([p,c])=>{
+                const k = normPais(p);
+                if(!out[k]) out[k]={f2:0,f3:0,f4:0,won:0};
+                out[k].f2+=(c.f2||0); out[k].f3+=(c.f3||0); out[k].f4+=(c.f4||0); out[k].won+=(c.won||0);
+            });
+            return out;
+        }
         function renderDashboard(data, extra) {
             const p = data.pipeline;
+            const paisPP = mergePipeline(data.pais_pipeline);
             const w = data.won_count;
             const t = p.f1 + p.f2 + p.f3 + p.f4 + w;   // total oportunidades activas
             // Embudo ACUMULADO: cuántos PASARON por cada fase (asume avance secuencial F1→F2→F3→F4→Won)
@@ -447,7 +469,7 @@
                         pais, c:{f1:c.f1||0,f2:c.f2||0,f3:c.f3||0,f4:c.f4||0,won:c.won||0}, total:c.total||((c.f1||0)+(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0))
                     }));
                 } else {
-                    rows = Object.entries(data.pais_pipeline).map(([pais,c])=>({
+                    rows = Object.entries(paisPP).map(([pais,c])=>({
                         pais, c:{f1:null,f2:c.f2||0,f3:c.f3||0,f4:c.f4||0,won:c.won||0}, total:(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0)
                     }));
                 }
@@ -457,7 +479,7 @@
                 const maxTotal = Math.max(...top.map(r=>r.total),1);
                 const note = `Top 15 de ${totalPaises} países${hasF1?' · Tratos = F1+F2+F3+F4+Won':' · F1 por país pendiente (activar clave AC)'}`;
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th></tr></thead><tbody>`;
+                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos${hasF1?'':'<span style="font-weight:400;font-size:9px"> F2→Won</span>'}</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th></tr></thead><tbody>`;
                 const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
                 top.forEach(({pais,c,total}, i)=>{
                     const ventaPct = total>0 ? Math.round((c.won||0)/total*100) : 0;
@@ -497,16 +519,21 @@
                 html += renderOwnerTable(extra.by_owner);
             }
 
-            // Matriz Curso x País — solo países con cierres, mapa de calor
+            // Matriz Curso x País — solo países con cierres, mapa de calor. Países unificados (US=United States).
             if (data.matrix && Object.keys(data.matrix).length > 0) {
+                const matrixN = {};
+                Object.entries(data.matrix).forEach(([curso,pv])=>{
+                    matrixN[curso] = matrixN[curso] || {};
+                    Object.entries(pv).forEach(([p,v])=>{ const k=normPais(p); matrixN[curso][k]=(matrixN[curso][k]||0)+v; });
+                });
                 const paisWon = {};
-                Object.values(data.matrix).forEach(pv => Object.entries(pv).forEach(([p,v]) => { paisWon[p]=(paisWon[p]||0)+v; }));
+                Object.values(matrixN).forEach(pv => Object.entries(pv).forEach(([p,v]) => { paisWon[p]=(paisWon[p]||0)+v; }));
                 const paisTratos = {};
-                Object.entries(data.pais_pipeline||{}).forEach(([p,c])=>{ paisTratos[p]=(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0); });
+                Object.entries(paisPP).forEach(([p,c])=>{ paisTratos[p]=(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0); });
                 const paises = Object.keys(paisWon).sort((a,b)=>(paisTratos[b]||0)-(paisTratos[a]||0) || paisWon[b]-paisWon[a]).slice(0,15);
-                const maxCell = Math.max(...Object.values(data.matrix).flatMap(pv=>Object.values(pv)),1);
+                const maxCell = Math.max(...Object.values(matrixN).flatMap(pv=>Object.values(pv)),1);
                 // ordenar cursos por total de cierres
-                const cursosOrd = Object.entries(data.matrix).map(([curso,pv])=>({
+                const cursosOrd = Object.entries(matrixN).map(([curso,pv])=>({
                     curso, pv, tot:Object.values(pv).reduce((a,b)=>a+b,0)
                 })).sort((a,b)=>b.tot-a.tot);
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Matriz curso × país · cierres</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Países ordenados por nº de tratos · intensidad = nº de cierres</span></div><div class="table-wrap"><table class="table">
