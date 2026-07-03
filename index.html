@@ -339,15 +339,14 @@
                     params.to = toDate.toISOString().split('T')[0];
                 }
                 const query = new URLSearchParams(params).toString();
-                const [response, extraRes] = await Promise.all([
-                    fetch(`/api/ac-data?${query}`),
-                    fetch(`/api/ac-extra`).catch(()=>null)
-                ]);
+                const response = await fetch(`/api/ac-data?${query}`);
                 const data = await response.json();
-                let extra = null;
-                try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
                 if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta en unos segundos.</div>'; return; }
-                renderDashboard(data, extra);
+                renderDashboard(data, null);   // render inmediato (rápido)
+                // ac-extra es pesado (~40s la 1ª vez, luego cacheado); se carga en segundo plano y re-renderiza con la tabla de vendedor
+                fetch(`/api/ac-extra`).then(r=>r.json()).then(extra=>{
+                    if (extra && extra.ok) renderDashboard(data, extra);
+                }).catch(()=>{});
             } catch (error) {
                 console.error(error);
                 document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">Error de conexión con ActiveCampaign.</div>';
