@@ -369,6 +369,10 @@
             const m2 = p.f2 > 0 ? Math.round(w / p.f2 * 100) : 0;
             const m3 = t > 0 ? Math.round(w / t * 100) : 0;
             const sc = data.won_deals.filter(x => !x.curso || x.curso === '').length;
+            const _now = new Date();
+            const _curYM = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}`;
+            const _meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+            const wonMonth = (data.won_deals||[]).filter(d => (d.date||'').startsWith(_curYM)).length;
 
             // meta
             if (data.period) {
@@ -408,6 +412,7 @@
                     <div class="card card--f4"><div class="card-label">F4 · Facturación</div><div class="card-value">${p.f4}</div></div>
                     <div class="card card--trash"><div class="card-label">Descartados</div><div class="card-value">${p.trash}</div></div>
                     <div class="card card--won"><div class="card-label">Won · Cerrados</div><div class="card-value">${w}</div></div>
+                    <div class="card card--won"><div class="card-label">Won · ${_meses[_now.getMonth()]}. este mes</div><div class="card-value">${wonMonth}</div><div class="card-foot">Estado ganado en ${_meses[_now.getMonth()]}.</div></div>
                 </div>
                 <div class="cards-grid metrics">
                     <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">Leads que cualifican</div></div>
