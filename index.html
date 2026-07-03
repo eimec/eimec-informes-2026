@@ -460,8 +460,9 @@
                 <div class="section"><div class="section-title">Leads cualificados (F2) por día</div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
             `;
 
-            // Pipeline por País — Top 15 por volumen de tratos. Usa F1 si el endpoint extra está activo.
-            const hasF1 = extra && extra.by_pais && Object.keys(extra.by_pais).length > 0;
+            // Pipeline por País — Top 15 por volumen (periodo). NO usamos el F1 de ac-extra porque el país
+            // está vacío en 8k+ tratos del CRM y sería histórico (no del periodo) → rompería la consistencia.
+            const hasF1 = false;
             if (hasF1 || (data.pais_pipeline && Object.keys(data.pais_pipeline).length > 0)) {
                 let rows;
                 if (hasF1) {
@@ -477,7 +478,7 @@
                 const totalPaises = rows.length;
                 const top = rows.slice(0,15);
                 const maxTotal = Math.max(...top.map(r=>r.total),1);
-                const note = `Top 15 de ${totalPaises} países${hasF1?' · Tratos = F1+F2+F3+F4+Won':' · F1 por país pendiente (activar clave AC)'}`;
+                const note = `Top 15 de ${totalPaises} países · Tratos F2→Won del periodo (F1 sin país fiable en el CRM)`;
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table">
                     <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos${hasF1?'':'<span style="font-weight:400;font-size:9px"> F2→Won</span>'}</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th></tr></thead><tbody>`;
                 const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
@@ -512,11 +513,15 @@
                 html += `</tbody></table></div></div>`;
             }
 
-            // ── Tablas EXTRA (solo si el endpoint ac-extra está activo) ──
-            if (extra) {
-                html += renderBreakdownTable('Tratos creados por curso', extra.by_curso, 'Curso', true);
-                html += renderTop10Paises(extra.by_pais);
+            // ── Tabla EXTRA: Rendimiento por vendedor (dato fiable). País/curso omitidos por datos vacíos en el CRM.
+            if (extra && extra.by_owner && Object.keys(extra.by_owner).length) {
                 html += renderOwnerTable(extra.by_owner);
+                if (extra.data_quality) {
+                    const dq = extra.data_quality;
+                    html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E">
+                        <strong>⚠️ Calidad de dato en el CRM:</strong> ${(dq.tratos_sin_pais_final||0).toLocaleString('es')} tratos <b>sin país</b> y la mayoría <b>sin curso</b> en ActiveCampaign (solo ${dq.recuperados_por_telefono||0} recuperados por teléfono). Por eso el ranking por país/curso no es fiable sobre el total. <b>Recomendado:</b> completar los campos País y Curso en los contactos para desbloquear esos análisis.
+                    </div>`;
+                }
             }
 
             // Matriz Curso x País — solo países con cierres, mapa de calor. Países unificados (US=United States).
@@ -578,7 +583,7 @@
             return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta');
         }
         function renderOwnerTable(obj){
-            return bdTable('Rendimiento por vendedor', '% Rate = Won ÷ tratos totales', 'Vendedor', bdRows(obj), '% Rate');
+            return bdTable('Rendimiento por vendedor', 'Histórico · todos los tratos · % Rate = Won ÷ total', 'Vendedor', bdRows(obj), '% Rate');
         }
 
         function baseOpts(extra){
