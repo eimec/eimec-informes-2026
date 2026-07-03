@@ -6,46 +6,46 @@
     <title>EIMEC · Informe de Dirección</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --brand: #7C2C54;
-            --brand-dark: #5A1F3D;
-            --brand-light: #9D4470;
-            --brand-soft: #C2708F;
-            --brand-tint: #F6EDF2;
-            --gold: #C79A4B;
-            --green: #2E9E6B;
+            --brand: #1F2A4E;
+            --brand-dark: #131C36;
+            --brand-light: #3A5C94;
+            --brand-soft: #7FA8C4;
+            --brand-tint: #EEF3F8;
+            --gold: #448497;
+            --green: #0B8C8C;
             --red: #B4474C;
             --slate: #8A94A6;
-            --ink: #1B1420;
-            --muted: #6B6472;
-            --line: #EBE7EC;
-            --bg: #F6F4F7;
+            --ink: #1B2230;
+            --muted: #667085;
+            --line: #E6EBF0;
+            --bg: #F4F7FA;
             --card: #FFFFFF;
-            --shadow: 0 1px 2px rgba(27,20,32,.04), 0 8px 24px -12px rgba(27,20,32,.12);
-            --shadow-lg: 0 2px 4px rgba(27,20,32,.05), 0 24px 48px -20px rgba(124,44,84,.22);
+            --shadow: 0 1px 2px rgba(31,42,78,.04), 0 8px 24px -12px rgba(31,42,78,.12);
+            --shadow-lg: 0 2px 4px rgba(31,42,78,.05), 0 24px 48px -20px rgba(31,42,78,.22);
             --radius: 16px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background: var(--bg);
             color: var(--ink);
             -webkit-font-smoothing: antialiased;
             font-variant-numeric: tabular-nums;
         }
-        .serif { font-family: 'Fraunces', Georgia, serif; }
+        .serif { font-family: 'Montserrat', sans-serif; }
 
         /* ---------- LOGIN ---------- */
         .login-container {
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; padding: 24px;
             background:
-              radial-gradient(1200px 600px at 20% -10%, rgba(157,68,112,.55), transparent 55%),
-              radial-gradient(900px 500px at 100% 110%, rgba(90,31,61,.85), transparent 50%),
-              linear-gradient(140deg, #5A1F3D 0%, #7C2C54 55%, #47172F 100%);
+              radial-gradient(1200px 600px at 20% -10%, rgba(58,92,148,.55), transparent 55%),
+              radial-gradient(900px 500px at 100% 110%, rgba(19,28,54,.9), transparent 50%),
+              linear-gradient(140deg, #131C36 0%, #1F2A4E 55%, #0E1428 100%);
         }
         .login-box {
             background: rgba(255,255,255,.98);
@@ -57,8 +57,8 @@
             width: 56px; height: 56px; margin: 0 auto 18px;
             border-radius: 14px; background: linear-gradient(135deg, var(--brand), var(--brand-dark));
             display: flex; align-items: center; justify-content: center;
-            color: #fff; font-family: 'Fraunces', serif; font-weight: 700; font-size: 28px;
-            box-shadow: 0 10px 24px -8px rgba(124,44,84,.6);
+            color: #fff; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 28px;
+            box-shadow: 0 10px 24px -8px rgba(31,42,78,.6);
         }
         .login-box h1 { font-size: 20px; margin-bottom: 4px; color: var(--ink); font-weight: 700; }
         .login-box .sub { font-size: 13px; color: var(--muted); margin-bottom: 26px; }
@@ -67,7 +67,7 @@
             border: 1.5px solid var(--line); border-radius: 10px; font-size: 15px;
             transition: border-color .2s, box-shadow .2s; font-family: inherit;
         }
-        .login-box input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px rgba(124,44,84,.12); }
+        .login-box input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px rgba(31,42,78,.12); }
         .login-box button {
             width: 100%; padding: 13px; background: var(--brand); color: #fff;
             border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
@@ -82,7 +82,7 @@
         .dashboard.active { display: block; }
 
         .topbar {
-            background: linear-gradient(120deg, var(--brand-dark) 0%, var(--brand) 60%, #6A2648 100%);
+            background: linear-gradient(120deg, var(--brand-dark) 0%, var(--brand) 60%, #2E5082 100%);
             color: #fff; padding: 22px 32px;
         }
         .topbar-inner { max-width: 1440px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
@@ -91,18 +91,18 @@
             width: 44px; height: 44px; border-radius: 11px;
             background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);
             display: flex; align-items: center; justify-content: center;
-            font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: #fff;
+            font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 22px; color: #fff;
         }
-        .brand-text h1 { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 600; letter-spacing: .2px; line-height: 1.1; }
+        .brand-text h1 { font-family: 'Montserrat', sans-serif; font-size: 21px; font-weight: 600; letter-spacing: .2px; line-height: 1.1; }
         .brand-text .tag { font-size: 12px; opacity: .78; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 3px; }
         .topbar-right { display: flex; align-items: center; gap: 12px; }
         .live-badge {
             display: inline-flex; align-items: center; gap: 7px;
-            background: rgba(46,158,107,.18); border: 1px solid rgba(120,230,180,.4);
-            color: #C9F5E1; padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
+            background: rgba(0,155,155,.2); border: 1px solid rgba(105,194,194,.5);
+            color: #A9ECEC; padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
         }
-        .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #45E29B; box-shadow: 0 0 0 0 rgba(69,226,155,.7); animation: pulse 2s infinite; }
-        @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(69,226,155,.6)} 70%{box-shadow:0 0 0 8px rgba(69,226,155,0)} 100%{box-shadow:0 0 0 0 rgba(69,226,155,0)} }
+        .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #2FD4D4; box-shadow: 0 0 0 0 rgba(47,212,212,.7); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(47,212,212,.6)} 70%{box-shadow:0 0 0 8px rgba(47,212,212,0)} 100%{box-shadow:0 0 0 0 rgba(47,212,212,0)} }
         .logout-btn {
             background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25);
             padding: 8px 15px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: background .2s;
@@ -125,8 +125,8 @@
             padding: 7px 14px; border: none; background: transparent; border-radius: 7px;
             cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--brand); font-family: inherit; transition: all .15s;
         }
-        .filter-btn:hover { background: rgba(124,44,84,.08); }
-        .filter-btn.active { background: var(--brand); color: #fff; box-shadow: 0 4px 10px -4px rgba(124,44,84,.5); }
+        .filter-btn:hover { background: rgba(31,42,78,.08); }
+        .filter-btn.active { background: var(--brand); color: #fff; box-shadow: 0 4px 10px -4px rgba(31,42,78,.5); }
         .filter-divider { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
         .filter-input {
             padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 12.5px; width: 118px; font-family: inherit; color: var(--ink);
@@ -213,7 +213,7 @@
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
 
         .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
-        .footer .brand-foot { font-family: 'Fraunces', serif; color: var(--brand); font-weight: 600; }
+        .footer .brand-foot { font-family: 'Montserrat', sans-serif; color: var(--brand); font-weight: 600; }
 
         [class*="whatsapp"],[id*="whatsapp"],[class*="floating"],[class*="ai-"]{display:none!important}
 
@@ -282,7 +282,7 @@
 
     <script>
         const PASSWORD = 'eimec2026';
-        const PALETTE = ['#7C2C54','#C2708F','#C79A4B','#2E9E6B','#B4474C','#5B8DEF','#9D4470','#D4A5BC','#5A1F3D','#8A94A6'];
+        const PALETTE = ['#1F2A4E','#2E5082','#448497','#009B9B','#69C2C2','#A0C8D8','#3A5C94','#7FA8C4','#4C5257','#8A94A6'];
         let charts = {};
 
         function checkPassword() {
@@ -410,10 +410,10 @@
             // FUNNEL
             const stages = [
                 {k:'F1', label:'Solicitud', val:reachedF1, color:'#8A94A6'},
-                {k:'F2', label:'Cualificado', val:reachedF2, color:'#7C2C54'},
-                {k:'F3', label:'Propuesta', val:reachedF3, color:'#C2708F'},
-                {k:'F4', label:'Facturación', val:reachedF4, color:'#C79A4B'},
-                {k:'WON', label:'Ganado', val:w, color:'#2E9E6B'}
+                {k:'F2', label:'Cualificado', val:reachedF2, color:'#1F2A4E'},
+                {k:'F3', label:'Propuesta', val:reachedF3, color:'#2E5082'},
+                {k:'F4', label:'Facturación', val:reachedF4, color:'#448497'},
+                {k:'WON', label:'Ganado', val:w, color:'#009B9B'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
             let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades</div><div style="font-size:11px;color:var(--muted)">Acumulado · los que pasaron por cada fase</div></div><div class="funnel-steps">`;
@@ -488,7 +488,7 @@
                     html += `<tr>
                         <td><span class="rank-badge">${i+1}</span></td>
                         <td class="cell-strong">${pais}</td>
-                        <td class="cell-total" style="background:rgba(124,44,84,${heat})">${total}</td>
+                        <td class="cell-total" style="background:rgba(31,42,78,${heat})">${total}</td>
                         ${f1Cell}${zz(c.f2)}${zz(c.f3)}${zz(c.f4)}
                         <td class="num ${c.won?'cell-win':'cell-zero'}">${c.won||0}</td>
                         <td class="num" style="font-weight:700;color:${ventaPct>0?'var(--green)':'#D6D1DA'}">${ventaPct}%</td></tr>`;
@@ -543,7 +543,7 @@
                         const v = pv[p]||0;
                         if(!v) return `<td class="cell-zero">·</td>`;
                         const a = (0.15 + 0.6*(v/maxCell)).toFixed(2);
-                        return `<td class="cell-heat" style="background:rgba(124,44,84,${a})">${v}</td>`;
+                        return `<td class="cell-heat" style="background:rgba(31,42,78,${a})">${v}</td>`;
                     }).join('')}</tr>`;
                 });
                 html += `</tbody></table></div></div>`;
@@ -567,7 +567,7 @@
                 const rate = r.total>0?Math.round(r.won/r.total*100):0;
                 const z = v => v?`<td class="num">${v}</td>`:`<td class="cell-zero">·</td>`;
                 const heat=(0.08+0.42*(r.total/maxT)).toFixed(2);
-                h+=`<tr><td class="cell-strong">${r.k}</td><td class="cell-total" style="background:rgba(124,44,84,${heat})">${r.total}</td>${z(r.f1)}${z(r.f2)}${z(r.f3)}${z(r.f4)}<td class="num ${r.won?'cell-win':'cell-zero'}">${r.won}</td><td class="num" style="font-weight:700;color:${rate>0?'var(--green)':'#D6D1DA'}">${rate}%</td></tr>`;
+                h+=`<tr><td class="cell-strong">${r.k}</td><td class="cell-total" style="background:rgba(31,42,78,${heat})">${r.total}</td>${z(r.f1)}${z(r.f2)}${z(r.f3)}${z(r.f4)}<td class="num ${r.won?'cell-win':'cell-zero'}">${r.won}</td><td class="num" style="font-weight:700;color:${rate>0?'var(--green)':'#D6D1DA'}">${rate}%</td></tr>`;
             });
             return h + `</tbody></table></div></div>`;
         }
@@ -584,7 +584,7 @@
         function baseOpts(extra){
             return Object.assign({
                 responsive:true, maintainAspectRatio:false,
-                plugins:{ legend:{ labels:{ font:{family:'Inter',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:14 } } }
+                plugins:{ legend:{ labels:{ font:{family:'Montserrat',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:14 } } }
             }, extra||{});
         }
 
@@ -597,26 +597,26 @@
                 charts.wonByCurso = new Chart(document.getElementById('wonByCursoChart'), {
                     type:'doughnut',
                     data:{ labels:Object.keys(cursoData), datasets:[{ data:Object.values(cursoData), backgroundColor:PALETTE, borderWidth:2, borderColor:'#fff' }] },
-                    options: baseOpts({ cutout:'62%', plugins:{ legend:{ position:'right', labels:{ font:{family:'Inter',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:12 } } } })
+                    options: baseOpts({ cutout:'62%', plugins:{ legend:{ position:'right', labels:{ font:{family:'Montserrat',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:12 } } } })
                 });
             }
             if (data.won_by_date && document.getElementById('wonByDateChart')) {
                 if (charts.wonByDate) charts.wonByDate.destroy();
                 const ctx = document.getElementById('wonByDateChart').getContext('2d');
                 const grad = ctx.createLinearGradient(0,0,0,300);
-                grad.addColorStop(0,'rgba(46,158,107,.28)'); grad.addColorStop(1,'rgba(46,158,107,0)');
+                grad.addColorStop(0,'rgba(0,155,155,.28)'); grad.addColorStop(1,'rgba(0,155,155,0)');
                 charts.wonByDate = new Chart(ctx, {
                     type:'line',
-                    data:{ labels:Object.keys(data.won_by_date), datasets:[{ label:'Cierres', data:Object.values(data.won_by_date), borderColor:'#2E9E6B', backgroundColor:grad, fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#2E9E6B', borderWidth:2.5 }] },
-                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Inter',size:11},color:'#9A93A2',precision:0}} } })
+                    data:{ labels:Object.keys(data.won_by_date), datasets:[{ label:'Cierres', data:Object.values(data.won_by_date), borderColor:'#009B9B', backgroundColor:grad, fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#009B9B', borderWidth:2.5 }] },
+                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
             if (data.f2_by_date && document.getElementById('f2ByDateChart')) {
                 if (charts.f2ByDate) charts.f2ByDate.destroy();
                 charts.f2ByDate = new Chart(document.getElementById('f2ByDateChart'), {
                     type:'bar',
-                    data:{ labels:Object.keys(data.f2_by_date), datasets:[{ label:'F2 cualificados', data:Object.values(data.f2_by_date), backgroundColor:'#7C2C54', borderRadius:4, maxBarThickness:22 }] },
-                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Inter',size:11},color:'#9A93A2',precision:0}} } })
+                    data:{ labels:Object.keys(data.f2_by_date), datasets:[{ label:'F2 cualificados', data:Object.values(data.f2_by_date), backgroundColor:'#1F2A4E', borderRadius:4, maxBarThickness:22 }] },
+                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
         }
