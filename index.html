@@ -676,11 +676,15 @@
             return F[name] || '🏳️';
         }
         function renderPodium(extra){
-            const arr = Object.entries(extra.by_pais||{}).filter(([k])=>k!=='Sin país'&&k!=='Sin dato')
-                .map(([k,v])=>({k,won:v.won||0})).filter(x=>x.won>0).sort((a,b)=>b.won-a.won).slice(0,3);
-            if(!arr.length) return '';
-            const step = (p,h,medal,cls)=> p ? `<div class="podium-step"><div class="podium-flag">${flagOf(p.k)}</div><div class="podium-name">${p.k}</div><div class="podium-won"><b>${p.won}</b> ventas</div><div class="podium-bar ${cls}" style="height:${h}px"><div class="podium-place">${medal}</div></div></div>` : '<div class="podium-step"></div>';
-            return `<div class="section"><div class="section-title">🏆 Podio de países por ventas${extra.period?' · '+fmtDate(extra.period.from)+' — '+fmtDate(extra.period.to):''}</div><div class="podium">${step(arr[1],120,'2','silver')}${step(arr[0],175,'1','gold')}${step(arr[2],95,'3','bronze')}</div></div>`;
+            const all = Object.entries(extra.by_pais||{}).filter(([k])=>k!=='Sin país'&&k!=='Sin dato')
+                .map(([k,v])=>({k,won:v.won||0,total:v.total||0})).filter(x=>x.won>0)
+                .sort((a,b)=>(b.won-a.won) || (b.total-a.total)); // desempate por volumen de tratos
+            if(!all.length) return '';
+            const arr = all.slice(0,3);
+            const totalVentas = all.reduce((s,x)=>s+x.won,0);
+            const step = (p,h,medal,cls)=> p ? `<div class="podium-step"><div class="podium-flag">${flagOf(p.k)}</div><div class="podium-name">${p.k}</div><div class="podium-won"><b>${p.won}</b> ventas · ${p.total} tratos</div><div class="podium-bar ${cls}" style="height:${h}px"><div class="podium-place">${medal}</div></div></div>` : '<div class="podium-step"></div>';
+            const note = `${extra.period?fmtDate(extra.period.from)+' — '+fmtDate(extra.period.to)+' · ':''}${all.length} países con ventas · ${totalVentas} en total · #2 y #3 por volumen`;
+            return `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>🏆 Podio de países por ventas</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="podium">${step(arr[1],120,'2','silver')}${step(arr[0],175,'1','gold')}${step(arr[2],95,'3','bronze')}</div></div>`;
         }
         function baseOpts(extra){
             return Object.assign({
