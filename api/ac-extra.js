@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       if (us.length < 100) break;
     }
 
-    const by_owner = {}, by_pais = {}, by_curso = {};
+    const by_owner = {}, by_pais = {}, by_curso = {}, created_by_date = {};
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
     // Procesa una respuesta de /deals?include=dealCustomFieldData
@@ -74,6 +74,7 @@ export default async function handler(req, res) {
         add(by_owner, ownerMap[d.owner] || 'Sin asignar', sk);
         add(by_pais, normPais(c[M_PAIS]), sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
+        if (d.cdate) { const day = String(d.cdate).slice(0, 10); created_by_date[day] = (created_by_date[day] || 0) + 1; }
       });
     };
 
@@ -113,8 +114,12 @@ export default async function handler(req, res) {
     Object.values(by_pais).forEach(b => { tot.f1+=b.f1; tot.f2+=b.f2; tot.f3+=b.f3; tot.f4+=b.f4; tot.won+=b.won; tot.total+=b.total; });
     const sinPais = by_pais['Sin país'] ? by_pais['Sin país'].total : 0;
 
+    // ordenar creados por día (cronológico)
+    const cbd = {};
+    Object.keys(created_by_date).sort().forEach(k => { cbd[k] = created_by_date[k]; });
+
     res.status(200).json({
-      ok: true, by_owner, by_pais, by_curso, won_owner, totals: tot, sin_pais: sinPais,
+      ok: true, by_owner, by_pais, by_curso, won_owner, created_by_date: cbd, totals: tot, sin_pais: sinPais,
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
   } catch (error) {

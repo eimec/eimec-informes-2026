@@ -210,6 +210,20 @@
         .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:var(--brand-tint); color:var(--brand); font-size:10px; font-weight:700; margin-right:8px; }
 
         .chart-container { position: relative; height: 300px; }
+
+        /* ---------- PODIO F1 ---------- */
+        .podium { display: flex; align-items: flex-end; justify-content: center; gap: 22px; padding: 24px 0 0; flex-wrap: wrap; }
+        .podium-step { flex: 0 0 190px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+        .podium-flag { font-size: 30px; margin-bottom: 4px; }
+        .podium-name { font-weight: 700; font-size: 16px; color: var(--ink); margin-bottom: 3px; }
+        .podium-won { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+        .podium-won b { color: var(--green); font-size: 17px; }
+        .podium-bar { width: 165px; border-radius: 14px 14px 0 0; position: relative; display: flex; align-items: flex-start; justify-content: center; box-shadow: inset 0 -22px 34px -12px rgba(0,0,0,.28); animation: podiumUp .7s cubic-bezier(.2,.8,.2,1); }
+        .podium-bar.gold { background: linear-gradient(180deg,#F6D879,#C99B2C); }
+        .podium-bar.silver { background: linear-gradient(180deg,#DBE1E9,#A3AEBE); }
+        .podium-bar.bronze { background: linear-gradient(180deg,#E7AF77,#B4712F); }
+        .podium-place { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 46px; color: #fff; margin-top: 16px; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+        @keyframes podiumUp { from { transform: translateY(34px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
 
         .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
@@ -468,6 +482,12 @@
 
             // 6 insights + recomendaciones (país/curso desde won del proxy; vendedor desde ac-extra)
             if (extra && extra.ok) html += renderInsights(extra, data);
+            // Podio de países por ventas (F1)
+            if (extra && extra.ok) html += renderPodium(extra);
+            // Gráfico de TRATOS CREADOS por día (en el medio)
+            if (extra && extra.ok && extra.created_by_date && Object.keys(extra.created_by_date).length) {
+                html += `<div class="section"><div class="section-title">Tratos creados por día</div><div class="chart-container" style="height:280px"><canvas id="createdByDateChart"></canvas></div></div>`;
+            }
 
             // Charts row
             html += `
@@ -565,11 +585,14 @@
                         return `<td class="cell-heat" style="background:rgba(31,42,78,${a})">${v}</td>`;
                     }).join('')}</tr>`;
                 });
+                const colTot = {}; let grand = 0;
+                cursosOrd.forEach(({pv, tot})=>{ grand += tot; paises.forEach(p=>{ colTot[p] = (colTot[p]||0) + (pv[p]||0); }); });
+                html += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)"><td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td><td class="cell-total" style="font-weight:800">${grand}</td>${paises.map(p=>`<td class="num" style="font-weight:800">${colTot[p]||0}</td>`).join('')}</tr>`;
                 html += `</tbody></table></div></div>`;
             }
 
             document.getElementById('dashboardContent').innerHTML = html;
-            renderCharts(data);
+            renderCharts(data, extra);
         }
 
         function bdRows(obj){
@@ -601,7 +624,9 @@
             return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta');
         }
         function renderOwnerTable(obj){
-            return bdTable('Rendimiento por vendedor', 'Tratos creados en el periodo · % Rate = Won ÷ total', 'Vendedor', bdRows(obj), '% Rate');
+            const HIDE = ['Pacientes modelo EIMEC Formación'];
+            const rows = bdRows(obj).filter(r => !HIDE.includes(r.k));
+            return bdTable('Rendimiento por vendedor', 'Tratos creados en el periodo · % Rate = Won ÷ total', 'Vendedor', rows, '% Rate');
         }
         function renderCursoTable(obj){
             return bdTable('Tratos por curso', 'Tratos creados en el periodo · ordenado por volumen', 'Curso', bdRows(obj), '% Venta');
@@ -646,6 +671,17 @@
             return h + `</div>`;
         }
 
+        function flagOf(name){
+            const F = {'Spain':'🇪🇸','Mexico':'🇲🇽','Chile':'🇨🇱','Peru':'🇵🇪','Argentina':'🇦🇷','Colombia':'🇨🇴','Italy':'🇮🇹','France':'🇫🇷','Germany':'🇩🇪','United States':'🇺🇸','United Kingdom':'🇬🇧','Brazil':'🇧🇷','Venezuela':'🇻🇪','Guatemala':'🇬🇹','Poland':'🇵🇱','Portugal':'🇵🇹','Ireland':'🇮🇪','Ecuador':'🇪🇨','Bolivia':'🇧🇴','Uruguay':'🇺🇾','Costa Rica':'🇨🇷','Panama':'🇵🇦','Libya':'🇱🇾','Israel':'🇮🇱','Pakistan':'🇵🇰','India':'🇮🇳','Switzerland':'🇨🇭','Netherlands':'🇳🇱','Belgium':'🇧🇪','Romania':'🇷🇴','Ukraine':'🇺🇦','Turkey':'🇹🇷','Saudi Arabia':'🇸🇦','United Arab Emirates':'🇦🇪','Nigeria':'🇳🇬','Morocco':'🇲🇦'};
+            return F[name] || '🏳️';
+        }
+        function renderPodium(extra){
+            const arr = Object.entries(extra.by_pais||{}).filter(([k])=>k!=='Sin país'&&k!=='Sin dato')
+                .map(([k,v])=>({k,won:v.won||0})).filter(x=>x.won>0).sort((a,b)=>b.won-a.won).slice(0,3);
+            if(!arr.length) return '';
+            const step = (p,h,medal,cls)=> p ? `<div class="podium-step"><div class="podium-flag">${flagOf(p.k)}</div><div class="podium-name">${p.k}</div><div class="podium-won"><b>${p.won}</b> ventas</div><div class="podium-bar ${cls}" style="height:${h}px"><div class="podium-place">${medal}</div></div></div>` : '<div class="podium-step"></div>';
+            return `<div class="section"><div class="section-title">🏆 Podio de países por ventas${extra.period?' · '+fmtDate(extra.period.from)+' — '+fmtDate(extra.period.to):''}</div><div class="podium">${step(arr[1],120,'2','silver')}${step(arr[0],175,'1','gold')}${step(arr[2],95,'3','bronze')}</div></div>`;
+        }
         function baseOpts(extra){
             return Object.assign({
                 responsive:true, maintainAspectRatio:false,
@@ -653,7 +689,19 @@
             }, extra||{});
         }
 
-        function renderCharts(data) {
+        function renderCharts(data, extra) {
+            // Tratos creados por día (ac-extra)
+            if (extra && extra.created_by_date && document.getElementById('createdByDateChart')) {
+                if (charts.createdByDate) charts.createdByDate.destroy();
+                const ctxC = document.getElementById('createdByDateChart').getContext('2d');
+                const gradC = ctxC.createLinearGradient(0,0,0,280);
+                gradC.addColorStop(0,'rgba(31,42,78,.28)'); gradC.addColorStop(1,'rgba(31,42,78,0)');
+                charts.createdByDate = new Chart(ctxC, {
+                    type:'line',
+                    data:{ labels:Object.keys(extra.created_by_date), datasets:[{ label:'Tratos creados', data:Object.values(extra.created_by_date), borderColor:'#1F2A4E', backgroundColor:gradC, fill:true, tension:.35, pointRadius:2, pointBackgroundColor:'#1F2A4E', borderWidth:2.5 }] },
+                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#EDF0F4'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
+                });
+            }
             const cursoData = {};
             data.won_deals.forEach(d => { const c = d.curso || 'Sin curso'; cursoData[c]=(cursoData[c]||0)+1; });
 
