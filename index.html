@@ -298,6 +298,8 @@
         const PASSWORD = 'eimec2026';
         const PALETTE = ['#1F2A4E','#2E5082','#448497','#009B9B','#69C2C2','#A0C8D8','#3A5C94','#7FA8C4','#4C5257','#8A94A6'];
         let charts = {};
+        // ESTADO GLOBAL DEL FILTRO — TODO el informe (fetch, tablas, gráficos, auto-refresco) lo usa
+        let currentRange = null;   // { from: Date, to: Date }
 
         function checkPassword() {
             const input = document.getElementById('passwordInput');
@@ -332,8 +334,10 @@
                 case '6m': from.setMonth(today.getMonth() - 6); break;
                 case '1a': from.setFullYear(today.getFullYear() - 1); break;
             }
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            if (event && event.target) event.target.classList.add('active');
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-range') === range));
+            // limpiar fechas manuales al usar un preset
+            const fi = document.getElementById('fromDate'), ti = document.getElementById('toDate');
+            if (fi) fi.value = ''; if (ti) ti.value = '';
             loadDashboardData(from, today);
         }
         function applyCustomRange() {
@@ -345,8 +349,12 @@
         }
 
         async function loadDashboardData(fromDate, toDate) {
-            // FILTRO GLOBAL: por defecto 30 días. Todas las fuentes usan EXACTAMENTE el mismo rango.
-            if (!fromDate || !toDate) { const _t=new Date(); const _f=new Date(); _f.setDate(_t.getDate()-30); fromDate=_f; toDate=_t; }
+            // FILTRO GLOBAL: si no llega rango (ej. auto-refresco) usa el ÚLTIMO seleccionado; si no hay, 30 días por defecto.
+            if (!fromDate || !toDate) {
+                if (currentRange) { fromDate = currentRange.from; toDate = currentRange.to; }
+                else { const _t=new Date(); const _f=new Date(); _f.setDate(_t.getDate()-30); fromDate=_f; toDate=_t; }
+            }
+            currentRange = { from: fromDate, to: toDate };   // recordar el rango para TODO (refrescos, re-render)
             const params = { from: fromDate.toISOString().split('T')[0], to: toDate.toISOString().split('T')[0] };
             const query = new URLSearchParams(params).toString();
             document.getElementById('metaLine').innerHTML = 'Calculando…';
@@ -400,7 +408,7 @@
             const paisPP = mergePipeline(data.pais_pipeline);
             // Cruzar los GANADOS del periodo (proxy won_deals = ganados por fecha de cierre, con país/curso)
             // con el vendedor (ac-extra won_owner). Así F1-F4 = creados en periodo y Won = ganados en periodo (cuadra con el funnel).
-            if (extra && extra.ok && Array.isArray(data.won_deals)) {
+            if (extra && extra.ok && !extra._merged && Array.isArray(data.won_deals)) {
                 const paisKey = v => { let k = v ? String(v).trim() : ''; return (!k || k.toLowerCase()==='sin pais' || k.toLowerCase()==='sin país') ? 'Sin país' : normPais(k); };
                 const addWon = (b,k)=>{ if(!k) k='Sin dato'; if(!b[k]) b[k]={f1:0,f2:0,f3:0,f4:0,won:0,total:0}; b[k].won++; b[k].total++; };
                 extra.by_owner=extra.by_owner||{}; extra.by_pais=extra.by_pais||{}; extra.by_curso=extra.by_curso||{};
@@ -412,6 +420,7 @@
                 const T={f1:0,f2:0,f3:0,f4:0,won:0,total:0};
                 Object.values(extra.by_pais).forEach(b=>{T.f1+=b.f1;T.f2+=b.f2;T.f3+=b.f3;T.f4+=b.f4;T.won+=b.won;T.total+=b.total;});
                 extra.totals=T;
+                extra._merged = true;   // evita doble conteo si se re-renderiza con el mismo objeto
             }
             const w = data.won_count;
             const t = p.f1 + p.f2 + p.f3 + p.f4 + w;   // total oportunidades activas
