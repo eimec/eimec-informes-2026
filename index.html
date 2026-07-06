@@ -406,6 +406,13 @@
         function renderDashboard(data, extra) {
             const p = data.pipeline;
             const paisPP = mergePipeline(data.pais_pipeline);
+            // FIX doble-conteo: el proxy WP cuenta en cada fase los tratos de CUALQUIER estado (incluidos los ya
+            // GANADOS que siguen etiquetados en su etapa) → infla F4 y duplica los Won en el embudo acumulado.
+            // ac-extra da el pipeline ABIERTO real (status=0). Capturamos esos totales ANTES de que el merge de Won
+            // (más abajo) mute extra.totals, para usarlos en el embudo y en las tarjetas "estado actual".
+            const _openF = (extra && extra.ok && extra.totals)
+                ? { f1: extra.totals.f1||0, f2: extra.totals.f2||0, f3: extra.totals.f3||0, f4: extra.totals.f4||0 }
+                : null;
             // Cruzar los GANADOS del periodo (proxy won_deals = ganados por fecha de cierre, con país/curso)
             // con el vendedor (ac-extra won_owner). Así F1-F4 = creados en periodo y Won = ganados en periodo (cuadra con el funnel).
             if (extra && extra.ok && !extra._merged && Array.isArray(data.won_deals)) {
@@ -424,12 +431,16 @@
                 extra._merged = true;   // evita doble conteo si se re-renderiza con el mismo objeto
             }
             const w = data.won_count;
-            const t = p.f1 + p.f2 + p.f3 + p.f4 + w;   // total oportunidades activas
-            // Embudo ACUMULADO: cuántos PASARON por cada fase (asume avance secuencial F1→F2→F3→F4→Won)
-            const reachedF1 = p.f1 + p.f2 + p.f3 + p.f4 + w;   // = total (todos entran por F1)
-            const reachedF2 = p.f2 + p.f3 + p.f4 + w;
-            const reachedF3 = p.f3 + p.f4 + w;
-            const reachedF4 = p.f4 + w;
+            // F1-F4 del EMBUDO y de las tarjetas "estado actual": pipeline ABIERTO de ac-extra (no cuenta en su fase
+            // a los ya ganados). Así cada trato se cuenta UNA vez (en su fase actual o en Won) y cuadra con las tablas
+            // de país/campaña/vendedor. Fallback al proxy si ac-extra no está disponible.
+            const pf = _openF || { f1: p.f1, f2: p.f2, f3: p.f3, f4: p.f4 };
+            const t = pf.f1 + pf.f2 + pf.f3 + pf.f4 + w;   // total oportunidades del periodo (abiertos + ganados)
+            // Embudo ACUMULADO: cuántos PASARON por cada fase (avance secuencial F1→F2→F3→F4→Won), sin doble conteo
+            const reachedF1 = pf.f1 + pf.f2 + pf.f3 + pf.f4 + w;   // = total (todos entran por F1)
+            const reachedF2 = pf.f2 + pf.f3 + pf.f4 + w;
+            const reachedF3 = pf.f3 + pf.f4 + w;
+            const reachedF4 = pf.f4 + w;
             const m1 = reachedF1 > 0 ? Math.round(reachedF2 / reachedF1 * 100) : 0;   // F1→F2
             const m2 = reachedF2 > 0 ? Math.round(w / reachedF2 * 100) : 0;           // F2→Won
             const m3 = t > 0 ? Math.round(w / t * 100) : 0;                           // win rate global
@@ -474,10 +485,10 @@
             let html = funnel + `
                 <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:6px 0 10px 2px">Estado actual · en qué fase están AHORA (no acumulado)</div>
                 <div class="cards-grid">
-                    <div class="card card--f1"><div class="card-label">F1 · Solicitud</div><div class="card-value">${p.f1}</div></div>
-                    <div class="card card--f2"><div class="card-label">F2 · Cualificado</div><div class="card-value">${p.f2}</div></div>
-                    <div class="card card--f3"><div class="card-label">F3 · Propuesta</div><div class="card-value">${p.f3}</div></div>
-                    <div class="card card--f4"><div class="card-label">F4 · Facturación</div><div class="card-value">${p.f4}</div></div>
+                    <div class="card card--f1"><div class="card-label">F1 · Solicitud</div><div class="card-value">${pf.f1}</div></div>
+                    <div class="card card--f2"><div class="card-label">F2 · Cualificado</div><div class="card-value">${pf.f2}</div></div>
+                    <div class="card card--f3"><div class="card-label">F3 · Propuesta</div><div class="card-value">${pf.f3}</div></div>
+                    <div class="card card--f4"><div class="card-label">F4 · Facturación</div><div class="card-value">${pf.f4}</div></div>
                     <div class="card card--trash"><div class="card-label">Descartados</div><div class="card-value">${p.trash}</div></div>
                     <div class="card card--won"><div class="card-label">Won · Cerrados</div><div class="card-value">${w}</div></div>
                     <div class="card card--won"><div class="card-label">Won · ${_meses[_pto.getMonth()]}. ${_pto.getFullYear()}</div><div class="card-value">${wonMonth}</div><div class="card-foot">Ganados en ${_meses[_pto.getMonth()]}. del periodo</div></div>
