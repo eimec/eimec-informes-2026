@@ -427,7 +427,7 @@
                     addWon(extra.by_owner, (extra.won_owner&&extra.won_owner[wd.id])||'Sin asignar');
                     addWon(extra.by_pais, paisKey(wd.pais));
                     addWon(extra.by_curso, (wd.curso&&wd.curso.trim())?wd.curso.trim():'Sin curso');
-                    addWon(extra.by_campaign, (extra.won_campaign&&extra.won_campaign[wd.id])||'Sin campaña');
+                    addWon(extra.by_campaign, (extra.won_campaign&&extra.won_campaign[wd.id])||'Sin dato');
                 });
                 const T={f1:0,f2:0,f3:0,f4:0,won:0,total:0};
                 Object.values(extra.by_pais).forEach(b=>{T.f1+=b.f1;T.f2+=b.f2;T.f3+=b.f3;T.f4+=b.f4;T.won+=b.won;T.total+=b.total;});
@@ -582,8 +582,12 @@
                 const ctop = crows.slice(0,15);
                 const cMax = Math.max(...ctop.map(r=>r.total),1);
                 const zc = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
-                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por campaña (UTM)</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Top ${Math.min(15,totalCamps)} de ${totalCamps} campañas · TRATOS TOTALES (F1+F2+F3+F4+Won) creados en el periodo</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>#</th><th>Campaña (utm_campaign)</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th></tr></thead><tbody>`;
+                const utmTitle = (extra && extra.utm_title) || 'campaña';
+                const utmTitlePl = (extra && extra.utm_title_pl) || 'campañas';
+                const utmLabel = (extra && extra.utm_label) || 'utm_campaign';
+                const utmTitleCap = utmTitle.charAt(0).toUpperCase() + utmTitle.slice(1);
+                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por ${utmTitle} (UTM)</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Top ${Math.min(15,totalCamps)} de ${totalCamps} ${utmTitlePl} · TRATOS TOTALES (F1+F2+F3+F4+Won) creados en el periodo</span></div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>#</th><th>${utmTitleCap} (${utmLabel})</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th></tr></thead><tbody>`;
                 ctop.forEach(({camp,c,total}, i)=>{
                     const ventaPct = total>0 ? Math.round((c.won||0)/total*100) : 0;
                     const heat = (0.08 + 0.42*(total/cMax)).toFixed(2);
@@ -600,7 +604,7 @@
                 const cVenta = CT.total>0 ? Math.round(CT.won/CT.total*100) : 0;
                 html += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                     <td></td>
-                    <td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${totalCamps} campañas</td>
+                    <td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${totalCamps} ${utmTitlePl}</td>
                     <td class="num" style="font-weight:800;color:var(--brand-dark)">${CT.total}</td>
                     <td class="num" style="font-weight:800">${CT.f1}</td>
                     <td class="num" style="font-weight:800">${CT.f2}</td>

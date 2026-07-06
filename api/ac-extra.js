@@ -9,7 +9,13 @@ const AC_BASE = 'https://eimec.api-us1.com/api/3';
 const STAGES = { f1: 33, f2: 34, f3: 36, f4: 37 };
 const M_PAIS = '40';
 const M_CURSO = '3';
-const M_CAMPAIGN = '11';   // utm_campaign (campo del trato)
+const M_PM_CAMPAIGN = '11';   // utm_campaign — SOLO para detectar "paciente modelo"
+// >>> INTERRUPTOR: campo del DESGLOSE de la tabla UTM. Cambiar solo esta línea para testear otra dimensión:
+// 11=utm_campaign · 15=utm_source · 16=utm_medium · 17=utm_term · 18=utm_content
+const M_UTM = '15';
+const UTM_LABEL = { '11':'utm_campaign', '15':'utm_source', '16':'utm_medium', '17':'utm_term', '18':'utm_content' };
+const UTM_TITLE = { '11':'campaña', '15':'origen', '16':'medio', '17':'término', '18':'contenido' };
+const UTM_TITLE_PL = { '11':'campañas', '15':'orígenes', '16':'medios', '17':'términos', '18':'contenidos' };
 // "Paciente modelo" = captación de modelos para prácticas de FORMACIÓN, no es venta → se excluye del informe.
 // Coincide por campaña (…PACIENTE-MODELO) o por propietario ("Pacientes modelo EIMEC Formación").
 const PM_RE = /pacientes?[\s_\-]*modelo/i;
@@ -97,11 +103,11 @@ export default async function handler(req, res) {
       (resp.deals || []).forEach(d => {
         const c = cf[d.id] || {};
         const ownerName = ownerMap[d.owner] || 'Sin asignar';
-        const cp = c[M_CAMPAIGN] && String(c[M_CAMPAIGN]).trim();
-        if (isPM(cp, ownerName)) return;   // excluir "paciente modelo" (formación, no ventas)
+        const pmCamp = c[M_PM_CAMPAIGN] && String(c[M_PM_CAMPAIGN]).trim();
+        if (isPM(pmCamp, ownerName)) return;   // excluir "paciente modelo" (formación, no ventas)
         add(by_owner, ownerName, sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
-        add(by_campaign, cp ? cp : 'Sin campaña', sk);
+        const utm = c[M_UTM] && String(c[M_UTM]).trim(); add(by_campaign, utm ? utm : 'Sin dato', sk);
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
@@ -155,9 +161,10 @@ export default async function handler(req, res) {
         (d.deals || []).forEach(x => {
           const ownerName = ownerMap[x.owner] || 'Sin asignar';
           won_owner[x.id] = ownerName;
-          const cp = cf[x.id] && cf[x.id][M_CAMPAIGN] && String(cf[x.id][M_CAMPAIGN]).trim();
-          won_campaign[x.id] = cp ? cp : 'Sin campaña';
-          if (isPM(cp, ownerName)) pmWonIds.push(x.id);
+          const pmCamp = cf[x.id] && cf[x.id][M_PM_CAMPAIGN] && String(cf[x.id][M_PM_CAMPAIGN]).trim();
+          const utm = cf[x.id] && cf[x.id][M_UTM] && String(cf[x.id][M_UTM]).trim();
+          won_campaign[x.id] = utm ? utm : 'Sin dato';
+          if (isPM(pmCamp, ownerName)) pmWonIds.push(x.id);
         });
         return d;
       };
@@ -179,6 +186,8 @@ export default async function handler(req, res) {
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, totals: tot,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds,
+      utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
+      utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
   } catch (error) {
