@@ -576,8 +576,10 @@
                 html += `</tbody></table></div></div>`;
             }
 
-            // Pipeline por CAMPAÑA (utm_campaign del trato) — mismo formato que país, ordenado por más tratos.
-            if (extra && extra.by_campaign && Object.keys(extra.by_campaign).length > 0) {
+            // Pipeline por ORIGEN/CAMPAÑA (UTM) — OCULTA de momento (se decidirá dónde colocarla).
+            // Para volver a mostrarla: poner SHOW_UTM_TABLE = true. El motor (ac-extra) sigue devolviendo los datos.
+            const SHOW_UTM_TABLE = false;
+            if (SHOW_UTM_TABLE && extra && extra.by_campaign && Object.keys(extra.by_campaign).length > 0) {
                 let crows = Object.entries(extra.by_campaign).map(([camp,c])=>({
                     camp, c:{f1:c.f1||0,f2:c.f2||0,f3:c.f3||0,f4:c.f4||0,won:c.won||0}, total:c.total||((c.f1||0)+(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0))
                 }));
