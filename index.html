@@ -413,6 +413,9 @@
             const _openF = (extra && extra.ok && extra.totals)
                 ? { f1: extra.totals.f1||0, f2: extra.totals.f2||0, f3: extra.totals.f3||0, f4: extra.totals.f4||0 }
                 : null;
+            // "Paciente modelo" (captación para prácticas de formación) NO es venta. ac-extra ya lo excluyó de F1-F4;
+            // aquí excluimos también sus WON para que embudo, tablas y totales no lo cuenten (todo sigue cuadrando).
+            const pmWonSet = new Set((extra && extra.pm_won_ids) || []);
             // Cruzar los GANADOS del periodo (proxy won_deals = ganados por fecha de cierre, con país/curso)
             // con el vendedor (ac-extra won_owner). Así F1-F4 = creados en periodo y Won = ganados en periodo (cuadra con el funnel).
             if (extra && extra.ok && !extra._merged && Array.isArray(data.won_deals)) {
@@ -420,6 +423,7 @@
                 const addWon = (b,k)=>{ if(!k) k='Sin dato'; if(!b[k]) b[k]={f1:0,f2:0,f3:0,f4:0,won:0,total:0}; b[k].won++; b[k].total++; };
                 extra.by_owner=extra.by_owner||{}; extra.by_pais=extra.by_pais||{}; extra.by_curso=extra.by_curso||{}; extra.by_campaign=extra.by_campaign||{};
                 data.won_deals.forEach(wd=>{
+                    if (pmWonSet.has(wd.id)) return;   // excluir paciente modelo
                     addWon(extra.by_owner, (extra.won_owner&&extra.won_owner[wd.id])||'Sin asignar');
                     addWon(extra.by_pais, paisKey(wd.pais));
                     addWon(extra.by_curso, (wd.curso&&wd.curso.trim())?wd.curso.trim():'Sin curso');
@@ -430,7 +434,7 @@
                 extra.totals=T;
                 extra._merged = true;   // evita doble conteo si se re-renderiza con el mismo objeto
             }
-            const w = data.won_count;
+            const w = (data.won_deals||[]).filter(wd=>!pmWonSet.has(wd.id)).length;   // won del periodo, sin paciente modelo
             // F1-F4 del EMBUDO y de las tarjetas "estado actual": pipeline ABIERTO de ac-extra (no cuenta en su fase
             // a los ya ganados). Así cada trato se cuenta UNA vez (en su fase actual o en Won) y cuadra con las tablas
             // de país/campaña/vendedor. Fallback al proxy si ac-extra no está disponible.
@@ -444,7 +448,7 @@
             const m1 = reachedF1 > 0 ? Math.round(reachedF2 / reachedF1 * 100) : 0;   // F1→F2
             const m2 = reachedF2 > 0 ? Math.round(w / reachedF2 * 100) : 0;           // F2→Won
             const m3 = t > 0 ? Math.round(w / t * 100) : 0;                           // win rate global
-            const sc = data.won_deals.filter(x => !x.curso || x.curso === '').length;
+            const sc = data.won_deals.filter(x => !pmWonSet.has(x.id) && (!x.curso || x.curso === '')).length;
 
             // meta
             if (data.period) {

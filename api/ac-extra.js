@@ -10,6 +10,10 @@ const STAGES = { f1: 33, f2: 34, f3: 36, f4: 37 };
 const M_PAIS = '40';
 const M_CURSO = '3';
 const M_CAMPAIGN = '11';   // utm_campaign (campo del trato)
+// "Paciente modelo" = captación de modelos para prácticas de FORMACIÓN, no es venta → se excluye del informe.
+// Coincide por campaña (…PACIENTE-MODELO) o por propietario ("Pacientes modelo EIMEC Formación").
+const PM_RE = /pacientes?[\s_\-]*modelo/i;
+const isPM = (camp, owner) => PM_RE.test(camp || '') || PM_RE.test(owner || '');
 
 const ISO2 = {
   ES:'Spain', MX:'Mexico', CL:'Chile', PE:'Peru', AR:'Argentina', CO:'Colombia', VE:'Venezuela', EC:'Ecuador',
@@ -92,9 +96,12 @@ export default async function handler(req, res) {
       (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
       (resp.deals || []).forEach(d => {
         const c = cf[d.id] || {};
-        add(by_owner, ownerMap[d.owner] || 'Sin asignar', sk);
+        const ownerName = ownerMap[d.owner] || 'Sin asignar';
+        const cp = c[M_CAMPAIGN] && String(c[M_CAMPAIGN]).trim();
+        if (isPM(cp, ownerName)) return;   // excluir "paciente modelo" (formación, no ventas)
+        add(by_owner, ownerName, sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
-        const cp = c[M_CAMPAIGN] && String(c[M_CAMPAIGN]).trim(); add(by_campaign, cp ? cp : 'Sin campaña', sk);
+        add(by_campaign, cp ? cp : 'Sin campaña', sk);
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
@@ -139,15 +146,18 @@ export default async function handler(req, res) {
     // (= ganados EN el periodo por fecha de cierre) para que el Won cuadre con el funnel (14).
     const won_owner = {};
     const won_campaign = {};
+    const pmWonIds = [];   // ids de ganados que son "paciente modelo" → el front los excluye
     {
       const grab = async (off) => {
         const d = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', limit: 100, offset: off });
         const cf = {};
         (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
         (d.deals || []).forEach(x => {
-          won_owner[x.id] = ownerMap[x.owner] || 'Sin asignar';
+          const ownerName = ownerMap[x.owner] || 'Sin asignar';
+          won_owner[x.id] = ownerName;
           const cp = cf[x.id] && cf[x.id][M_CAMPAIGN] && String(cf[x.id][M_CAMPAIGN]).trim();
           won_campaign[x.id] = cp ? cp : 'Sin campaña';
+          if (isPM(cp, ownerName)) pmWonIds.push(x.id);
         });
         return d;
       };
@@ -168,7 +178,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, totals: tot,
-      sin_pais: sinPaisFinal, pais_recuperados,
+      sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds,
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
   } catch (error) {
