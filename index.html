@@ -535,14 +535,13 @@
                 const totalPaises = rows.length;
                 const top = rows.slice(0,15);
                 const maxTotal = Math.max(...top.map(r=>r.total),1);
-                const grandTot = rows.reduce((s,r)=>s+(r.total||0),0) || 1;   // total de TODOS los países = base del "% del total"
                 const note = hasF1 ? `Top 15 de ${totalPaises} países · TRATOS TOTALES (F1+F2+F3+F4+Won) creados en el periodo` : `Top 15 de ${totalPaises} países · Tratos F2→Won del periodo`;
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos${hasF1?'':'<span style="font-weight:400;font-size:9px"> F2→Won</span>'}</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th><th style="color:var(--slate)" title="Peso del país sobre el total de tratos del periodo">% del total</th></tr></thead><tbody>`;
+                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos${hasF1?'':'<span style="font-weight:400;font-size:9px"> F2→Won</span>'}</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)">Won</th><th style="color:var(--green)">% Venta</th><th style="color:var(--brand)" title="Fase 2 ÷ tratos totales del país">% en F2</th></tr></thead><tbody>`;
                 const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
                 top.forEach(({pais,c,total}, i)=>{
                     const ventaPct = total>0 ? Math.round((c.won||0)/total*100) : 0;
-                    const pctTot = Math.round(total/grandTot*100);
+                    const f2Pct = total>0 ? Math.round((c.f2||0)/total*100) : 0;
                     const heat = (0.08 + 0.42*(total/maxTotal)).toFixed(2);
                     const f1Cell = (c.f1===null) ? `<td class="cell-zero" title="Activa la clave de AC para el F1 por país">–</td>` : zz(c.f1);
                     html += `<tr>
@@ -552,13 +551,15 @@
                         ${f1Cell}${zz(c.f2)}${zz(c.f3)}${zz(c.f4)}
                         <td class="num ${c.won?'cell-win':'cell-zero'}">${c.won||0}</td>
                         <td class="num" style="font-weight:700;color:${ventaPct>0?'var(--green)':'#D6D1DA'}">${ventaPct}%</td>
-                        <td class="num" style="font-weight:600;color:var(--slate)">${pctTot}%</td></tr>`;
+                        <td class="num" style="font-weight:600;color:var(--brand)">${f2Pct}%</td></tr>`;
                 });
                 // Fila TOTAL (global, TODOS los países). Sin clave AC, "Tratos" = F2+F3+F4+Won para que CUADRE con las filas.
                 const T = (hasF1 && extra.totals) ? extra.totals : {f1:p.f1,f2:p.f2,f3:p.f3,f4:p.f4,won:w,total:(p.f2+p.f3+p.f4+w)};
                 const gTot = hasF1 ? (T.total||0) : (p.f2+p.f3+p.f4+w);
                 const gWon = hasF1 ? (T.won||0) : w;
                 const gVenta = gTot>0 ? Math.round(gWon/gTot*100) : 0;
+                const gF2 = hasF1?(T.f2||0):p.f2;
+                const gF2Pct = gTot>0 ? Math.round(gF2/gTot*100) : 0;
                 const f1TotCell = hasF1
                     ? `<td class="num" style="font-weight:800">${T.f1||0}</td>`
                     : `<td class="num" style="font-weight:800;color:var(--muted)">(${p.f1})</td>`;
@@ -572,7 +573,7 @@
                     <td class="num" style="font-weight:800">${hasF1?(T.f4||0):p.f4}</td>
                     <td class="num cell-win" style="font-weight:800">${gWon}</td>
                     <td class="num" style="font-weight:800;color:var(--green)">${gVenta}%</td>
-                    <td class="num" style="font-weight:800;color:var(--brand-dark)">100%</td></tr>`;
+                    <td class="num" style="font-weight:800;color:var(--brand)">${gF2Pct}%</td></tr>`;
                 html += `</tbody></table></div></div>`;
             }
 
