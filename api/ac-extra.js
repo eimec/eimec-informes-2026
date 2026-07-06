@@ -9,6 +9,7 @@ const AC_BASE = 'https://eimec.api-us1.com/api/3';
 const STAGES = { f1: 33, f2: 34, f3: 36, f4: 37 };
 const M_PAIS = '40';
 const M_CURSO = '3';
+const M_CAMPAIGN = '11';   // utm_campaign (campo del trato)
 
 const ISO2 = {
   ES:'Spain', MX:'Mexico', CL:'Chile', PE:'Peru', AR:'Argentina', CO:'Colombia', VE:'Venezuela', EC:'Ecuador',
@@ -81,7 +82,7 @@ export default async function handler(req, res) {
       if (us.length < 100) break;
     }
 
-    const by_owner = {}, by_pais = {}, by_curso = {}, created_by_date = {};
+    const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {};
     const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
@@ -93,6 +94,7 @@ export default async function handler(req, res) {
         const c = cf[d.id] || {};
         add(by_owner, ownerMap[d.owner] || 'Sin asignar', sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
+        const cp = c[M_CAMPAIGN] && String(c[M_CAMPAIGN]).trim(); add(by_campaign, cp ? cp : 'Sin campaña', sk);
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
@@ -136,10 +138,17 @@ export default async function handler(req, res) {
     // Mapa deal_id -> vendedor de TODOS los ganados. El front lo cruza con won_deals del proxy
     // (= ganados EN el periodo por fecha de cierre) para que el Won cuadre con el funnel (14).
     const won_owner = {};
+    const won_campaign = {};
     {
       const grab = async (off) => {
-        const d = await acGet(KEY, '/deals', { 'filters[status]': 1, limit: 100, offset: off });
-        (d.deals || []).forEach(x => { won_owner[x.id] = ownerMap[x.owner] || 'Sin asignar'; });
+        const d = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', limit: 100, offset: off });
+        const cf = {};
+        (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
+        (d.deals || []).forEach(x => {
+          won_owner[x.id] = ownerMap[x.owner] || 'Sin asignar';
+          const cp = cf[x.id] && cf[x.id][M_CAMPAIGN] && String(cf[x.id][M_CAMPAIGN]).trim();
+          won_campaign[x.id] = cp ? cp : 'Sin campaña';
+        });
         return d;
       };
       const first = await grab(0);
@@ -158,7 +167,7 @@ export default async function handler(req, res) {
     Object.keys(created_by_date).sort().forEach(k => { cbd[k] = created_by_date[k]; });
 
     res.status(200).json({
-      ok: true, by_owner, by_pais, by_curso, won_owner, created_by_date: cbd, totals: tot,
+      ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, totals: tot,
       sin_pais: sinPaisFinal, pais_recuperados,
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
