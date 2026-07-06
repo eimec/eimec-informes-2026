@@ -30,6 +30,25 @@ function normPais(v) {
   return k;
 }
 
+// Prefijo telefónico internacional → país (para completar los "Sin país")
+const PHONE_PREFIX = {
+  '34':'Spain','52':'Mexico','56':'Chile','51':'Peru','54':'Argentina','57':'Colombia','58':'Venezuela','593':'Ecuador',
+  '591':'Bolivia','598':'Uruguay','595':'Paraguay','506':'Costa Rica','502':'Guatemala','503':'El Salvador','504':'Honduras',
+  '505':'Nicaragua','507':'Panama','1':'United States','39':'Italy','44':'United Kingdom','33':'France','49':'Germany',
+  '351':'Portugal','353':'Ireland','41':'Switzerland','31':'Netherlands','32':'Belgium','48':'Poland','40':'Romania','30':'Greece',
+  '380':'Ukraine','90':'Turkey','972':'Israel','971':'United Arab Emirates','966':'Saudi Arabia','55':'Brazil','92':'Pakistan',
+  '91':'India','63':'Philippines','218':'Libya','356':'Malta','212':'Morocco','20':'Egypt','234':'Nigeria','355':'Albania'
+};
+function countryFromPhone(phone) {
+  if (!phone) return '';
+  let p = String(phone).replace(/[^\d+]/g, '');
+  if (p[0] === '+') p = p.slice(1);
+  else if (p.startsWith('00')) p = p.slice(2);
+  else return '';
+  for (let len = 4; len >= 1; len--) { const pre = p.slice(0, len); if (PHONE_PREFIX[pre]) return PHONE_PREFIX[pre]; }
+  return '';
+}
+
 async function acGet(key, path, params = {}) {
   const qs = new URLSearchParams(params).toString();
   try {
@@ -63,6 +82,7 @@ export default async function handler(req, res) {
     }
 
     const by_owner = {}, by_pais = {}, by_curso = {}, created_by_date = {};
+    const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
     // Procesa una respuesta de /deals?include=dealCustomFieldData
@@ -72,8 +92,10 @@ export default async function handler(req, res) {
       (resp.deals || []).forEach(d => {
         const c = cf[d.id] || {};
         add(by_owner, ownerMap[d.owner] || 'Sin asignar', sk);
-        add(by_pais, normPais(c[M_PAIS]), sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
+        const pv = c[M_PAIS];
+        if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
+        else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
         if (d.cdate) { const day = String(d.cdate).slice(0, 10); created_by_date[day] = (created_by_date[day] || 0) + 1; }
       });
     };
@@ -94,6 +116,23 @@ export default async function handler(req, res) {
     for (const [sk, sid] of Object.entries(STAGES)) {
       await fetchStage({ 'filters[stage]': sid, 'filters[status]': 0, ...dateParams }, sk);
     }
+
+    // Completar "Sin país": inferir por el prefijo del teléfono del contacto (solo los que no tienen país)
+    let pais_recuperados = 0;
+    const needC = [...new Set(sinPais.map(x => x.contact).filter(Boolean))].slice(0, 700);
+    const phonePais = {};
+    for (let i = 0; i < needC.length; i += 12) {
+      if (Date.now() - start > 42000) break;   // presupuesto de tiempo
+      const batch = needC.slice(i, i + 12);
+      const rs = await Promise.all(batch.map(id => acGet(KEY, `/contacts/${id}`)));
+      rs.forEach((r, j) => { const ph = r.contact && r.contact.phone; const inf = countryFromPhone(ph); if (inf) phonePais[batch[j]] = inf; });
+    }
+    sinPais.forEach(x => {
+      const inf = phonePais[x.contact];
+      if (inf) { add(by_pais, inf, x.sk); pais_recuperados++; }
+      else add(by_pais, 'Sin país', x.sk);
+    });
+
     // Mapa deal_id -> vendedor de TODOS los ganados. El front lo cruza con won_deals del proxy
     // (= ganados EN el periodo por fecha de cierre) para que el Won cuadre con el funnel (14).
     const won_owner = {};
@@ -112,14 +151,15 @@ export default async function handler(req, res) {
 
     let tot = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 };
     Object.values(by_pais).forEach(b => { tot.f1+=b.f1; tot.f2+=b.f2; tot.f3+=b.f3; tot.f4+=b.f4; tot.won+=b.won; tot.total+=b.total; });
-    const sinPais = by_pais['Sin país'] ? by_pais['Sin país'].total : 0;
+    const sinPaisFinal = by_pais['Sin país'] ? by_pais['Sin país'].total : 0;
 
     // ordenar creados por día (cronológico)
     const cbd = {};
     Object.keys(created_by_date).sort().forEach(k => { cbd[k] = created_by_date[k]; });
 
     res.status(200).json({
-      ok: true, by_owner, by_pais, by_curso, won_owner, created_by_date: cbd, totals: tot, sin_pais: sinPais,
+      ok: true, by_owner, by_pais, by_curso, won_owner, created_by_date: cbd, totals: tot,
+      sin_pais: sinPaisFinal, pais_recuperados,
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
   } catch (error) {

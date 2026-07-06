@@ -633,9 +633,16 @@
             return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta');
         }
         function renderOwnerTable(obj){
-            const HIDE = ['Pacientes modelo EIMEC Formación'];
-            const rows = bdRows(obj).filter(r => !HIDE.includes(r.k));
-            return bdTable('Rendimiento por vendedor', 'Tratos creados en el periodo · % Rate = Won ÷ total', 'Vendedor', rows, '% Rate');
+            // Owners que NO son vendedores comerciales → se agrupan en "Otros" (el TOTAL sigue cuadrando con país)
+            const NON_SELLER = ['Pacientes modelo EIMEC Formación','EIMEC Formación','Maykel Sanchez','Sin asignar'];
+            const grouped = {};
+            Object.entries(obj||{}).forEach(([k,v])=>{
+                const key = NON_SELLER.includes(k) ? 'Otros / no comercial' : k;
+                if(!grouped[key]) grouped[key]={f1:0,f2:0,f3:0,f4:0,won:0,total:0};
+                ['f1','f2','f3','f4','won','total'].forEach(m=>grouped[key][m]+=(v[m]||0));
+            });
+            if (grouped['Otros / no comercial'] && grouped['Otros / no comercial'].total===0) delete grouped['Otros / no comercial'];
+            return bdTable('Rendimiento por vendedor', 'Tratos creados en el periodo · % Rate = Won ÷ total', 'Vendedor', bdRows(grouped), '% Rate');
         }
         function renderCursoTable(obj){
             return bdTable('Tratos por curso', 'Tratos creados en el periodo · ordenado por volumen', 'Curso', bdRows(obj), '% Venta');
