@@ -21,6 +21,16 @@ const UTM_TITLE_PL = { '11':'campañas', '15':'orígenes', '16':'medios', '17':'
 const PM_RE = /pacientes?[\s_\-]*modelo/i;
 const isPM = (camp, owner) => PM_RE.test(camp || '') || PM_RE.test(owner || '');
 
+// Normaliza valores de la dimensión UTM para unificar duplicados por grafía (ej. "Meta-ads" y "Meta - ads").
+// La clave se compara sin espacios/guiones/mayúsculas; añadir más alias aquí si aparecen otros duplicados.
+const UTM_ALIAS = { 'metaads':'Meta-ads', 'meta':'Meta-ads' };
+function normUtm(v){
+  const s = v ? String(v).trim() : '';
+  if (!s) return '';
+  const key = s.toLowerCase().replace(/[\s_\-]+/g, '');
+  return UTM_ALIAS[key] || s;
+}
+
 const ISO2 = {
   ES:'Spain', MX:'Mexico', CL:'Chile', PE:'Peru', AR:'Argentina', CO:'Colombia', VE:'Venezuela', EC:'Ecuador',
   BO:'Bolivia', UY:'Uruguay', PY:'Paraguay', CR:'Costa Rica', GT:'Guatemala', SV:'El Salvador', HN:'Honduras',
@@ -107,7 +117,7 @@ export default async function handler(req, res) {
         if (isPM(pmCamp, ownerName)) return;   // excluir "paciente modelo" (formación, no ventas)
         add(by_owner, ownerName, sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
-        const utm = c[M_UTM] && String(c[M_UTM]).trim(); add(by_campaign, utm ? utm : 'Sin dato', sk);
+        const utm = normUtm(c[M_UTM]); add(by_campaign, utm || 'Sin dato', sk);
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
@@ -162,8 +172,8 @@ export default async function handler(req, res) {
           const ownerName = ownerMap[x.owner] || 'Sin asignar';
           won_owner[x.id] = ownerName;
           const pmCamp = cf[x.id] && cf[x.id][M_PM_CAMPAIGN] && String(cf[x.id][M_PM_CAMPAIGN]).trim();
-          const utm = cf[x.id] && cf[x.id][M_UTM] && String(cf[x.id][M_UTM]).trim();
-          won_campaign[x.id] = utm ? utm : 'Sin dato';
+          const utm = normUtm(cf[x.id] && cf[x.id][M_UTM]);
+          won_campaign[x.id] = utm || 'Sin dato';
           if (isPM(pmCamp, ownerName)) pmWonIds.push(x.id);
         });
         return d;
