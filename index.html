@@ -617,10 +617,13 @@
                 if (extra.sin_pais) html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E"><strong>⚠️ Calidad de dato en el CRM:</strong> los tratos abiertos (F1-F4) recientes <b>no tienen País ni Curso</b> — esos campos solo están en los cerrados. Por eso el desglose por país/curso usa los <b>cierres</b>. Recomendado: exigir País y Curso en el formulario de entrada.</div>`;
             }
 
-            // Matriz Curso x País — solo países con cierres, mapa de calor. Países unificados (US=United States).
-            if (data.matrix && Object.keys(data.matrix).length > 0) {
+            // Matriz Curso x País — desde los CIERRES reales del periodo (won_deals) SIN paciente modelo → su TOTAL
+            // cuadra con el Won del embudo. Países unificados (US=United States).
+            const _matrixSrc = {};
+            (data.won_deals||[]).forEach(d=>{ if(pmWonSet.has(d.id)) return; const cu=d.curso||'Sin curso'; const pa=d.pais||'Sin país'; (_matrixSrc[cu]=_matrixSrc[cu]||{}); _matrixSrc[cu][pa]=(_matrixSrc[cu][pa]||0)+1; });
+            if (Object.keys(_matrixSrc).length > 0) {
                 const matrixN = {};
-                Object.entries(data.matrix).forEach(([curso,pv])=>{
+                Object.entries(_matrixSrc).forEach(([curso,pv])=>{
                     matrixN[curso] = matrixN[curso] || {};
                     Object.entries(pv).forEach(([p,v])=>{ const k=normPais(p); matrixN[curso][k]=(matrixN[curso][k]||0)+v; });
                 });
@@ -782,8 +785,15 @@
                     options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#EDF0F4'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
+            // "Paciente modelo" excluido también de los gráficos de cierres (consistencia con embudo/tablas)
+            const _pmSet = new Set((extra && extra.pm_won_ids) || []);
+            const _wonClean = (data.won_deals||[]).filter(d => !_pmSet.has(d.id));
             const cursoData = {};
-            data.won_deals.forEach(d => { const c = d.curso || 'Sin curso'; cursoData[c]=(cursoData[c]||0)+1; });
+            _wonClean.forEach(d => { const c = d.curso || 'Sin curso'; cursoData[c]=(cursoData[c]||0)+1; });
+            const wonByDateSorted = {};
+            const _wbd = {};
+            _wonClean.forEach(d => { const dt = (d.date||'').slice(0,10); if(dt) _wbd[dt]=(_wbd[dt]||0)+1; });
+            Object.keys(_wbd).sort().forEach(k=>{ wonByDateSorted[k]=_wbd[k]; });
 
             if (document.getElementById('wonByCursoChart')) {
                 if (charts.wonByCurso) charts.wonByCurso.destroy();
@@ -793,14 +803,14 @@
                     options: baseOpts({ cutout:'62%', plugins:{ legend:{ position:'right', labels:{ font:{family:'Montserrat',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:12 } } } })
                 });
             }
-            if (data.won_by_date && document.getElementById('wonByDateChart')) {
+            if (Object.keys(wonByDateSorted).length && document.getElementById('wonByDateChart')) {
                 if (charts.wonByDate) charts.wonByDate.destroy();
                 const ctx = document.getElementById('wonByDateChart').getContext('2d');
                 const grad = ctx.createLinearGradient(0,0,0,300);
                 grad.addColorStop(0,'rgba(0,155,155,.28)'); grad.addColorStop(1,'rgba(0,155,155,0)');
                 charts.wonByDate = new Chart(ctx, {
                     type:'line',
-                    data:{ labels:Object.keys(data.won_by_date), datasets:[{ label:'Cierres', data:Object.values(data.won_by_date), borderColor:'#009B9B', backgroundColor:grad, fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#009B9B', borderWidth:2.5 }] },
+                    data:{ labels:Object.keys(wonByDateSorted), datasets:[{ label:'Cierres', data:Object.values(wonByDateSorted), borderColor:'#009B9B', backgroundColor:grad, fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#009B9B', borderWidth:2.5 }] },
                     options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
