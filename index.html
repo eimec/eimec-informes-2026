@@ -650,21 +650,31 @@
             // País y curso REALES del trato (ac-extra, del periodo)
             const paisArr = arr(extra.by_pais, ['Sin país','Sin dato']);
             const cursoArr = arr(extra.by_curso, ['Sin curso','Sin dato']);
-            const cursoWon = [...cursoArr].sort((a,b)=>(b.won||0)-(a.won||0));
+            // ordenar por won con DESEMPATE por volumen de tratos (evita elegir al azar entre empatados)
+            const byWon = a => [...a].sort((x,y)=>(y.won||0)-(x.won||0) || (y.total||0)-(x.total||0));
+            const cursoWon = byWon(cursoArr);
             const cursoVol = [...cursoArr].sort((a,b)=>(b.total||0)-(a.total||0));
             const cursoStuck = [...cursoArr].filter(c=>(c.won||0)===0 && (c.f2||0)>0).sort((a,b)=>(b.f2||0)-(a.f2||0));
-            const paisWon = [...paisArr].sort((a,b)=>(b.won||0)-(a.won||0));
+            const paisWon = byWon(paisArr);
             const paisVol = [...paisArr].sort((a,b)=>(b.total||0)-(a.total||0));
-            const owners = arr(extra.by_owner, EXC_O).sort((a,b)=>(b.won||0)-(a.won||0));
+            const owners = byWon(arr(extra.by_owner, EXC_O));
             const T = extra.totals||{};
             const winGlobal = T.total>0 ? Math.round((T.won||0)/T.total*100) : 0;
+            // detectar empates y datos vacíos para ser honestos
+            const tieN = (a,val) => a.filter(x=>(x.won||0)===val).length;
+            const cursoTie = cursoWon[0] ? tieN(cursoArr, cursoWon[0].won) : 0;
+            const paisTie = paisWon[0] ? tieN(paisArr, paisWon[0].won) : 0;
+            const sinCursoWon = (extra.by_curso && extra.by_curso['Sin curso']) ? (extra.by_curso['Sin curso'].won||0) : 0;
+            const cw = cursoWon[0], pw = paisWon[0];
+            const cursoSub = cw ? `${cw.won} cierre${cw.won!==1?'s':''}${cursoTie>1?' · empate con '+(cursoTie-1)+' curso(s)':''}` : '—';
+            const paisSub = (pw && pw.won) ? `${pw.won} cierre${pw.won!==1?'s':''}${paisTie>1?' · empate con '+(paisTie-1):''}` : '—';
             const cards = [
-                {t:'Curso más vendido', v: cursoWon[0]?cursoWon[0].k:'—', s: cursoWon[0]?cursoWon[0].won+' cierres':'—'},
+                {t:'Curso más vendido', v: cw?cw.k:'—', s: cursoSub},
                 {t:'Curso con más tratos', v: cursoVol[0]?cursoVol[0].k:'—', s: cursoVol[0]?cursoVol[0].total+' tratos':'—'},
                 {t:'Curso estancado (F2 sin cerrar)', v: cursoStuck[0]?cursoStuck[0].k:'—', s: cursoStuck[0]?cursoStuck[0].f2+' en F2, 0 cierres':'—'},
                 {t:'País con más tratos', v: paisVol[0]?paisVol[0].k:'—', s: paisVol[0]?paisVol[0].total+' tratos':'—'},
-                {t:'País que más cierra', v: paisWon[0]&&paisWon[0].won?paisWon[0].k:'—', s: paisWon[0]&&paisWon[0].won?paisWon[0].won+' cierres':'—'},
-                {t:'Win rate global periodo', v: winGlobal+'%', s: (T.won||0)+' won de '+(T.total||0)+' tratos'}
+                {t:'País que más cierra', v: (pw&&pw.won)?pw.k:'—', s: paisSub},
+                {t:'Win rate global periodo', v: winGlobal+'%', s: `${(T.won||0)} won de ${(T.total||0)} tratos${sinCursoWon?' · '+sinCursoWon+' sin curso':''}`}
             ];
             const paisQual = [...paisArr].sort((a,b)=>(b.f2||0)-(a.f2||0));
             let h = `<div class="section"><div class="section-title">6 insights del periodo${data.period?' · '+fmtDate(data.period.from)+' — '+fmtDate(data.period.to):''}</div><div class="cards-grid">`;
