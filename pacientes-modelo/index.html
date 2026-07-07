@@ -316,6 +316,18 @@
                 html += `</div></div>`;
             }
 
+            // Fases de las oportunidades CREADAS en el periodo (cohorte · responde al filtro de fechas)
+            if (data.cohort_stage && data.cohort_stage.length) {
+                const totalC = data.cohort_stage.reduce((a,s)=>a+s.count,0);
+                const maxC = Math.max(...data.cohort_stage.map(s=>s.count),1);
+                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Fases de lo creado en el periodo · ${totalC} nuevas abiertas</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">De lo captado en el periodo, en qué etapa está ahora · SÍ depende del filtro de fechas</span></div><div class="stagebars">`;
+                data.cohort_stage.forEach(s=>{
+                    const w = Math.round(s.count/maxC*100);
+                    html += `<div class="stagerow"><div class="sname" title="${s.label}">${s.label}</div><div class="strack"><div class="sfill" style="width:${w}%;background:linear-gradient(90deg,#69C2C2,#0B8C8C)"></div></div><div class="sval" style="color:#0B7C7C">${s.count}</div></div>`;
+                });
+                html += `</div></div>`;
+            }
+
             // Insights + recomendaciones
             html += renderInsights(data);
 

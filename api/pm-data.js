@@ -167,7 +167,7 @@ export default async function handler(req, res) {
     stageStock.sort((a, b) => STAGE_ORDER.indexOf(a.id) - STAGE_ORDER.indexOf(b.id));
 
     // Acumuladores. idx: 0=nuevas(open) 1=won 2=lost
-    const by_pais = {}, by_trat = {}, by_origen = {}, by_owner = {}, matrix = {}, matrix_ts = {};
+    const by_pais = {}, by_trat = {}, by_origen = {}, by_owner = {}, matrix = {}, matrix_ts = {}, cohortStageCount = {};
     const created_by_date = {};
     const totals = { open: 0, won: 0, lost: 0 };
     const bump = (b, k, idx) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { open: 0, won: 0, lost: 0, total: 0 }; const f = ['open','won','lost'][idx]; b[k][f]++; b[k].total++; };
@@ -188,9 +188,10 @@ export default async function handler(req, res) {
         const pk = (pv && String(pv).trim()) ? normPais(pv) : 'Sin país';
         (matrix[trat] = matrix[trat] || {})[pk] = (matrix[trat][pk] || 0) + 1;
       }
-      if (idx === 0) {                        // matriz tratamiento × FASE de las abiertas del periodo
+      if (idx === 0) {                        // fase de las abiertas CREADAS en el periodo (cohorte)
         const lab = STAGE_LABEL[d.stage] || ('Etapa ' + d.stage);
         (matrix_ts[trat] = matrix_ts[trat] || {})[lab] = (matrix_ts[trat][lab] || 0) + 1;
+        cohortStageCount[d.stage] = (cohortStageCount[d.stage] || 0) + 1;
       }
     };
 
@@ -223,6 +224,7 @@ export default async function handler(req, res) {
       ok: true,
       totals, by_pais, by_trat, by_origen, by_owner, matrix,
       matrix_trat_stage: matrix_ts, stage_order: STAGE_ORDER.map(id => STAGE_LABEL[id] || ('Etapa ' + id)),
+      cohort_stage: STAGE_ORDER.map(id => ({ id, label: STAGE_LABEL[id] || ('Etapa ' + id), count: cohortStageCount[id] || 0 })),
       stage_stock: stageStock, stage_stock_total: stockOpen,
       // Histórico acumulado del pipeline (todos los tratos, sin filtro de fechas)
       pipeline_totals: { open: stockOpen, won: wonAll.length, lost: lostAll.length },
