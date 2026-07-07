@@ -157,14 +157,12 @@ export default async function handler(req, res) {
     const wonAll = await fetchAll(KEY, 1);
     const lostAll = await fetchAll(KEY, 2);
 
-    // Stock EN VIVO por etapa: TODAS las abiertas (independiente del filtro de fechas).
-    // Consulta ligera por etapa (meta.total), sin traer los cuerpos de los tratos.
-    const stageStock = [];
-    await Promise.all(STAGE_ORDER.map(async sid => {
-      const d = await acGet(KEY, '/deals', { 'filters[group]': GROUP, 'filters[status]': 0, 'filters[stage]': sid, limit: 1 });
-      stageStock.push({ id: sid, label: STAGE_LABEL[sid] || ('Etapa ' + sid), count: (d.meta && d.meta.total) ? parseInt(d.meta.total, 10) : 0 });
-    }));
-    stageStock.sort((a, b) => STAGE_ORDER.indexOf(a.id) - STAGE_ORDER.indexOf(b.id));
+    // Stock EN VIVO por etapa: TODAS las abiertas, agrupadas desde el MISMO conjunto (openDeals)
+    // que usa la cohorte. Así ambos cuadran (la cohorte es un subconjunto del stock; nunca puede
+    // haber más "creados en el periodo" en una etapa que el total abierto de esa etapa).
+    const stockCount = {};
+    openDeals.forEach(d => { stockCount[d.stage] = (stockCount[d.stage] || 0) + 1; });
+    const stageStock = STAGE_ORDER.map(sid => ({ id: sid, label: STAGE_LABEL[sid] || ('Etapa ' + sid), count: stockCount[sid] || 0 }));
 
     // Acumuladores. idx: 0=nuevas(open) 1=won 2=lost
     const by_pais = {}, by_trat = {}, by_origen = {}, by_owner = {}, matrix = {}, matrix_ts = {}, cohortStageCount = {};
@@ -219,7 +217,7 @@ export default async function handler(req, res) {
 
     const sortDays = o => { const out = {}; Object.keys(o).sort().forEach(k => out[k] = o[k]); return out; };
 
-    const stockOpen = stageStock.reduce((s, x) => s + x.count, 0);
+    const stockOpen = openDeals.length;
     res.status(200).json({
       ok: true,
       totals, by_pais, by_trat, by_origen, by_owner, matrix,
