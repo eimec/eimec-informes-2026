@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EIMEC · Pacientes Modelo · Informe de Dirección</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --brand: #1F2A4E; --brand-dark: #131C36; --brand-light: #3A5C94; --brand-soft: #7FA8C4; --brand-tint: #EEF3F8;
+            --gold: #448497; --green: #0B8C8C; --red: #B4474C; --slate: #8A94A6;
+            --ink: #1B2230; --muted: #667085; --line: #E6EBF0; --bg: #F4F7FA; --card: #FFFFFF;
+            --shadow: 0 1px 2px rgba(31,42,78,.04), 0 8px 24px -12px rgba(31,42,78,.12);
+            --shadow-lg: 0 2px 4px rgba(31,42,78,.05), 0 24px 48px -20px rgba(31,42,78,.22);
+            --radius: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 24px;
+            background: radial-gradient(1200px 600px at 20% -10%, rgba(58,92,148,.55), transparent 55%), radial-gradient(900px 500px at 100% 110%, rgba(19,28,54,.9), transparent 50%), linear-gradient(140deg, #131C36 0%, #1F2A4E 55%, #0E1428 100%); }
+        .login-box { background: rgba(255,255,255,.98); padding: 44px 40px; border-radius: 20px; box-shadow: 0 40px 80px -24px rgba(0,0,0,.5); width: 100%; max-width: 400px; text-align: center; }
+        .login-logo { width: 56px; height: 56px; margin: 0 auto 18px; border-radius: 14px; background: linear-gradient(135deg, var(--brand), var(--brand-dark)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 28px; box-shadow: 0 10px 24px -8px rgba(31,42,78,.6); }
+        .login-box h1 { font-size: 20px; margin-bottom: 4px; color: var(--ink); font-weight: 700; }
+        .login-box .sub { font-size: 13px; color: var(--muted); margin-bottom: 26px; }
+        .login-box input { width: 100%; padding: 13px 14px; margin-bottom: 16px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 15px; transition: border-color .2s, box-shadow .2s; font-family: inherit; }
+        .login-box input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px rgba(31,42,78,.12); }
+        .login-box button { width: 100%; padding: 13px; background: var(--brand); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .2s, transform .1s; font-family: inherit; }
+        .login-box button:hover { background: var(--brand-dark); }
+        .login-box button:active { transform: translateY(1px); }
+        .error { color: var(--red); font-size: 13px; margin-bottom: 12px; min-height: 16px; }
+
+        .dashboard { display: none; min-height: 100vh; }
+        .dashboard.active { display: block; }
+        .topbar { background: linear-gradient(120deg, var(--brand-dark) 0%, var(--brand) 60%, #2E5082 100%); color: #fff; padding: 22px 32px; }
+        .topbar-inner { max-width: 1440px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+        .brand-lockup { display: flex; align-items: center; gap: 14px; }
+        .brand-mark { width: 44px; height: 44px; border-radius: 11px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; color: #fff; }
+        .brand-text h1 { font-size: 21px; font-weight: 600; letter-spacing: .2px; line-height: 1.1; }
+        .brand-text .tag { font-size: 12px; opacity: .78; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 3px; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .live-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(0,155,155,.2); border: 1px solid rgba(105,194,194,.5); color: #A9ECEC; padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #2FD4D4; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(47,212,212,.6)} 70%{box-shadow:0 0 0 8px rgba(47,212,212,0)} 100%{box-shadow:0 0 0 0 rgba(47,212,212,0)} }
+        .logout-btn { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25); padding: 8px 15px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: background .2s; }
+        .logout-btn:hover { background: rgba(255,255,255,.22); }
+
+        .subbar { max-width: 1440px; margin: 0 auto; padding: 16px 32px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .meta-line { font-size: 13px; color: var(--muted); }
+        .meta-line strong { color: var(--brand); font-weight: 600; }
+        .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--card); padding: 8px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+        .seg { display: flex; gap: 2px; background: var(--brand-tint); padding: 3px; border-radius: 9px; }
+        .filter-btn { padding: 7px 14px; border: none; background: transparent; border-radius: 7px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--brand); font-family: inherit; transition: all .15s; }
+        .filter-btn:hover { background: rgba(31,42,78,.08); }
+        .filter-btn.active { background: var(--brand); color: #fff; box-shadow: 0 4px 10px -4px rgba(31,42,78,.5); }
+        .filter-divider { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+        .filter-input { padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 12.5px; width: 118px; font-family: inherit; color: var(--ink); }
+        .filter-input:focus { outline: none; border-color: var(--brand); }
+        .apply-btn { padding: 8px 16px; background: var(--ink); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12.5px; font-family: inherit; }
+        .apply-btn:hover { background: #000; }
+
+        .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px 48px; }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        .card::before { content:""; position: absolute; top:0; left:0; right:0; height: 3px; background: var(--slate); }
+        .card--new::before{background:var(--brand)} .card--won::before{background:var(--green)} .card--lost::before{background:var(--red)} .card--rate::before{background:var(--gold)}
+        .card-label { font-size: 10.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .7px; margin-bottom: 12px; }
+        .card-value { font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -.8px; line-height: 1; }
+        .card-foot { font-size: 11px; color: var(--muted); margin-top: 8px; }
+        .cards-grid.metrics .card { background: linear-gradient(160deg, #fff, var(--brand-tint)); }
+        .cards-grid.metrics .card::before { background: linear-gradient(90deg, var(--brand), var(--brand-soft)); }
+        .cards-grid.metrics .card-value { color: var(--brand); }
+
+        .section { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 22px; }
+        .section-title { font-size: 12px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 18px; padding-left: 12px; position: relative; }
+        .section-title::before { content:""; position:absolute; left:0; top:1px; bottom:1px; width:4px; border-radius:3px; background: var(--brand); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+        .grid-2 .section { margin-bottom: 0; }
+
+        /* Stock por etapa (barras horizontales) */
+        .stagebars { display: flex; flex-direction: column; gap: 9px; }
+        .stagerow { display: grid; grid-template-columns: 210px 1fr 46px; align-items: center; gap: 12px; }
+        .stagerow .sname { font-size: 12.5px; color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stagerow .strack { background: var(--brand-tint); border-radius: 7px; height: 20px; overflow: hidden; }
+        .stagerow .sfill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, var(--brand-light), var(--brand)); }
+        .stagerow .sval { font-size: 13px; font-weight: 800; color: var(--brand-dark); text-align: right; }
+
+        .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+        .table { width: 100%; font-size: 13px; border-collapse: collapse; min-width: 480px; }
+        .table th { text-align: left; padding: 11px 14px; background: var(--brand-tint); color: var(--brand-dark); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; position: sticky; top: 0; }
+        .table td { padding: 11px 14px; border-top: 1px solid var(--line); white-space: nowrap; color: var(--ink); }
+        .table tbody tr:nth-child(even) { background: #FBFAFB; }
+        .table tbody tr:hover { background: var(--brand-tint); }
+        .table td:first-child, .table th:first-child { position: sticky; left: 0; background: inherit; }
+        .table thead th:first-child { background: var(--brand-tint); }
+        .cell-strong { font-weight: 700; }
+        .cell-win { color: var(--green); font-weight: 700; }
+        .cell-lost { color: var(--red); font-weight: 600; }
+        .cell-zero { color: #D6D1DA; text-align: center; }
+        .cell-total { font-weight: 800; color: var(--brand-dark); text-align: center; }
+        .cell-heat { color: #fff; font-weight: 700; text-align: center; }
+        .table td.num { text-align: center; }
+        .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:var(--brand-tint); color:var(--brand); font-size:10px; font-weight:700; margin-right:8px; }
+
+        .chart-container { position: relative; height: 300px; }
+
+        .podium { display: flex; align-items: flex-end; justify-content: center; gap: 22px; padding: 24px 0 0; flex-wrap: wrap; }
+        .podium-step { flex: 0 0 190px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+        .podium-flag { font-size: 30px; margin-bottom: 4px; }
+        .podium-name { font-weight: 700; font-size: 16px; color: var(--ink); margin-bottom: 3px; }
+        .podium-won { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+        .podium-won b { color: var(--green); font-size: 17px; }
+        .podium-bar { width: 165px; border-radius: 14px 14px 0 0; position: relative; display: flex; align-items: flex-start; justify-content: center; box-shadow: inset 0 -22px 34px -12px rgba(0,0,0,.28); animation: podiumUp .7s cubic-bezier(.2,.8,.2,1); }
+        .podium-bar.gold { background: linear-gradient(180deg,#F6D879,#C99B2C); }
+        .podium-bar.silver { background: linear-gradient(180deg,#DBE1E9,#A3AEBE); }
+        .podium-bar.bronze { background: linear-gradient(180deg,#E7AF77,#B4712F); }
+        .podium-place { font-weight: 900; font-size: 46px; color: #fff; margin-top: 16px; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+        @keyframes podiumUp { from { transform: translateY(34px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
+        .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
+        .footer .brand-foot { color: var(--brand); font-weight: 600; }
+        .notecard { max-width:1440px; margin:0 auto 22px; background:#FFF6E9; border:1px solid #F0D9A8; border-radius:12px; padding:14px 18px; font-size:12.5px; color:#7A5A1E; }
+
+        @media (max-width: 860px){
+            .grid-2 { grid-template-columns: 1fr; }
+            .topbar, .subbar, .content, .footer { padding-left: 18px; padding-right: 18px; }
+            .stagerow { grid-template-columns: 130px 1fr 40px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <div class="login-logo">E</div>
+            <h1>Pacientes Modelo</h1>
+            <div class="sub">EIMEC · Informe de Dirección · Acceso restringido</div>
+            <div id="errorMsg" class="error"></div>
+            <input type="password" id="passwordInput" placeholder="Contraseña de acceso" onkeydown="if(event.key==='Enter')checkPassword()" />
+            <button onclick="checkPassword()">Entrar al informe</button>
+        </div>
+    </div>
+
+    <div class="dashboard" id="dashboard">
+        <header class="topbar">
+            <div class="topbar-inner">
+                <div class="brand-lockup">
+                    <div class="brand-mark">E</div>
+                    <div class="brand-text">
+                        <h1>Pacientes Modelo</h1>
+                        <div class="tag">EIMEC · Informe de Dirección</div>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <span class="live-badge"><span class="live-dot"></span> ActiveCampaign · En vivo</span>
+                    <button class="logout-btn" onclick="logout()">Salir</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="subbar">
+            <div class="meta-line" id="metaLine">Cargando periodo…</div>
+            <div class="filters">
+                <div class="seg">
+                    <button class="filter-btn" data-range="7d" onclick="setDateRange('7d')">7 días</button>
+                    <button class="filter-btn active" data-range="30d" onclick="setDateRange('30d')">30 días</button>
+                    <button class="filter-btn" data-range="90d" onclick="setDateRange('90d')">90 días</button>
+                    <button class="filter-btn" data-range="6m" onclick="setDateRange('6m')">6 meses</button>
+                    <button class="filter-btn" data-range="1a" onclick="setDateRange('1a')">1 año</button>
+                </div>
+                <div class="filter-divider"></div>
+                <input type="date" class="filter-input" id="fromDate" />
+                <input type="date" class="filter-input" id="toDate" />
+                <button class="apply-btn" onclick="applyCustomRange()">Aplicar</button>
+            </div>
+        </div>
+
+        <div class="content" id="dashboardContent">
+            <div class="loading">Cargando datos de ActiveCampaign…</div>
+        </div>
+
+        <div class="footer">
+            Datos en vivo desde <b>ActiveCampaign</b> · pipeline <b>Pacientes Modelo</b> · actualización automática cada 5 min · <span class="brand-foot">EIMEC</span> <span id="genStamp"></span>
+        </div>
+    </div>
+
+    <script>
+        const PASSWORD = 'modelo-eimec-2026';
+        const PALETTE = ['#1F2A4E','#2E5082','#448497','#009B9B','#69C2C2','#A0C8D8','#3A5C94','#7FA8C4','#4C5257','#8A94A6'];
+        let charts = {};
+        let currentRange = null;   // filtro global reutilizado por fetch, tablas, gráficos y auto-refresco
+
+        function checkPassword() {
+            const input = document.getElementById('passwordInput');
+            const error = document.getElementById('errorMsg');
+            if (input.value === PASSWORD) { sessionStorage.setItem('pm_auth', 'true'); showDashboard(); loadDashboardData(); }
+            else { error.textContent = 'Contraseña incorrecta'; input.value = ''; }
+        }
+        function showDashboard() { document.getElementById('loginContainer').style.display = 'none'; document.getElementById('dashboard').classList.add('active'); }
+        function logout() { sessionStorage.removeItem('pm_auth'); document.getElementById('loginContainer').style.display = 'flex'; document.getElementById('dashboard').classList.remove('active'); document.getElementById('passwordInput').value = ''; }
+
+        function setDateRange(range) {
+            const today = new Date(); let from = new Date();
+            switch(range) {
+                case '7d': from.setDate(today.getDate() - 7); break;
+                case '30d': from.setDate(today.getDate() - 30); break;
+                case '90d': from.setDate(today.getDate() - 90); break;
+                case '6m': from.setMonth(today.getMonth() - 6); break;
+                case '1a': from.setFullYear(today.getFullYear() - 1); break;
+            }
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-range') === range));
+            const fi = document.getElementById('fromDate'), ti = document.getElementById('toDate');
+            if (fi) fi.value = ''; if (ti) ti.value = '';
+            loadDashboardData(from, today);
+        }
+        function applyCustomRange() {
+            const fromStr = document.getElementById('fromDate').value, toStr = document.getElementById('toDate').value;
+            if (!fromStr || !toStr) { alert('Selecciona ambas fechas'); return; }
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            loadDashboardData(new Date(fromStr), new Date(toStr));
+        }
+
+        async function loadDashboardData(fromDate, toDate) {
+            if (!fromDate || !toDate) {
+                if (currentRange) { fromDate = currentRange.from; toDate = currentRange.to; }
+                else { const _t=new Date(); const _f=new Date(); _f.setDate(_t.getDate()-30); fromDate=_f; toDate=_t; }
+            }
+            currentRange = { from: fromDate, to: toDate };
+            const params = { from: fromDate.toISOString().split('T')[0], to: toDate.toISOString().split('T')[0] };
+            const query = new URLSearchParams(params).toString();
+            document.getElementById('metaLine').innerHTML = 'Calculando…';
+            document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando el periodo (etapas · país · tratamiento · vendedor)… la primera vez puede tardar unos segundos.</div>';
+            try {
+                const r = await fetch(`/api/pm-data?${query}`);
+                const data = await r.json();
+                if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos ('+(data.error||'error')+'). Reintenta.</div>'; return; }
+                renderDashboard(data);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">Error de conexión con ActiveCampaign.</div>';
+            }
+        }
+
+        function fmtDate(iso){ if(!iso) return ''; const [y,m,d] = iso.slice(0,10).split('-'); return `${d}/${m}/${y}`; }
+        const rate = (won, lost) => (won+lost)>0 ? Math.round(won/(won+lost)*100) : 0;
+
+        function rows(obj){
+            return Object.entries(obj||{}).map(([k,c])=>({ k, open:c.open||0, won:c.won||0, lost:c.lost||0, total:c.total||((c.open||0)+(c.won||0)+(c.lost||0)) }))
+                .sort((a,b)=> b.total-a.total || b.won-a.won);
+        }
+        // Tabla genérica: Total · Nuevas · Conseguidos · Perdidos · % conversión (won/(won+lost))
+        function dimTable(title, note, colLabel, rws){
+            if(!rws.length) return '';
+            const maxT = Math.max(...rws.map(r=>r.total),1);
+            let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>${title}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>${colLabel}</th><th style="color:var(--brand)">Total</th><th style="color:var(--brand-light)">Nuevas</th><th style="color:var(--green)">Conseguidos</th><th style="color:var(--red)">Perdidos</th><th style="color:var(--green)" title="Conseguidos ÷ (Conseguidos + Perdidos)">% conversión</th></tr></thead><tbody>`;
+            rws.forEach((r,i)=>{
+                const cr = rate(r.won, r.lost);
+                const heat=(0.08+0.42*(r.total/maxT)).toFixed(2);
+                const z = v => v?`<td class="num">${v}</td>`:`<td class="cell-zero">·</td>`;
+                h+=`<tr><td><span class="rank-badge">${i+1}</span></td><td class="cell-strong">${r.k}</td>
+                    <td class="cell-total" style="background:rgba(31,42,78,${heat})">${r.total}</td>
+                    ${z(r.open)}<td class="num ${r.won?'cell-win':'cell-zero'}">${r.won||'·'}</td><td class="num ${r.lost?'cell-lost':'cell-zero'}">${r.lost||'·'}</td>
+                    <td class="num" style="font-weight:700;color:${cr>0?'var(--green)':'#D6D1DA'}">${(r.won+r.lost)>0?cr+'%':'—'}</td></tr>`;
+            });
+            const G = rws.reduce((a,r)=>({open:a.open+r.open,won:a.won+r.won,lost:a.lost+r.lost,total:a.total+r.total}),{open:0,won:0,lost:0,total:0});
+            h+=`<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)"><td></td><td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${rws.length}</td>
+                <td class="num" style="font-weight:800;color:var(--brand-dark)">${G.total}</td>
+                <td class="num" style="font-weight:800">${G.open}</td><td class="num cell-win" style="font-weight:800">${G.won}</td><td class="num cell-lost" style="font-weight:800">${G.lost}</td>
+                <td class="num" style="font-weight:800;color:var(--green)">${(G.won+G.lost)>0?rate(G.won,G.lost)+'%':'—'}</td></tr>`;
+            return h + `</tbody></table></div></div>`;
+        }
+
+        function flagOf(name){
+            const F = {'Spain':'🇪🇸','Mexico':'🇲🇽','Chile':'🇨🇱','Peru':'🇵🇪','Argentina':'🇦🇷','Colombia':'🇨🇴','Italy':'🇮🇹','France':'🇫🇷','Germany':'🇩🇪','United States':'🇺🇸','United Kingdom':'🇬🇧','Brazil':'🇧🇷','Venezuela':'🇻🇪','Guatemala':'🇬🇹','Poland':'🇵🇱','Portugal':'🇵🇹','Ireland':'🇮🇪','Ecuador':'🇪🇨','Bolivia':'🇧🇴','Uruguay':'🇺🇾','Costa Rica':'🇨🇷','Panama':'🇵🇦','Switzerland':'🇨🇭','Netherlands':'🇳🇱','Belgium':'🇧🇪'};
+            return F[name] || '🏳️';
+        }
+
+        function renderDashboard(data) {
+            const T = data.totals || {open:0,won:0,lost:0};
+            const totalOps = T.open + T.won + T.lost;
+            const conv = rate(T.won, T.lost);
+
+            if (data.period) document.getElementById('metaLine').innerHTML = `Periodo analizado: <strong>${fmtDate(data.period.from)} — ${fmtDate(data.period.to)}</strong>`;
+
+            // KPIs del periodo (flujo)
+            let html = `
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:2px 0 10px 2px">Actividad del periodo · Nuevas = creadas en el periodo · Conseguidos/Perdidos = cerrados en el periodo (por fecha de cierre)</div>
+                <div class="cards-grid metrics">
+                    <div class="card card--new"><div class="card-label">Oportunidades nuevas</div><div class="card-value">${T.open}</div><div class="card-foot">Captaciones creadas en el periodo</div></div>
+                    <div class="card card--won"><div class="card-label">Modelos conseguidos</div><div class="card-value" style="color:var(--green)">${T.won}</div><div class="card-foot">Cerrados como ganados</div></div>
+                    <div class="card card--lost"><div class="card-label">Perdidos</div><div class="card-value" style="color:var(--red)">${T.lost}</div><div class="card-foot">Cerrados como perdidos</div></div>
+                    <div class="card card--rate"><div class="card-label">Tasa de conversión</div><div class="card-value">${(T.won+T.lost)>0?conv+'%':'—'}</div><div class="card-foot">Conseguidos ÷ (conseguidos + perdidos)</div></div>
+                </div>`;
+
+            // Stock EN VIVO por etapa (independiente del filtro)
+            if (data.stage_stock && data.stage_stock.length) {
+                const maxS = Math.max(...data.stage_stock.map(s=>s.count),1);
+                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Estado actual del pipeline · ${data.stage_stock_total} oportunidades abiertas</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Stock en vivo por etapa · no depende del filtro de fechas</span></div><div class="stagebars">`;
+                data.stage_stock.forEach(s=>{
+                    const w = Math.round(s.count/maxS*100);
+                    html += `<div class="stagerow"><div class="sname" title="${s.label}">${s.label}</div><div class="strack"><div class="sfill" style="width:${w}%"></div></div><div class="sval">${s.count}</div></div>`;
+                });
+                html += `</div></div>`;
+            }
+
+            // Insights + recomendaciones
+            html += renderInsights(data);
+            // Podio de países por conseguidos
+            html += renderPodium(data);
+
+            // Gráficos
+            html += `<div class="grid-2" style="margin-bottom:22px">
+                    <div class="section"><div class="section-title">Modelos conseguidos por tratamiento</div><div class="chart-container"><canvas id="wonByTratChart"></canvas></div></div>
+                    <div class="section"><div class="section-title">Conseguidos por día</div><div class="chart-container"><canvas id="wonByDateChart"></canvas></div></div>
+                </div>
+                <div class="section"><div class="section-title">Oportunidades nuevas por día</div><div class="chart-container" style="height:260px"><canvas id="createdByDateChart"></canvas></div></div>`;
+
+            // Tablas por dimensión
+            html += dimTable('Pipeline por país', `Top 15 · país del trato (completado por prefijo telefónico donde faltaba)`, 'País', rows(data.by_pais).slice(0,15));
+            html += dimTable('Pipeline por tratamiento', 'Tratamiento leído del título del trato', 'Tratamiento', rows(data.by_trat).slice(0,15));
+            html += dimTable('Pipeline por origen', 'Origen leído del título del trato (la mayoría no lo especifica)', 'Origen', rows(data.by_origen));
+            html += renderOwnerTable(data.by_owner);
+
+            // Matriz tratamiento × país (conseguidos)
+            html += renderMatrix(data);
+
+            // Aviso de calidad de dato
+            html += `<div class="notecard"><strong>ℹ️ Notas de dato:</strong> el pipeline Pacientes Modelo no usa el campo <b>Fecha de ganado</b>, así que la fecha de cierre se toma de la última modificación del trato (<b>mdate</b>). El <b>tratamiento</b> y el <b>origen</b> se leen del <b>título</b> del trato (los campos Curso/UTM están vacíos aquí). El <b>país</b> que faltaba se completa por el prefijo telefónico del contacto (${data.pais_recuperados||0} recuperados; ${data.sin_pais||0} siguen sin país).</div>`;
+
+            document.getElementById('dashboardContent').innerHTML = html;
+            renderCharts(data);
+        }
+
+        function renderInsights(data){
+            const arr = (obj, exc)=> Object.entries(obj||{}).filter(([k])=>!(exc||[]).includes(k)).map(([k,v])=>({k,...v}));
+            const byWon = a => [...a].sort((x,y)=>(y.won||0)-(x.won||0) || (y.total||0)-(x.total||0));
+            const tratArr = arr(data.by_trat, ['Sin tratamiento','Sin dato']);
+            const paisArr = arr(data.by_pais, ['Sin país','Sin dato']);
+            const owners = byWon(arr(data.by_owner, ['Sin asignar']));
+            const tratWon = byWon(tratArr), tratVol = [...tratArr].sort((a,b)=>(b.total||0)-(a.total||0));
+            const paisWon = byWon(paisArr), paisVol = [...paisArr].sort((a,b)=>(b.total||0)-(a.total||0));
+            const T = data.totals||{open:0,won:0,lost:0};
+            const conv = (T.won+T.lost)>0 ? Math.round(T.won/(T.won+T.lost)*100) : 0;
+
+            // "que más consigue": honesto con empates
+            const topWon = (sorted, fullArr, noun) => {
+                const top = sorted[0]; const n = top ? (top.won||0) : 0;
+                if (!top || n===0) return { v:'Sin cierres', s:'Nadie consiguió modelos en este periodo', tie:false };
+                const tied = fullArr.filter(x=>(x.won||0)===n).map(x=>x.k);
+                if (tied.length>1) { const names = tied.slice(0,3).join(', ') + (tied.length>3?' y '+(tied.length-3)+' más':''); return { v:'Empate', s:`${tied.length} ${noun} con ${n} cada uno: ${names}`, tie:true }; }
+                return { v: top.k, s:`${n} modelo${n!==1?'s':''} conseguido${n!==1?'s':''}`, tie:false };
+            };
+            const tratTop = topWon(tratWon, tratArr, 'tratamientos');
+            const paisTop = topWon(paisWon, paisArr, 'países');
+            const tratStuck = [...tratArr].filter(c=>(c.won||0)===0 && (c.open||0)>0).sort((a,b)=>(b.open||0)-(a.open||0));
+
+            const cards = [
+                {t:'Tratamiento que más consigue', v: tratTop.v, s: tratTop.s},
+                {t:'Tratamiento con más interés', v: tratVol[0]?tratVol[0].k:'—', s: tratVol[0]?`${tratVol[0].total} oportunidades generadas`:'Sin datos'},
+                {t:'Tratamiento a seguir de cerca', v: tratStuck[0]?tratStuck[0].k:'—', s: tratStuck[0]?`${tratStuck[0].open} nueva${tratStuck[0].open!==1?'s':''} sin ningún cierre aún`:'Sin pendientes'},
+                {t:'País con más interés', v: paisVol[0]?paisVol[0].k:'—', s: paisVol[0]?`${paisVol[0].total} oportunidades generadas`:'Sin datos'},
+                {t:'País que más consigue', v: paisTop.v, s: paisTop.s},
+                {t:'Tasa de conversión', v: (T.won+T.lost)>0?conv+'%':'—', s: `${T.won} conseguido${T.won!==1?'s':''} de ${T.won+T.lost} cerrados`}
+            ];
+            const per = data.period?' · '+fmtDate(data.period.from)+' — '+fmtDate(data.period.to):'';
+            let h = `<div class="section"><div class="section-title">Lo más destacado del periodo${per}</div>`;
+            h += `<div style="font-size:12px;color:var(--muted);margin:2px 0 12px 2px">Titulares del periodo. <b>Conseguido</b> = paciente modelo captado (trato ganado) · <b>Oportunidad</b> = captación creada.</div>`;
+            if (T.won>0 && T.won<10) h += `<div style="background:#FFF6E9;border:1px solid #F0D9A8;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#7A5A1E;margin-bottom:12px">⚠️ Periodo corto: solo <b>${T.won} conseguido${T.won!==1?'s':''}</b> en estas fechas. Con tan pocos cierres los rankings cambian con facilidad — para ver tendencias reales usa <b>90 días</b> o <b>6 meses</b> en el filtro de arriba.</div>`;
+            h += `<div class="cards-grid">`;
+            cards.forEach(c=> h += `<div class="card"><div class="card-label">${c.t}</div><div class="card-value" style="font-size:19px;line-height:1.15">${c.v}</div><div class="card-foot">${c.s}</div></div>`);
+            h += `</div>`;
+            const recs = [];
+            if (paisWon[0] && paisWon[0].won && !paisTop.tie) recs.push(`<b>${paisWon[0].k}</b> es de donde más modelos salen (${paisWon[0].won}) — priorizar la captación ahí.`);
+            if (tratWon[0] && tratWon[0].won>0 && !tratTop.tie) recs.push(`<b>${tratWon[0].k}</b> es el tratamiento que más modelos consigue (${tratWon[0].won}) — asegurar oferta suficiente de estas prácticas.`);
+            if (tratStuck[0]) recs.push(`<b>${tratStuck[0].k}</b>: ${tratStuck[0].open} captación${tratStuck[0].open!==1?'es':''} nueva${tratStuck[0].open!==1?'s':''} sin cerrar — revisar seguimiento.`);
+            if (owners[0] && owners[0].won) recs.push(`<b>${owners[0].k}</b> es quien más modelos cierra del equipo — buen momento para compartir cómo lo hace.`);
+            if (T.lost > T.won) recs.push(`Se pierden más de los que se consiguen (${T.lost} vs ${T.won}) — revisar motivos de descarte y tiempos de respuesta.`);
+            if (recs.length) h += `<div style="margin-top:14px;background:var(--brand-tint);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--ink)"><b style="color:var(--brand)">Dónde poner el foco esta semana:</b><ul style="margin:8px 0 0 18px">${recs.map(r=>`<li style="margin-bottom:5px">${r}</li>`).join('')}</ul></div>`;
+            return h + `</div>`;
+        }
+
+        function renderPodium(data){
+            const all = Object.entries(data.by_pais||{}).filter(([k])=>k!=='Sin país'&&k!=='Sin dato')
+                .map(([k,v])=>({k,won:v.won||0,total:v.total||0})).filter(x=>x.won>0).sort((a,b)=>(b.won-a.won)||(b.total-a.total));
+            if(!all.length) return '';
+            const arr = all.slice(0,3);
+            const totalW = all.reduce((s,x)=>s+x.won,0);
+            const step = (p,h,medal,cls)=> p ? `<div class="podium-step"><div class="podium-flag">${flagOf(p.k)}</div><div class="podium-name">${p.k}</div><div class="podium-won"><b>${p.won}</b> conseguidos · ${p.total} tratos</div><div class="podium-bar ${cls}" style="height:${h}px"><div class="podium-place">${medal}</div></div></div>` : '<div class="podium-step"></div>';
+            const note = `${data.period?fmtDate(data.period.from)+' — '+fmtDate(data.period.to)+' · ':''}${all.length} países con cierres · ${totalW} en total · #2 y #3 por volumen`;
+            return `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>🏆 Podio de países por modelos conseguidos</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="podium">${step(arr[1],120,'2','silver')}${step(arr[0],175,'1','gold')}${step(arr[2],95,'3','bronze')}</div></div>`;
+        }
+
+        function renderOwnerTable(obj){
+            const NON_SELLER = ['Pacientes modelo EIMEC Formación','EIMEC Formación','Sin asignar'];
+            const grouped = {};
+            Object.entries(obj||{}).forEach(([k,v])=>{
+                const key = NON_SELLER.includes(k) ? 'Otros / no comercial' : k;
+                if(!grouped[key]) grouped[key]={open:0,won:0,lost:0,total:0};
+                ['open','won','lost','total'].forEach(m=>grouped[key][m]+=(v[m]||0));
+            });
+            if (grouped['Otros / no comercial'] && grouped['Otros / no comercial'].total===0) delete grouped['Otros / no comercial'];
+            return dimTable('Rendimiento por vendedor', 'Oportunidades del periodo · % conversión = conseguidos ÷ (conseguidos+perdidos)', 'Vendedor', rows(grouped));
+        }
+
+        function renderMatrix(data){
+            const src = data.matrix || {};
+            const tratos = Object.keys(src);
+            if(!tratos.length) return '';
+            const paisTot = {};
+            tratos.forEach(t=>Object.entries(src[t]).forEach(([p,v])=>{ paisTot[p]=(paisTot[p]||0)+v; }));
+            const paises = Object.keys(paisTot).sort((a,b)=>paisTot[b]-paisTot[a]).slice(0,12);
+            const maxCell = Math.max(...tratos.flatMap(t=>Object.values(src[t])),1);
+            const ord = tratos.map(t=>({t, pv:src[t], tot:Object.values(src[t]).reduce((a,b)=>a+b,0)})).sort((a,b)=>b.tot-a.tot);
+            let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Matriz tratamiento × país · modelos conseguidos</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Países ordenados por nº de conseguidos · intensidad = nº de cierres</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Tratamiento</th><th style="color:var(--brand)">Total</th>${paises.map(p=>`<th class="num">${p}</th>`).join('')}</tr></thead><tbody>`;
+            ord.forEach(({t,pv,tot})=>{
+                h += `<tr><td class="cell-strong">${t}</td><td class="cell-total">${tot}</td>${paises.map(p=>{ const v=pv[p]||0; if(!v) return `<td class="cell-zero">·</td>`; const a=(0.15+0.6*(v/maxCell)).toFixed(2); return `<td class="cell-heat" style="background:rgba(31,42,78,${a})">${v}</td>`; }).join('')}</tr>`;
+            });
+            const colTot={}; let grand=0;
+            ord.forEach(({pv,tot})=>{ grand+=tot; paises.forEach(p=>{ colTot[p]=(colTot[p]||0)+(pv[p]||0); }); });
+            h += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)"><td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td><td class="cell-total" style="font-weight:800">${grand}</td>${paises.map(p=>`<td class="num" style="font-weight:800">${colTot[p]||0}</td>`).join('')}</tr>`;
+            return h + `</tbody></table></div></div>`;
+        }
+
+        function baseOpts(extra){
+            return Object.assign({ responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ labels:{ font:{family:'Montserrat',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:14 } } } }, extra||{});
+        }
+        function renderCharts(data) {
+            // Conseguidos por tratamiento (doughnut)
+            const tw = {}; Object.entries(data.by_trat||{}).forEach(([k,v])=>{ if(v.won) tw[k]=v.won; });
+            if (Object.keys(tw).length && document.getElementById('wonByTratChart')) {
+                if (charts.wonByTrat) charts.wonByTrat.destroy();
+                charts.wonByTrat = new Chart(document.getElementById('wonByTratChart'), {
+                    type:'doughnut',
+                    data:{ labels:Object.keys(tw), datasets:[{ data:Object.values(tw), backgroundColor:PALETTE, borderWidth:2, borderColor:'#fff' }] },
+                    options: baseOpts({ cutout:'62%', plugins:{ legend:{ position:'right', labels:{ font:{family:'Montserrat',size:12}, color:'#6B6472', usePointStyle:true, boxWidth:8, padding:12 } } } })
+                });
+            }
+            // Conseguidos por día (línea)
+            if (data.won_by_date && Object.keys(data.won_by_date).length && document.getElementById('wonByDateChart')) {
+                if (charts.wonByDate) charts.wonByDate.destroy();
+                const ctx = document.getElementById('wonByDateChart').getContext('2d');
+                const grad = ctx.createLinearGradient(0,0,0,300); grad.addColorStop(0,'rgba(11,140,140,.28)'); grad.addColorStop(1,'rgba(11,140,140,0)');
+                charts.wonByDate = new Chart(ctx, {
+                    type:'line',
+                    data:{ labels:Object.keys(data.won_by_date), datasets:[{ label:'Conseguidos', data:Object.values(data.won_by_date), borderColor:'#0B8C8C', backgroundColor:grad, fill:true, tension:.4, pointRadius:3, pointBackgroundColor:'#0B8C8C', borderWidth:2.5 }] },
+                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
+                });
+            }
+            // Oportunidades nuevas por día (área)
+            if (data.created_by_date && Object.keys(data.created_by_date).length && document.getElementById('createdByDateChart')) {
+                if (charts.createdByDate) charts.createdByDate.destroy();
+                const ctxC = document.getElementById('createdByDateChart').getContext('2d');
+                const gradC = ctxC.createLinearGradient(0,0,0,260); gradC.addColorStop(0,'rgba(31,42,78,.28)'); gradC.addColorStop(1,'rgba(31,42,78,0)');
+                charts.createdByDate = new Chart(ctxC, {
+                    type:'line',
+                    data:{ labels:Object.keys(data.created_by_date), datasets:[{ label:'Nuevas', data:Object.values(data.created_by_date), borderColor:'#1F2A4E', backgroundColor:gradC, fill:true, tension:.35, pointRadius:2, pointBackgroundColor:'#1F2A4E', borderWidth:2.5 }] },
+                    options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#EDF0F4'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
+                });
+            }
+        }
+
+        if (sessionStorage.getItem('pm_auth') === 'true') { showDashboard(); loadDashboardData(); }
+        setInterval(() => { if (sessionStorage.getItem('pm_auth') === 'true') loadDashboardData(); }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
