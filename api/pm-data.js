@@ -2,12 +2,16 @@
 // MOTOR DE DATOS del informe "Pacientes Modelo" (ActiveCampaign dealGroup 4).
 // Todo directo contra AC v3 (cabecera Api-Token, env var AC_API_KEY). Una sola fuente.
 //
-// SEMÁNTICA DE FECHAS (idéntica al informe gemelo):
-//  · NUEVAS (abiertas)  = tratos status=0 CREADOS en el periodo (filters[created_after]/[created_before]).
-//  · CONSEGUIDOS (won)  = tratos status=1 CERRADOS en el periodo, por fecha de cierre = mdate
-//                         (el campo "Fecha de ganado" (5) está vacío en este pipeline → usamos mdate).
-//  · PERDIDOS (lost)    = tratos status=2 cerrados en el periodo (mdate).
-//  Cada trato se cuenta UNA vez. Total por dimensión = nuevas + conseguidos + perdidos.
+// SEMÁNTICA DE FECHAS — COHORTE POR FECHA DE CREACIÓN (cdate):
+//  Este pipeline NO registra fecha de cierre fiable: el campo "Fecha de ganado" (5) está vacío y el
+//  mdate (última modificación) está corrupto para el reporte (una edición masiva del 25/06/2026
+//  reescribió el mdate de ~135 ganados al mismo segundo). La única fecha fiable es cdate (creación).
+//  Por eso el informe usa el modelo de COHORTE: de las oportunidades CREADAS en el periodo,
+//  cuántas siguen abiertas / ya se consiguieron / ya se perdieron (por su estado actual).
+//    · nuevas    = tratos del group creados en el periodo (cualquier estado).
+//    · abiertas  = subconjunto con status=0 · conseguidos = status=1 · perdidos = status=2.
+//  Cada trato se cuenta UNA vez. Total por dimensión = abiertas + conseguidos + perdidos = nuevas.
+//  Además se devuelve el HISTÓRICO acumulado del pipeline (pipeline_totals), sin filtro de fechas.
 //  Verificado en vivo: país = tratamiento = origen = vendedor = totales cuadran.
 
 export const config = { maxDuration: 60 };
@@ -164,7 +168,7 @@ export default async function handler(req, res) {
 
     // Acumuladores. idx: 0=nuevas(open) 1=won 2=lost
     const by_pais = {}, by_trat = {}, by_origen = {}, by_owner = {}, matrix = {};
-    const created_by_date = {}, won_by_date = {};
+    const created_by_date = {};
     const totals = { open: 0, won: 0, lost: 0 };
     const bump = (b, k, idx) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { open: 0, won: 0, lost: 0, total: 0 }; const f = ['open','won','lost'][idx]; b[k][f]++; b[k].total++; };
     const sinPais = [];   // {contact, idx} para inferir por teléfono
@@ -186,9 +190,11 @@ export default async function handler(req, res) {
       }
     };
 
-    openDeals.forEach(d => { if (inPeriod(d.cdate)) { addDeal(d, 0); const day = String(d.cdate).slice(0, 10); created_by_date[day] = (created_by_date[day] || 0) + 1; } });
-    wonAll.forEach(d => { if (inPeriod(d.mdate)) { addDeal(d, 1); const day = String(d.mdate).slice(0, 10); won_by_date[day] = (won_by_date[day] || 0) + 1; } });
-    lostAll.forEach(d => { if (inPeriod(d.mdate)) { addDeal(d, 2); } });
+    // COHORTE: todo se atribuye por fecha de CREACIÓN (cdate), la única fiable en este pipeline.
+    const stamp = d => { const day = String(d.cdate).slice(0, 10); created_by_date[day] = (created_by_date[day] || 0) + 1; };
+    openDeals.forEach(d => { if (inPeriod(d.cdate)) { addDeal(d, 0); stamp(d); } });
+    wonAll.forEach(d => { if (inPeriod(d.cdate)) { addDeal(d, 1); stamp(d); } });
+    lostAll.forEach(d => { if (inPeriod(d.cdate)) { addDeal(d, 2); stamp(d); } });
 
     // Completar "Sin país" por prefijo telefónico del contacto
     let pais_recuperados = 0;
@@ -208,11 +214,14 @@ export default async function handler(req, res) {
 
     const sortDays = o => { const out = {}; Object.keys(o).sort().forEach(k => out[k] = o[k]); return out; };
 
+    const stockOpen = stageStock.reduce((s, x) => s + x.count, 0);
     res.status(200).json({
       ok: true,
       totals, by_pais, by_trat, by_origen, by_owner, matrix,
-      stage_stock: stageStock, stage_stock_total: stageStock.reduce((s, x) => s + x.count, 0),
-      created_by_date: sortDays(created_by_date), won_by_date: sortDays(won_by_date),
+      stage_stock: stageStock, stage_stock_total: stockOpen,
+      // Histórico acumulado del pipeline (todos los tratos, sin filtro de fechas)
+      pipeline_totals: { open: stockOpen, won: wonAll.length, lost: lostAll.length },
+      created_by_date: sortDays(created_by_date),
       sin_pais: by_pais['Sin país'] ? by_pais['Sin país'].total : 0, pais_recuperados,
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
