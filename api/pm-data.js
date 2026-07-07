@@ -146,8 +146,10 @@ export default async function handler(req, res) {
       if (us.length < 100) break;
     }
 
-    // Abiertas creadas en el periodo · ganados y perdidos (todos; se filtran por mdate en periodo)
-    const openDeals = await fetchAll(KEY, 0, from ? { 'filters[created_after]': from, ...(to ? { 'filters[created_before]': to } : {}) } : (to ? { 'filters[created_before]': to } : {}));
+    // Abiertas · ganados · perdidos. Traemos TODAS y filtramos por fecha en cliente:
+    // el filtro server-side filters[created_after]/[created_before] de AC descarta tratos que SÍ
+    // se crearon en el periodo (verificado: devolvía 621 vs 1015 reales), así que no lo usamos.
+    const openDeals = await fetchAll(KEY, 0);
     const wonAll = await fetchAll(KEY, 1);
     const lostAll = await fetchAll(KEY, 2);
 
