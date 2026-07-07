@@ -330,11 +330,6 @@
             // Tablas por dimensión
             html += dimTable('Pipeline por país', `Top 15 · país del trato (completado por prefijo telefónico donde faltaba)`, 'País', rows(data.by_pais).slice(0,15));
             html += renderTratStageTable(data);
-            html += dimTable('Pipeline por origen', 'Origen leído del título del trato (la mayoría no lo especifica)', 'Origen', rows(data.by_origen));
-            html += renderOwnerTable(data.by_owner);
-
-            // Matriz tratamiento × país (conseguidos)
-            html += renderMatrix(data);
 
             // Aviso de calidad de dato
             html += `<div class="notecard"><strong>ℹ️ Cómo leer este informe:</strong> el pipeline Pacientes Modelo no registra fecha de cierre fiable (el campo <b>Fecha de ganado</b> está vacío y la última modificación no sirve). Por eso el periodo se mide por <b>fecha de creación</b> (modelo de <b>cohorte</b>): de lo captado en el periodo, cuánto sigue abierto, se consiguió o se perdió — por eso las cohortes recientes tienen pocos cierres aún (necesitan tiempo para madurar; usa 6 meses o 1 año para ver cohortes maduras). El número grande acumulado está en «Histórico del pipeline». El <b>tratamiento</b> y el <b>origen</b> se leen del <b>título</b> del trato (Curso/UTM están vacíos aquí). El <b>país</b> que faltaba se completa por el prefijo telefónico del contacto (${data.pais_recuperados||0} recuperados; ${data.sin_pais||0} siguen sin país). <b>Recomendación:</b> rellenar «Fecha de ganado» al cerrar cada trato para poder medir por fecha de cierre real.</div>`;
