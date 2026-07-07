@@ -329,7 +329,7 @@
 
             // Tablas por dimensión
             html += dimTable('Pipeline por país', `Top 15 · país del trato (completado por prefijo telefónico donde faltaba)`, 'País', rows(data.by_pais).slice(0,15));
-            html += dimTable('Pipeline por tratamiento', 'Tratamiento leído del título del trato', 'Tratamiento', rows(data.by_trat).slice(0,15));
+            html += renderTratStageTable(data);
             html += dimTable('Pipeline por origen', 'Origen leído del título del trato (la mayoría no lo especifica)', 'Origen', rows(data.by_origen));
             html += renderOwnerTable(data.by_owner);
 
@@ -408,6 +408,30 @@
             return dimTable('Rendimiento por propietario', 'Propietario del trato (la captación se gestiona con cuentas de equipo) · % conversión = conseguidas ÷ (conseguidas+perdidas)', 'Propietario', rows(obj));
         }
 
+        // Tabla tratamiento × FASE: de los tratos ABIERTOS de la cohorte, en qué etapa están.
+        const STAGE_SHORT = {'1. Para contactar':'1 · Contactar','1.1 Contactados':'1.1 · Contactados','2. Para contactar (cita)':'2 · Cita','4. Llamar en otro momento':'4 · Llamar','6. Citado':'6 · Citado','7. Citado. No acudió':'7 · No acudió','3.2 No responde (WhatsApp)':'3.2 · No resp.','3.3 Responde. No interesada':'3.3 · No interes.','Otras ciudades o países':'Otras'};
+        function renderTratStageTable(data){
+            const stages = data.stage_order || [];
+            const M = data.matrix_trat_stage || {};
+            const rws = rows(data.by_trat).slice(0,15);
+            if(!rws.length || !stages.length) return dimTable('Pipeline por tratamiento', 'Tratamiento leído del título del trato', 'Tratamiento', rws);
+            const stageTot = {}; stages.forEach(s=>{ stageTot[s]=rws.reduce((a,r)=>a+((M[r.k]&&M[r.k][s])||0),0); });
+            const cols = stages.filter(s=>stageTot[s]>0);
+            const maxCell = Math.max(1, ...rws.flatMap(r=>cols.map(s=>(M[r.k]&&M[r.k][s])||0)));
+            const maxT = Math.max(...rws.map(r=>r.total),1);
+            let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por tratamiento × fase</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Celdas = tratos ABIERTOS en cada etapa · intensidad = volumen · Cons./Perd. = ya cerrados</span></div><div class="table-wrap"><table class="table">`;
+            h += `<thead><tr><th>#</th><th>Tratamiento</th><th style="color:var(--brand)">Total</th>${cols.map(s=>`<th class="num" title="${s}">${STAGE_SHORT[s]||s}</th>`).join('')}<th style="color:var(--green)">Cons.</th><th style="color:var(--red)">Perd.</th><th style="color:var(--green)">% conv</th></tr></thead><tbody>`;
+            rws.forEach((r,i)=>{
+                const cr = rate(r.won,r.lost);
+                const heatT=(0.08+0.42*(r.total/maxT)).toFixed(2);
+                const cells = cols.map(s=>{ const v=(M[r.k]&&M[r.k][s])||0; if(!v) return `<td class="cell-zero">·</td>`; const a=(0.12+0.6*(v/maxCell)).toFixed(2); return `<td class="cell-heat" style="background:rgba(31,42,78,${a})">${v}</td>`; }).join('');
+                h+=`<tr><td><span class="rank-badge">${i+1}</span></td><td class="cell-strong">${r.k}</td><td class="cell-total" style="background:rgba(31,42,78,${heatT})">${r.total}</td>${cells}<td class="num ${r.won?'cell-win':'cell-zero'}">${r.won||'·'}</td><td class="num ${r.lost?'cell-lost':'cell-zero'}">${r.lost||'·'}</td><td class="num" style="font-weight:700;color:${cr>0?'var(--green)':'#D6D1DA'}">${(r.won+r.lost)>0?cr+'%':'—'}</td></tr>`;
+            });
+            const G = rws.reduce((a,r)=>({won:a.won+r.won,lost:a.lost+r.lost,total:a.total+r.total}),{won:0,lost:0,total:0});
+            const colSum = cols.map(s=>rws.reduce((a,r)=>a+((M[r.k]&&M[r.k][s])||0),0));
+            h+=`<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)"><td></td><td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td><td class="num" style="font-weight:800;color:var(--brand-dark)">${G.total}</td>${colSum.map(v=>`<td class="num" style="font-weight:800">${v||'·'}</td>`).join('')}<td class="num cell-win" style="font-weight:800">${G.won}</td><td class="num cell-lost" style="font-weight:800">${G.lost}</td><td class="num" style="font-weight:800;color:var(--green)">${(G.won+G.lost)>0?rate(G.won,G.lost)+'%':'—'}</td></tr>`;
+            return h + `</tbody></table></div></div>`;
+        }
         function renderMatrix(data){
             const src = data.matrix || {};
             const tratos = Object.keys(src);
