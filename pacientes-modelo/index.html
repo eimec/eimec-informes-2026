@@ -348,7 +348,7 @@
             const byWon = a => [...a].sort((x,y)=>(y.won||0)-(x.won||0) || (y.total||0)-(x.total||0));
             const tratArr = arr(data.by_trat, ['Sin tratamiento','Sin dato']);
             const paisArr = arr(data.by_pais, ['Sin país','Sin dato']);
-            const owners = byWon(arr(data.by_owner, ['Sin asignar']));
+            const owners = byWon(arr(data.by_owner, ['Sin asignar','Pacientes modelo EIMEC Formación','EIMEC Formación','Otros / no comercial']));
             const tratWon = byWon(tratArr), tratVol = [...tratArr].sort((a,b)=>(b.total||0)-(a.total||0));
             const paisWon = byWon(paisArr), paisVol = [...paisArr].sort((a,b)=>(b.total||0)-(a.total||0));
             const T = data.totals||{open:0,won:0,lost:0};
@@ -384,7 +384,7 @@
             const recs = [];
             if (paisWon[0] && paisWon[0].won && !paisTop.tie) recs.push(`<b>${paisWon[0].k}</b> es de donde más modelos salen (${paisWon[0].won}) — priorizar la captación ahí.`);
             if (tratWon[0] && tratWon[0].won>0 && !tratTop.tie) recs.push(`<b>${tratWon[0].k}</b> es el tratamiento que más modelos consigue (${tratWon[0].won}) — asegurar oferta suficiente de estas prácticas.`);
-            if (tratStuck[0]) recs.push(`<b>${tratStuck[0].k}</b>: ${tratStuck[0].open} captación${tratStuck[0].open!==1?'es':''} nueva${tratStuck[0].open!==1?'s':''} sin cerrar — revisar seguimiento.`);
+            if (tratStuck[0]) recs.push(`<b>${tratStuck[0].k}</b>: ${tratStuck[0].open} ${tratStuck[0].open!==1?'captaciones nuevas':'captación nueva'} sin cerrar — revisar seguimiento.`);
             if (owners[0] && owners[0].won) recs.push(`<b>${owners[0].k}</b> es quien más modelos cierra del equipo — buen momento para compartir cómo lo hace.`);
             if (T.lost > T.won) recs.push(`Se pierden más de los que se consiguen (${T.lost} vs ${T.won}) — revisar motivos de descarte y tiempos de respuesta.`);
             if (recs.length) h += `<div style="margin-top:14px;background:var(--brand-tint);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--ink)"><b style="color:var(--brand)">Dónde poner el foco esta semana:</b><ul style="margin:8px 0 0 18px">${recs.map(r=>`<li style="margin-bottom:5px">${r}</li>`).join('')}</ul></div>`;
@@ -403,15 +403,9 @@
         }
 
         function renderOwnerTable(obj){
-            const NON_SELLER = ['Pacientes modelo EIMEC Formación','EIMEC Formación','Sin asignar'];
-            const grouped = {};
-            Object.entries(obj||{}).forEach(([k,v])=>{
-                const key = NON_SELLER.includes(k) ? 'Otros / no comercial' : k;
-                if(!grouped[key]) grouped[key]={open:0,won:0,lost:0,total:0};
-                ['open','won','lost','total'].forEach(m=>grouped[key][m]+=(v[m]||0));
-            });
-            if (grouped['Otros / no comercial'] && grouped['Otros / no comercial'].total===0) delete grouped['Otros / no comercial'];
-            return dimTable('Rendimiento por vendedor', 'Oportunidades del periodo · % conversión = conseguidos ÷ (conseguidos+perdidos)', 'Vendedor', rows(grouped));
+            // En este pipeline casi todo el volumen está en cuentas de equipo compartidas
+            // ("Pacientes modelo EIMEC Formación", "EIMEC Formación") → se muestran tal cual (son el propietario real).
+            return dimTable('Rendimiento por propietario', 'Propietario del trato (la captación se gestiona con cuentas de equipo) · % conversión = conseguidas ÷ (conseguidas+perdidas)', 'Propietario', rows(obj));
         }
 
         function renderMatrix(data){
