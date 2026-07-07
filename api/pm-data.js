@@ -129,6 +129,21 @@ async function fetchAll(key, status, extra = {}) {
   return rows;
 }
 
+// Semana ISO (número) y lunes de la semana, a partir de un cdate 'YYYY-MM-DD...'
+function isoWeekNum(iso) {
+  const d = new Date(iso.slice(0, 10) + 'T00:00:00Z');
+  const dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d - firstThu) / 86400000 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
+}
+function weekMonday(iso) {
+  const d = new Date(iso.slice(0, 10) + 'T00:00:00Z');
+  const day = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - day);
+  return d.toISOString().slice(0, 10);
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
@@ -165,7 +180,7 @@ export default async function handler(req, res) {
     const stageStock = STAGE_ORDER.map(sid => ({ id: sid, label: STAGE_LABEL[sid] || ('Etapa ' + sid), count: stockCount[sid] || 0 }));
 
     // Acumuladores. idx: 0=nuevas(open) 1=won 2=lost
-    const by_pais = {}, by_trat = {}, by_origen = {}, by_owner = {}, matrix = {}, matrix_ts = {}, cohortStageCount = {};
+    const by_pais = {}, by_trat = {}, by_origen = {}, by_owner = {}, matrix = {}, matrix_ts = {}, cohortStageCount = {}, weekly = {};
     const created_by_date = {};
     const totals = { open: 0, won: 0, lost: 0 };
     const bump = (b, k, idx) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { open: 0, won: 0, lost: 0, total: 0 }; const f = ['open','won','lost'][idx]; b[k][f]++; b[k].total++; };
@@ -190,6 +205,14 @@ export default async function handler(req, res) {
         const lab = STAGE_LABEL[d.stage] || ('Etapa ' + d.stage);
         (matrix_ts[trat] = matrix_ts[trat] || {})[lab] = (matrix_ts[trat][lab] || 0) + 1;
         cohortStageCount[d.stage] = (cohortStageCount[d.stage] || 0) + 1;
+      }
+      // Evolución semanal (por semana de creación): funnel por etapa + ganados/perdidos
+      if (d.cdate) {
+        const mon = weekMonday(d.cdate);
+        const wk = (weekly[mon] = weekly[mon] || { wnum: isoWeekNum(d.cdate), byStage: {}, open: 0, won: 0, lost: 0, total: 0 });
+        wk.total++;
+        if (idx === 0) { const lab = STAGE_LABEL[d.stage] || ('Etapa ' + d.stage); wk.byStage[lab] = (wk.byStage[lab] || 0) + 1; wk.open++; }
+        else if (idx === 1) wk.won++; else wk.lost++;
       }
     };
 
@@ -223,6 +246,10 @@ export default async function handler(req, res) {
       totals, by_pais, by_trat, by_origen, by_owner, matrix,
       matrix_trat_stage: matrix_ts, stage_order: STAGE_ORDER.map(id => STAGE_LABEL[id] || ('Etapa ' + id)),
       cohort_stage: STAGE_ORDER.map(id => ({ id, label: STAGE_LABEL[id] || ('Etapa ' + id), count: cohortStageCount[id] || 0 })),
+      weekly: Object.keys(weekly).sort().reverse().slice(0, 26).map(mon => ({
+        week: mon, wnum: weekly[mon].wnum, label: mon.slice(8, 10) + '/' + mon.slice(5, 7),
+        byStage: weekly[mon].byStage, open: weekly[mon].open, won: weekly[mon].won, lost: weekly[mon].lost, total: weekly[mon].total
+      })),
       stage_stock: stageStock, stage_stock_total: stockOpen,
       // Histórico acumulado del pipeline (todos los tratos, sin filtro de fechas)
       pipeline_totals: { open: stockOpen, won: wonAll.length, lost: lostAll.length },

@@ -328,8 +328,8 @@
                 html += `</div></div>`;
             }
 
-            // Insights + recomendaciones
-            html += renderInsights(data);
+            // Evolución semanal (funnel por semana de creación · última semana a la izquierda)
+            html += renderWeeklyFunnel(data);
 
             // Gráficos
             html += `<div class="grid-2" style="margin-bottom:22px">
@@ -414,6 +414,26 @@
 
         // Tabla tratamiento × FASE: de los tratos ABIERTOS de la cohorte, en qué etapa están.
         const STAGE_SHORT = {'1. Para contactar':'1 · Contactar','1.1 Contactados':'1.1 · Contactados','2. Para contactar (cita)':'2 · Cita','4. Llamar en otro momento':'4 · Llamar','6. Citado':'6 · Citado','7. Citado. No acudió':'7 · No acudió','3.2 No responde (WhatsApp)':'3.2 · No resp.','3.3 Responde. No interesada':'3.3 · No interes.','Otras ciudades o países':'Otras'};
+        // Cuadro de EVOLUCIÓN SEMANAL: columnas = semanas (última a la izquierda), filas = funnel de etapas.
+        function renderWeeklyFunnel(data){
+            const weeks = data.weekly || [];
+            if(!weeks.length) return '';
+            const stages = data.stage_order || [];
+            const rowStages = stages.filter(s => weeks.some(w => (w.byStage && w.byStage[s]) > 0));
+            const maxCell = Math.max(1, ...weeks.flatMap(w => rowStages.map(s => (w.byStage && w.byStage[s]) || 0)));
+            let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Evolución semanal · funnel por semana de creación</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Cada columna = una semana (la última a la izquierda) · celdas = tratos creados esa semana, por etapa actual</span></div><div class="table-wrap"><table class="table">`;
+            h += `<thead><tr><th>Etapa \\ Semana</th>${weeks.map(w=>`<th class="num" title="Semana ISO ${w.wnum} · lunes ${w.label}">S${w.wnum}<div style="font-weight:400;font-size:9px;color:var(--muted)">${w.label}</div></th>`).join('')}</tr></thead><tbody>`;
+            // Fila CREADOS (total de la semana)
+            h += `<tr style="background:var(--brand-tint)"><td class="cell-strong" style="color:var(--brand-dark)">Creados</td>${weeks.map(w=>`<td class="num" style="font-weight:800;color:var(--brand-dark)">${w.total}</td>`).join('')}</tr>`;
+            // Filas por ETAPA (funnel)
+            rowStages.forEach(s=>{
+                h += `<tr><td class="cell-strong">${STAGE_SHORT[s]||s}</td>${weeks.map(w=>{ const v=(w.byStage&&w.byStage[s])||0; if(!v) return `<td class="cell-zero">·</td>`; const a=(0.12+0.6*(v/maxCell)).toFixed(2); return `<td class="cell-heat" style="background:rgba(31,42,78,${a})">${v}</td>`; }).join('')}</tr>`;
+            });
+            // Ganados / Perdidos de la semana
+            h += `<tr><td class="cell-strong" style="color:var(--green)">Conseguidos</td>${weeks.map(w=>`<td class="num ${w.won?'cell-win':'cell-zero'}">${w.won||'·'}</td>`).join('')}</tr>`;
+            h += `<tr><td class="cell-strong" style="color:var(--red)">Perdidos</td>${weeks.map(w=>`<td class="num ${w.lost?'cell-lost':'cell-zero'}">${w.lost||'·'}</td>`).join('')}</tr>`;
+            return h + `</tbody></table></div></div>`;
+        }
         function renderTratStageTable(data){
             const stages = data.stage_order || [];
             const M = data.matrix_trat_stage || {};
