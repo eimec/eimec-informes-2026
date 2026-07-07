@@ -731,40 +731,43 @@
             const owners = byWon(arr(extra.by_owner, EXC_O));
             const T = extra.totals||{};
             const winGlobal = T.total>0 ? Math.round((T.won||0)/T.total*100) : 0;
-            // Honestidad con empates: si varios cursos/países empatan en el nº MÁXIMO de cierres, no coronar a uno al azar.
-            const sinCursoWon = (extra.by_curso && extra.by_curso['Sin curso']) ? (extra.by_curso['Sin curso'].won||0) : 0;
-            const cw = cursoWon[0], pw = paisWon[0];
-            const topTie = (sorted, fullArr, noun) => {
+            const ventas = T.won||0, tratos = T.total||0;
+            // "Que más vende": honesto con empates (no corona a uno al azar cuando hay varios igualados).
+            const topVenta = (sorted, fullArr, noun) => {
                 const top = sorted[0]; const n = top ? (top.won||0) : 0;
-                if (!top || n===0) return { v:'—', s:'sin cierres en el periodo', tie:false };
+                if (!top || n===0) return { v:'Sin ventas', s:'Nadie cerró en este periodo', tie:false };
                 const tied = fullArr.filter(x=>(x.won||0)===n).map(x=>x.k);
                 if (tied.length>1) {
                     const names = tied.slice(0,3).join(', ') + (tied.length>3?' y '+(tied.length-3)+' más':'');
-                    return { v:`Empate a ${n}`, s:`${tied.length} ${noun} con ${n} cierre${n!==1?'s':''}: ${names}`, tie:true };
+                    return { v:'Empate', s:`${tied.length} ${noun} con ${n} venta${n!==1?'s':''} cada uno: ${names}`, tie:true };
                 }
-                return { v: top.k, s:`${n} cierre${n!==1?'s':''}`, tie:false };
+                return { v: top.k, s:`${n} venta${n!==1?'s':''} cerrada${n!==1?'s':''}`, tie:false };
             };
-            const cursoTop = topTie(cursoWon, cursoArr, 'cursos');
-            const paisTop = topTie(paisWon, paisArr, 'países');
+            const cursoTop = topVenta(cursoWon, cursoArr, 'cursos');
+            const paisTop = topVenta(paisWon, paisArr, 'países');
             const cards = [
-                {t:'Curso más vendido', v: cursoTop.v, s: cursoTop.s},
-                {t:'Curso con más tratos', v: cursoVol[0]?cursoVol[0].k:'—', s: cursoVol[0]?cursoVol[0].total+' tratos':'—'},
-                {t:'Curso estancado (F2 sin cerrar)', v: cursoStuck[0]?cursoStuck[0].k:'—', s: cursoStuck[0]?cursoStuck[0].f2+' en F2, 0 cierres':'—'},
-                {t:'País con más tratos', v: paisVol[0]?paisVol[0].k:'—', s: paisVol[0]?paisVol[0].total+' tratos':'—'},
-                {t:'País que más cierra', v: paisTop.v, s: paisTop.s},
-                {t:'Win rate global periodo', v: winGlobal+'%', s: `${(T.won||0)} won de ${(T.total||0)} tratos${sinCursoWon?' · '+sinCursoWon+' sin curso':''}`}
+                {t:'Curso que más vende', v: cursoTop.v, s: cursoTop.s},
+                {t:'Curso con más interés', v: cursoVol[0]?cursoVol[0].k:'—', s: cursoVol[0]?`${cursoVol[0].total} tratos generados`:'Sin datos'},
+                {t:'Curso a seguir de cerca', v: cursoStuck[0]?cursoStuck[0].k:'—', s: cursoStuck[0]?`${cursoStuck[0].f2} lead${cursoStuck[0].f2!==1?'s':''} cualificado${cursoStuck[0].f2!==1?'s':''} (Fase 2) aún sin cerrar`:'Sin cualificados pendientes'},
+                {t:'País con más interés', v: paisVol[0]?paisVol[0].k:'—', s: paisVol[0]?`${paisVol[0].total} tratos generados`:'Sin datos'},
+                {t:'País que más vende', v: paisTop.v, s: paisTop.s},
+                {t:'Tasa de cierre', v: winGlobal+'%', s: `${ventas} venta${ventas!==1?'s':''} de ${tratos} tratos del periodo`}
             ];
             const paisQual = [...paisArr].sort((a,b)=>(b.f2||0)-(a.f2||0));
-            let h = `<div class="section"><div class="section-title">6 insights del periodo${data.period?' · '+fmtDate(data.period.from)+' — '+fmtDate(data.period.to):''}</div><div class="cards-grid">`;
+            const per = data.period?' · '+fmtDate(data.period.from)+' — '+fmtDate(data.period.to):'';
+            let h = `<div class="section"><div class="section-title">Lo más destacado del periodo${per}</div>`;
+            h += `<div style="font-size:12px;color:var(--muted);margin:2px 0 12px 2px">Titulares del periodo. <b>Venta</b> = trato ganado (cerrado) · <b>Trato</b> = oportunidad creada.</div>`;
+            if (ventas>0 && ventas<10) h += `<div style="background:#FFF6E9;border:1px solid #F0D9A8;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#7A5A1E;margin-bottom:12px">⚠️ Periodo corto: solo <b>${ventas} venta${ventas!==1?'s':''}</b> en estas fechas. Con tan pocos cierres estos rankings cambian con facilidad — para ver tendencias reales usa <b>30 o 90 días</b> en el filtro de arriba.</div>`;
+            h += `<div class="cards-grid">`;
             cards.forEach(c=> h += `<div class="card"><div class="card-label">${c.t}</div><div class="card-value" style="font-size:19px;line-height:1.15">${c.v}</div><div class="card-foot">${c.s}</div></div>`);
             h += `</div>`;
             const recs = [];
-            if (paisQual[0] && paisQual[0].f2) recs.push(`<b>${paisQual[0].k}</b>: ${paisQual[0].f2} cualificados (F2) sin cerrar — priorizar seguimiento comercial esta semana.`);
-            if (paisWon[0] && paisWon[0].won && !paisTop.tie) recs.push(`<b>${paisWon[0].k}</b> lidera cierres (${paisWon[0].won}) — reforzar inversión y replicar en países similares.`);
-            if (cursoStuck[0]) recs.push(`Curso <b>${cursoStuck[0].k}</b>: ${cursoStuck[0].f2} tratos en F2 sin cerrar — revisar propuesta/precio.`);
-            if (cursoWon[0] && cursoWon[0].won>0 && !cursoTop.tie) recs.push(`<b>${cursoWon[0].k}</b> es el curso top en ventas (${cursoWon[0].won}) — empujar con campañas específicas.`);
-            if (owners[0]) recs.push(`<b>${owners[0].k}</b> es el vendedor con más cierres — compartir sus buenas prácticas con el equipo.`);
-            h += `<div style="margin-top:14px;background:var(--brand-tint);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--ink)"><b style="color:var(--brand)">Recomendaciones — dónde atacar la semana que viene:</b><ul style="margin:8px 0 0 18px">${recs.map(r=>`<li style="margin-bottom:5px">${r}</li>`).join('')}</ul></div>`;
+            if (paisWon[0] && paisWon[0].won && !paisTop.tie) recs.push(`<b>${paisWon[0].k}</b> es quien más vende (${paisWon[0].won} venta${paisWon[0].won!==1?'s':''}) — reforzar inversión ahí y replicar en países parecidos.`);
+            if (cursoWon[0] && cursoWon[0].won>0 && !cursoTop.tie) recs.push(`<b>${cursoWon[0].k}</b> es el curso que más cierra (${cursoWon[0].won}) — empujarlo con campañas específicas.`);
+            if (cursoStuck[0]) recs.push(`Curso <b>${cursoStuck[0].k}</b>: ${cursoStuck[0].f2} lead${cursoStuck[0].f2!==1?'s':''} cualificado${cursoStuck[0].f2!==1?'s':''} sin cerrar — dar seguimiento o revisar precio/propuesta.`);
+            if (paisQual[0] && paisQual[0].f2) recs.push(`<b>${paisQual[0].k}</b>: ${paisQual[0].f2} lead${paisQual[0].f2!==1?'s':''} cualificado${paisQual[0].f2!==1?'s':''} (Fase 2) esperando seguimiento comercial.`);
+            if (owners[0] && owners[0].won) recs.push(`<b>${owners[0].k}</b> es quien más cierra del equipo — buen momento para compartir cómo lo hace.`);
+            h += `<div style="margin-top:14px;background:var(--brand-tint);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--ink)"><b style="color:var(--brand)">Dónde poner el foco esta semana:</b><ul style="margin:8px 0 0 18px">${recs.map(r=>`<li style="margin-bottom:5px">${r}</li>`).join('')}</ul></div>`;
             return h + `</div>`;
         }
 
