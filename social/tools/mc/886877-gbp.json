@@ -1,0 +1,1779 @@
+{
+ "net": "gbp",
+ "brandId": "886877",
+ "label": "eimec.es",
+ "followersNow": null,
+ "daily": [
+  {
+   "d": "2026-01-15",
+   "views": 79,
+   "searches": 61,
+   "webClicks": 4,
+   "calls": 4,
+   "directions": 16,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-01-16",
+   "views": 65,
+   "searches": 45,
+   "webClicks": 3,
+   "calls": 1,
+   "directions": 7,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-17",
+   "views": 34,
+   "searches": 26,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 2,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-01-18",
+   "views": 68,
+   "searches": 55,
+   "webClicks": 1,
+   "calls": null,
+   "directions": null,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-01-19",
+   "views": 94,
+   "searches": 64,
+   "webClicks": 4,
+   "calls": 2,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-20",
+   "views": 91,
+   "searches": 64,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 5,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-01-21",
+   "views": 102,
+   "searches": 77,
+   "webClicks": 2,
+   "calls": null,
+   "directions": null,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-01-22",
+   "views": 84,
+   "searches": 53,
+   "webClicks": 1,
+   "calls": null,
+   "directions": 25,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-23",
+   "views": 64,
+   "searches": 47,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 7,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-24",
+   "views": 64,
+   "searches": 57,
+   "webClicks": 3,
+   "calls": 1,
+   "directions": 1,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-25",
+   "views": 48,
+   "searches": 36,
+   "webClicks": 1,
+   "calls": null,
+   "directions": 2,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-26",
+   "views": 73,
+   "searches": 56,
+   "webClicks": 2,
+   "calls": 2,
+   "directions": 5,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-27",
+   "views": 86,
+   "searches": 72,
+   "webClicks": 7,
+   "calls": null,
+   "directions": 17,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-28",
+   "views": 82,
+   "searches": 62,
+   "webClicks": 3,
+   "calls": 1,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-29",
+   "views": 71,
+   "searches": 54,
+   "webClicks": 4,
+   "calls": 3,
+   "directions": 15,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-30",
+   "views": 67,
+   "searches": 54,
+   "webClicks": 2,
+   "calls": 2,
+   "directions": 15,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-01-31",
+   "views": 58,
+   "searches": 48,
+   "webClicks": 9,
+   "calls": null,
+   "directions": 1,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-01",
+   "views": 49,
+   "searches": 41,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 2,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-02",
+   "views": 74,
+   "searches": 58,
+   "webClicks": 5,
+   "calls": 6,
+   "directions": 15,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-03",
+   "views": 86,
+   "searches": 68,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": 18,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-04",
+   "views": 79,
+   "searches": 55,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-05",
+   "views": 82,
+   "searches": 65,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-06",
+   "views": 74,
+   "searches": 55,
+   "webClicks": 4,
+   "calls": 1,
+   "directions": 11,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-07",
+   "views": 74,
+   "searches": 53,
+   "webClicks": null,
+   "calls": null,
+   "directions": 12,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-08",
+   "views": 50,
+   "searches": 39,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 3,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-09",
+   "views": 75,
+   "searches": 45,
+   "webClicks": 1,
+   "calls": 2,
+   "directions": 20,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-10",
+   "views": 78,
+   "searches": 62,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 10,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-11",
+   "views": 69,
+   "searches": 38,
+   "webClicks": 3,
+   "calls": 2,
+   "directions": 11,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-02-12",
+   "views": 80,
+   "searches": 59,
+   "webClicks": 5,
+   "calls": 4,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-13",
+   "views": 56,
+   "searches": 41,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-14",
+   "views": 47,
+   "searches": 33,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 4,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-15",
+   "views": 39,
+   "searches": 29,
+   "webClicks": 1,
+   "calls": null,
+   "directions": 3,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-16",
+   "views": 81,
+   "searches": 54,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 15,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-17",
+   "views": 90,
+   "searches": 60,
+   "webClicks": 4,
+   "calls": 2,
+   "directions": 17,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-18",
+   "views": 86,
+   "searches": 60,
+   "webClicks": 1,
+   "calls": 1,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-19",
+   "views": 79,
+   "searches": 62,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": 19,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-20",
+   "views": 73,
+   "searches": 50,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 7,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-21",
+   "views": 46,
+   "searches": 30,
+   "webClicks": 7,
+   "calls": 2,
+   "directions": 11,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-22",
+   "views": 52,
+   "searches": 33,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": 2,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-02-23",
+   "views": 99,
+   "searches": 53,
+   "webClicks": 2,
+   "calls": 3,
+   "directions": 43,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-24",
+   "views": 76,
+   "searches": 58,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 2,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-25",
+   "views": 77,
+   "searches": 51,
+   "webClicks": 5,
+   "calls": 4,
+   "directions": 11,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-26",
+   "views": 102,
+   "searches": 67,
+   "webClicks": 4,
+   "calls": 2,
+   "directions": 24,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-02-27",
+   "views": 86,
+   "searches": 49,
+   "webClicks": 4,
+   "calls": 1,
+   "directions": 31,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-02-28",
+   "views": 60,
+   "searches": 45,
+   "webClicks": 7,
+   "calls": 2,
+   "directions": 9,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-01",
+   "views": 55,
+   "searches": 43,
+   "webClicks": 7,
+   "calls": null,
+   "directions": 1,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-02",
+   "views": 77,
+   "searches": 56,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": 5,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-03",
+   "views": 73,
+   "searches": 49,
+   "webClicks": 2,
+   "calls": 5,
+   "directions": 12,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-04",
+   "views": 106,
+   "searches": 74,
+   "webClicks": 3,
+   "calls": 2,
+   "directions": 26,
+   "reviews": 1,
+   "rating": 1
+  },
+  {
+   "d": "2026-03-05",
+   "views": 96,
+   "searches": 69,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 25,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-06",
+   "views": 113,
+   "searches": 69,
+   "webClicks": 3,
+   "calls": 3,
+   "directions": 35,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-07",
+   "views": 53,
+   "searches": 45,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 3,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-08",
+   "views": 53,
+   "searches": 45,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 9,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-09",
+   "views": 87,
+   "searches": 60,
+   "webClicks": 1,
+   "calls": 2,
+   "directions": 14,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-10",
+   "views": 73,
+   "searches": 54,
+   "webClicks": 6,
+   "calls": 1,
+   "directions": 6,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-11",
+   "views": 97,
+   "searches": 63,
+   "webClicks": 1,
+   "calls": 2,
+   "directions": 20,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-12",
+   "views": 70,
+   "searches": 48,
+   "webClicks": null,
+   "calls": 1,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-13",
+   "views": 93,
+   "searches": 64,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": 19,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-14",
+   "views": 83,
+   "searches": 56,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 20,
+   "reviews": 2,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-15",
+   "views": 50,
+   "searches": 39,
+   "webClicks": null,
+   "calls": null,
+   "directions": 6,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-16",
+   "views": 97,
+   "searches": 62,
+   "webClicks": 1,
+   "calls": 2,
+   "directions": 27,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-17",
+   "views": 82,
+   "searches": 62,
+   "webClicks": 4,
+   "calls": 1,
+   "directions": 19,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-18",
+   "views": 81,
+   "searches": 58,
+   "webClicks": 6,
+   "calls": 1,
+   "directions": 15,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-19",
+   "views": 85,
+   "searches": 58,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 20,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-20",
+   "views": 101,
+   "searches": 59,
+   "webClicks": 1,
+   "calls": 1,
+   "directions": 32,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-21",
+   "views": 50,
+   "searches": 34,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 1,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-22",
+   "views": 56,
+   "searches": 42,
+   "webClicks": 4,
+   "calls": null,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-23",
+   "views": 68,
+   "searches": 48,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-24",
+   "views": 60,
+   "searches": 48,
+   "webClicks": 2,
+   "calls": 2,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-25",
+   "views": 88,
+   "searches": 62,
+   "webClicks": 4,
+   "calls": 2,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-26",
+   "views": 87,
+   "searches": 67,
+   "webClicks": 2,
+   "calls": 3,
+   "directions": 15,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-27",
+   "views": 81,
+   "searches": 59,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 22,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-28",
+   "views": 57,
+   "searches": 39,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-29",
+   "views": 52,
+   "searches": 38,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-03-30",
+   "views": 89,
+   "searches": 58,
+   "webClicks": null,
+   "calls": 1,
+   "directions": 14,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-03-31",
+   "views": 64,
+   "searches": 46,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 5,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-01",
+   "views": 57,
+   "searches": 44,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 11,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-02",
+   "views": 43,
+   "searches": 33,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 3,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-04-03",
+   "views": 50,
+   "searches": 33,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 9,
+   "reviews": 2,
+   "rating": 5
+  },
+  {
+   "d": "2026-04-04",
+   "views": 50,
+   "searches": 38,
+   "webClicks": 2,
+   "calls": null,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-05",
+   "views": 34,
+   "searches": 27,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 3,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-06",
+   "views": 50,
+   "searches": 43,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-07",
+   "views": 73,
+   "searches": 55,
+   "webClicks": 6,
+   "calls": 4,
+   "directions": 5,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-08",
+   "views": 82,
+   "searches": 57,
+   "webClicks": 3,
+   "calls": 6,
+   "directions": 14,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-09",
+   "views": 95,
+   "searches": 66,
+   "webClicks": 5,
+   "calls": 2,
+   "directions": 12,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-10",
+   "views": 63,
+   "searches": 38,
+   "webClicks": 3,
+   "calls": 1,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-11",
+   "views": 45,
+   "searches": 40,
+   "webClicks": null,
+   "calls": 1,
+   "directions": 2,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-12",
+   "views": 33,
+   "searches": 18,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-13",
+   "views": 77,
+   "searches": 58,
+   "webClicks": 3,
+   "calls": 2,
+   "directions": 14,
+   "reviews": 1,
+   "rating": 1
+  },
+  {
+   "d": "2026-04-14",
+   "views": 71,
+   "searches": 52,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-15",
+   "views": 85,
+   "searches": 63,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 11,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-04-16",
+   "views": 95,
+   "searches": 62,
+   "webClicks": 7,
+   "calls": null,
+   "directions": 19,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-17",
+   "views": 77,
+   "searches": 42,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-18",
+   "views": 64,
+   "searches": 45,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-19",
+   "views": 46,
+   "searches": 31,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 12,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-20",
+   "views": 74,
+   "searches": 50,
+   "webClicks": 8,
+   "calls": 3,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-21",
+   "views": 87,
+   "searches": 64,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 6,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-04-22",
+   "views": 83,
+   "searches": 55,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-23",
+   "views": 58,
+   "searches": 46,
+   "webClicks": 1,
+   "calls": 2,
+   "directions": 3,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-24",
+   "views": 62,
+   "searches": 43,
+   "webClicks": 1,
+   "calls": null,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-25",
+   "views": 54,
+   "searches": 46,
+   "webClicks": 2,
+   "calls": null,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-26",
+   "views": 39,
+   "searches": 30,
+   "webClicks": 2,
+   "calls": null,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-27",
+   "views": 81,
+   "searches": 52,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 18,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-04-28",
+   "views": 84,
+   "searches": 61,
+   "webClicks": null,
+   "calls": null,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-29",
+   "views": 79,
+   "searches": 49,
+   "webClicks": 10,
+   "calls": 1,
+   "directions": 17,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-04-30",
+   "views": 103,
+   "searches": 66,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 36,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-05-01",
+   "views": 48,
+   "searches": 40,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 1,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-02",
+   "views": 46,
+   "searches": 35,
+   "webClicks": 1,
+   "calls": null,
+   "directions": 2,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-03",
+   "views": 41,
+   "searches": 33,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 3,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-04",
+   "views": 70,
+   "searches": 52,
+   "webClicks": 4,
+   "calls": 1,
+   "directions": 9,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-05",
+   "views": 97,
+   "searches": 73,
+   "webClicks": 5,
+   "calls": 2,
+   "directions": 7,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-05-06",
+   "views": 66,
+   "searches": 53,
+   "webClicks": 1,
+   "calls": 3,
+   "directions": 10,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-07",
+   "views": 73,
+   "searches": 45,
+   "webClicks": 3,
+   "calls": 3,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-08",
+   "views": 76,
+   "searches": 50,
+   "webClicks": 3,
+   "calls": 1,
+   "directions": 11,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-09",
+   "views": 79,
+   "searches": 42,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 31,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-05-10",
+   "views": 66,
+   "searches": 55,
+   "webClicks": 1,
+   "calls": 1,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-11",
+   "views": 81,
+   "searches": 56,
+   "webClicks": 6,
+   "calls": 1,
+   "directions": 9,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-12",
+   "views": 64,
+   "searches": 43,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 17,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-13",
+   "views": 69,
+   "searches": 51,
+   "webClicks": 4,
+   "calls": 2,
+   "directions": 4,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-14",
+   "views": 74,
+   "searches": 54,
+   "webClicks": 7,
+   "calls": null,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-15",
+   "views": 59,
+   "searches": 39,
+   "webClicks": 2,
+   "calls": 2,
+   "directions": 7,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-16",
+   "views": 38,
+   "searches": 32,
+   "webClicks": 7,
+   "calls": 1,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-17",
+   "views": 45,
+   "searches": 34,
+   "webClicks": 8,
+   "calls": null,
+   "directions": 2,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-18",
+   "views": 79,
+   "searches": 54,
+   "webClicks": 12,
+   "calls": 2,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-19",
+   "views": 104,
+   "searches": 82,
+   "webClicks": 12,
+   "calls": 1,
+   "directions": 16,
+   "reviews": 2,
+   "rating": 5
+  },
+  {
+   "d": "2026-05-20",
+   "views": 109,
+   "searches": 68,
+   "webClicks": 10,
+   "calls": null,
+   "directions": 14,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-05-21",
+   "views": 69,
+   "searches": 47,
+   "webClicks": 6,
+   "calls": 2,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-22",
+   "views": 85,
+   "searches": 58,
+   "webClicks": 9,
+   "calls": 3,
+   "directions": 22,
+   "reviews": 2,
+   "rating": 5
+  },
+  {
+   "d": "2026-05-23",
+   "views": 46,
+   "searches": 29,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-24",
+   "views": 35,
+   "searches": 26,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 11,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-25",
+   "views": 36,
+   "searches": 25,
+   "webClicks": 9,
+   "calls": 1,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-26",
+   "views": 59,
+   "searches": 41,
+   "webClicks": null,
+   "calls": 3,
+   "directions": 6,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-27",
+   "views": 69,
+   "searches": 49,
+   "webClicks": 2,
+   "calls": 2,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-28",
+   "views": 76,
+   "searches": 61,
+   "webClicks": 1,
+   "calls": 2,
+   "directions": 12,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-29",
+   "views": 71,
+   "searches": 47,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 26,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-05-30",
+   "views": 53,
+   "searches": 36,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 6,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-05-31",
+   "views": 49,
+   "searches": 31,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 7,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-01",
+   "views": 88,
+   "searches": 52,
+   "webClicks": 4,
+   "calls": 2,
+   "directions": 27,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-02",
+   "views": 79,
+   "searches": 61,
+   "webClicks": 3,
+   "calls": 1,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-03",
+   "views": 88,
+   "searches": 62,
+   "webClicks": 8,
+   "calls": 2,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-04",
+   "views": 75,
+   "searches": 58,
+   "webClicks": 4,
+   "calls": 1,
+   "directions": 9,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-05",
+   "views": 60,
+   "searches": 39,
+   "webClicks": 12,
+   "calls": null,
+   "directions": 21,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-06",
+   "views": 44,
+   "searches": 32,
+   "webClicks": 4,
+   "calls": 1,
+   "directions": 1,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-07",
+   "views": 46,
+   "searches": 34,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-08",
+   "views": 72,
+   "searches": 54,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 13,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-09",
+   "views": 66,
+   "searches": 42,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 16,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-10",
+   "views": 83,
+   "searches": 58,
+   "webClicks": 6,
+   "calls": 2,
+   "directions": 23,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-11",
+   "views": 82,
+   "searches": 51,
+   "webClicks": 3,
+   "calls": 3,
+   "directions": 24,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-12",
+   "views": 62,
+   "searches": 31,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 14,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-13",
+   "views": 64,
+   "searches": 36,
+   "webClicks": 6,
+   "calls": null,
+   "directions": 17,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-14",
+   "views": 41,
+   "searches": 34,
+   "webClicks": 5,
+   "calls": null,
+   "directions": 4,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-15",
+   "views": 64,
+   "searches": 51,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": null,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-06-16",
+   "views": 93,
+   "searches": 65,
+   "webClicks": 11,
+   "calls": 2,
+   "directions": 16,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-06-17",
+   "views": 87,
+   "searches": 55,
+   "webClicks": 3,
+   "calls": 4,
+   "directions": 42,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-18",
+   "views": 91,
+   "searches": 49,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 31,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-06-19",
+   "views": 74,
+   "searches": 46,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 15,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-20",
+   "views": 41,
+   "searches": 34,
+   "webClicks": 6,
+   "calls": null,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-21",
+   "views": 48,
+   "searches": 36,
+   "webClicks": 3,
+   "calls": null,
+   "directions": 13,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-06-22",
+   "views": 62,
+   "searches": 39,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 25,
+   "reviews": 2,
+   "rating": 5
+  },
+  {
+   "d": "2026-06-23",
+   "views": 46,
+   "searches": 29,
+   "webClicks": 1,
+   "calls": 1,
+   "directions": 16,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-06-24",
+   "views": 33,
+   "searches": 23,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 5,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-25",
+   "views": 54,
+   "searches": 38,
+   "webClicks": 1,
+   "calls": null,
+   "directions": 8,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-26",
+   "views": 57,
+   "searches": 45,
+   "webClicks": 4,
+   "calls": 5,
+   "directions": 7,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-27",
+   "views": 42,
+   "searches": 31,
+   "webClicks": null,
+   "calls": 1,
+   "directions": null,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-28",
+   "views": 26,
+   "searches": 15,
+   "webClicks": 1,
+   "calls": null,
+   "directions": 9,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-29",
+   "views": 66,
+   "searches": 50,
+   "webClicks": 3,
+   "calls": 4,
+   "directions": 12,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-06-30",
+   "views": 70,
+   "searches": 47,
+   "webClicks": 4,
+   "calls": null,
+   "directions": 12,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-01",
+   "views": 53,
+   "searches": 32,
+   "webClicks": 3,
+   "calls": 2,
+   "directions": 26,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-02",
+   "views": 62,
+   "searches": 44,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 25,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-03",
+   "views": 57,
+   "searches": 35,
+   "webClicks": 2,
+   "calls": 1,
+   "directions": 10,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-04",
+   "views": 47,
+   "searches": 31,
+   "webClicks": null,
+   "calls": 1,
+   "directions": 1,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-05",
+   "views": 46,
+   "searches": 31,
+   "webClicks": 2,
+   "calls": null,
+   "directions": 5,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-06",
+   "views": 82,
+   "searches": 57,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": 9,
+   "reviews": 1,
+   "rating": 5
+  },
+  {
+   "d": "2026-07-07",
+   "views": 63,
+   "searches": 33,
+   "webClicks": 5,
+   "calls": 1,
+   "directions": 10,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-08",
+   "views": 81,
+   "searches": 54,
+   "webClicks": 2,
+   "calls": 3,
+   "directions": 21,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-09",
+   "views": 81,
+   "searches": 44,
+   "webClicks": 5,
+   "calls": 4,
+   "directions": 29,
+   "reviews": null,
+   "rating": null
+  },
+  {
+   "d": "2026-07-10",
+   "views": 26,
+   "searches": null,
+   "webClicks": null,
+   "calls": null,
+   "directions": 18,
+   "reviews": null,
+   "rating": null
+  }
+ ],
+ "posts": []
+}
