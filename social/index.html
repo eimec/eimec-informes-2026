@@ -10,26 +10,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --navy:#1F2A4E;
-    --teal:#006F74;
-    --teal-soft:#69C2C2;
-    --blue:#2E5082;
-    --bg:#F4F7F8;
-    --card:#FFFFFF;
-    --ink:#22304F;
-    --muted:#66738C;
-    --line:#E2E9EC;
-    --good:#1B8A5A;
-    --bad:#C0392B;
-    --chip:#EAF3F3;
+    --navy:#1F2A4E; --teal:#006F74; --teal-soft:#69C2C2; --blue:#2E5082;
+    --bg:#F4F7F8; --card:#FFFFFF; --ink:#22304F; --muted:#66738C; --line:#E2E9EC;
+    --good:#1B8A5A; --bad:#C0392B; --chip:#EAF3F3;
     --ig:#E1306C; --tt:#161823; --fb:#1877F2; --yt:#E52D27; --li:#0A66C2; --gbp:#2E9E5B;
   }
   *{box-sizing:border-box}
-  body{
-    background:var(--bg); color:var(--ink);
-    font-family:"Montserrat","Segoe UI",system-ui,-apple-system,sans-serif;
-    margin:0; padding:0;
-  }
+  body{background:var(--bg); color:var(--ink);
+    font-family:"Montserrat","Segoe UI",system-ui,-apple-system,sans-serif; margin:0; padding:0}
   .wrap{max-width:1180px; margin:0 auto; padding:0 20px}
 
   /* ---------- login ---------- */
@@ -48,31 +36,26 @@
   .login-box button{width:100%; padding:13px; background:var(--navy); color:#fff; border:none; border-radius:10px;
     font-size:15px; font-weight:700; cursor:pointer; font-family:inherit}
   .login-box button:hover{background:var(--teal)}
-  .login-box button:active{transform:translateY(1px)}
   .login-error{color:var(--bad); font-size:13px; margin-top:10px; display:none}
 
   #dashboard{display:none; padding-bottom:48px}
+  #loadError{display:none; padding:40px; text-align:center; color:var(--bad); font-weight:600}
 
-  .mock-banner{
-    background:var(--teal); color:#fff; text-align:center;
-    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
-    padding:7px 12px; font-weight:600;
-  }
+  .mock-banner{background:var(--teal); color:#fff; text-align:center; font-size:12px;
+    letter-spacing:.12em; text-transform:uppercase; padding:7px 12px; font-weight:600}
 
-  /* ---------- header ---------- */
   header.top{background:var(--navy); color:#fff; padding:26px 0 0}
   header.top .wrap{display:flex; flex-direction:column; gap:18px}
   .brandline{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
   .brandline .logo{font-weight:800; font-size:22px; letter-spacing:.22em; color:#fff}
   .brandline .logo span{color:var(--teal-soft)}
-  .brandline h1{font-size:15px; font-weight:500; color:#C9D4E8; margin:0; letter-spacing:.02em}
+  .brandline h1{font-size:15px; font-weight:500; color:#C9D4E8; margin:0}
   .brandline .date{margin-left:auto; font-size:12px; color:#8FA0C0}
   .tabs{display:flex; gap:6px; flex-wrap:wrap; padding-bottom:14px}
   .tab{padding:7px 14px; border-radius:6px 6px 0 0; font-size:13px; color:#B9C6DE; cursor:pointer; user-select:none}
   .tab:hover{color:#fff}
   .tab.active{background:var(--bg); color:var(--ink); font-weight:700}
 
-  /* ---------- filtros ---------- */
   .filters{display:flex; gap:8px; align-items:center; margin:18px 0 6px; flex-wrap:wrap}
   .filters .lbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em}
   .chip{background:var(--card); border:1px solid var(--line); color:var(--muted);
@@ -89,7 +72,6 @@
   h2.sec .prio{background:var(--chip); color:var(--teal); font-size:10.5px; border-radius:4px;
     padding:2px 8px; margin-right:8px; letter-spacing:.08em; vertical-align:1px}
 
-  /* ---------- KPI cards ---------- */
   .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:12px}
   .kpi{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:15px 16px 12px}
   .kpi .k-lbl{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em}
@@ -104,14 +86,11 @@
   .panel{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px}
   .panel h3{margin:0 0 4px; font-size:15px; color:var(--navy)}
   .panel .sub{font-size:12.5px; color:var(--muted); margin:0 0 14px; line-height:1.55}
-
   .grid2{display:grid; grid-template-columns:1.6fr 1fr; gap:14px}
   @media(max-width:860px){.grid2{grid-template-columns:1fr}}
-
   .legend{display:flex; gap:18px; font-size:12.5px; color:var(--muted); margin-top:10px; flex-wrap:wrap}
   .legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px}
 
-  /* ---------- insights ---------- */
   .insights{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
   .ins{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--ic,var(--teal));
     border-radius:10px; padding:14px 16px}
@@ -119,31 +98,33 @@
   .ins p{margin:0; font-size:12.5px; color:var(--muted); line-height:1.55}
   .ins .tag{font-size:10px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; color:var(--ic)}
 
-  /* ---------- galería de publicaciones ---------- */
   .gal-filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
   .gal-filters .sep{width:1px; height:20px; background:var(--line); margin:0 4px}
   .gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:12px}
   .gallery .empty{grid-column:1/-1; text-align:center; color:var(--muted); font-size:13px; padding:30px 0}
-  .post{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;
-    display:flex; flex-direction:column}
+  a.post{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    display:flex; flex-direction:column; text-decoration:none; color:inherit; transition:box-shadow .15s, transform .15s}
+  a.post:hover{box-shadow:0 10px 30px -12px rgba(10,16,30,.35); transform:translateY(-2px)}
   .post .ph{position:relative; aspect-ratio:4/5; background:var(--pg); display:flex; align-items:center; justify-content:center}
+  .post .ph img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
   .post .ph .cam{width:44px; height:44px; opacity:.55}
   .post .ph .netp{position:absolute; top:8px; left:8px; font-size:10px; font-weight:800; color:#fff;
-    background:var(--nc); border-radius:4px; padding:2px 7px; letter-spacing:.05em}
+    background:var(--nc); border-radius:4px; padding:2px 7px; letter-spacing:.05em; z-index:2}
   .post .ph .fmt{position:absolute; top:8px; right:8px; font-size:10px; font-weight:700; color:#fff;
-    background:rgba(10,16,30,.55); border-radius:4px; padding:2px 7px}
+    background:rgba(10,16,30,.55); border-radius:4px; padding:2px 7px; z-index:2}
   .post .ph .rank{position:absolute; bottom:8px; left:8px; font-size:11px; font-weight:800; color:#fff;
-    background:var(--teal); border-radius:99px; padding:2px 9px}
+    background:var(--teal); border-radius:99px; padding:2px 9px; z-index:2}
+  .post .ph .playov{position:absolute; right:8px; bottom:8px; width:30px; height:30px; border-radius:50%;
+    background:rgba(10,16,30,.55); display:flex; align-items:center; justify-content:center; z-index:2}
   .post .pb{padding:11px 12px 12px; display:flex; flex-direction:column; gap:7px; flex:1}
-  .post .pt{font-size:12.5px; font-weight:600; line-height:1.35}
+  .post .pt{font-size:12.5px; font-weight:600; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
   .post .pd{font-size:11px; color:var(--muted)}
-  .post .pm{display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; font-size:11.5px; margin-top:auto;
+  .post .pm{display:grid; grid-template-columns:1fr auto; gap:4px 10px; font-size:11.5px; margin-top:auto;
     border-top:1px dashed var(--line); padding-top:8px; font-variant-numeric:tabular-nums}
   .post .pm span{color:var(--muted)}
   .post .pm b{text-align:right; font-weight:700}
-  .post .er{color:var(--teal); font-weight:800}
+  .er{color:var(--teal); font-weight:800}
 
-  /* ---------- tablas ---------- */
   .tblwrap{overflow-x:auto}
   table.data{width:100%; border-collapse:collapse; font-size:13.5px; min-width:560px}
   table.data th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
@@ -155,7 +136,6 @@
   .avatar{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-size:10.5px;
     font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-right:9px;vertical-align:middle}
 
-  /* ---------- network cards ---------- */
   .nets{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px}
   .net{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px;
     border-top:3px solid var(--nc,var(--teal))}
@@ -169,22 +149,18 @@
   .net td:last-child{text-align:right; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums}
   .net .n-dif{font-size:11.5px; font-weight:700}
 
-  /* ---------- heatmap ---------- */
-  .heat{display:grid; grid-template-columns:52px repeat(7,1fr); gap:4px; font-size:11px; color:var(--muted)}
+  .heat{display:grid; grid-template-columns:56px repeat(7,1fr); gap:4px; font-size:11px; color:var(--muted)}
   .heat .hh{align-self:center}
   .heat .hd{text-align:center; font-weight:700; padding-bottom:2px}
   .heat .cell{height:22px; border-radius:4px; background:var(--chip)}
-  .heat .c1{background:#CFE5E5}
-  .heat .c2{background:#9CCCCB}
-  .heat .c3{background:#4E9EA0}
-  .heat .c4{background:var(--teal)}
+  .heat .c1{background:#CFE5E5} .heat .c2{background:#9CCCCB}
+  .heat .c3{background:#4E9EA0} .heat .c4{background:var(--teal)}
 
   footer{margin-top:40px; text-align:center; font-size:12px; color:var(--muted)}
 </style>
 </head>
 <body>
 
-<!-- ==================== LOGIN ==================== -->
 <div class="login-container" id="loginContainer">
   <div class="login-box">
     <div class="login-logo">E</div>
@@ -196,16 +172,15 @@
   </div>
 </div>
 
-<!-- ==================== DASHBOARD ==================== -->
 <div id="dashboard">
 
-<div class="mock-banner">Vista previa · datos de ejemplo — pendiente de conectar la API de Metricool para datos en vivo</div>
+<div class="mock-banner" id="banner">Datos reales de Metricool</div>
 
 <header class="top">
   <div class="wrap">
     <div class="brandline">
       <div class="logo">EIMEC<span>·</span></div>
-      <h1>Informe Social Media — en vivo desde Metricool</h1>
+      <h1>Informe Social Media — datos de Metricool</h1>
       <div class="date" id="updatedAt"></div>
     </div>
     <div class="tabs" id="brandTabs"></div>
@@ -213,6 +188,7 @@
 </header>
 
 <div class="wrap">
+  <div id="loadError">No se pudieron cargar los datos (data.json). Recarga la página.</div>
 
   <div class="filters">
     <span class="lbl">Periodo</span>
@@ -229,12 +205,11 @@
 
   <h2 class="sec"><span class="prio">1</span>Resumen ejecutivo <small id="sec1sub"></small></h2>
   <div class="kpis" id="kpiRow"></div>
-  <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Benchmark: mediana de engagement en salud/educación que publica Metricool en su estudio anual.</p>
 
-  <h2 class="sec"><span class="prio">2</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos</small></h2>
+  <h2 class="sec"><span class="prio">2</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos reales</small></h2>
   <div class="insights" id="insightRow"></div>
 
-  <h2 class="sec"><span class="prio">3</span>Publicaciones del periodo <small>con imagen de cada post y su performance individual</small></h2>
+  <h2 class="sec"><span class="prio">3</span>Publicaciones del periodo <small>imagen real de cada post · clic en la tarjeta abre la publicación original</small></h2>
   <div class="panel">
     <div class="gal-filters" id="galFilters"></div>
     <div class="gallery" id="gallery"></div>
@@ -244,7 +219,7 @@
   <div class="grid2" style="margin-top:14px">
     <div class="panel tblwrap">
       <h3>Rendimiento por formato</h3>
-      <p class="sub">Qué tipo de contenido rinde más por unidad publicada — la tabla clave para decidir el mix del mes siguiente</p>
+      <p class="sub">Qué tipo de contenido rinde más por unidad publicada</p>
       <div id="fmtTable"></div>
     </div>
     <div class="panel">
@@ -255,7 +230,7 @@
     </div>
   </div>
 
-  <h2 class="sec"><span class="prio">4</span>Seguidores — evolución <small>comunidad por día, altas netas diarias y ritmo semanal</small></h2>
+  <h2 class="sec"><span class="prio">4</span>Seguidores — evolución <small>comunidad por día, altas netas y ritmo semanal</small></h2>
   <div class="panel">
     <h3>Comunidad total por día</h3>
     <p class="sub" id="folSub"></p>
@@ -296,242 +271,179 @@
     <p class="sub" style="margin:12px 0 0" id="brandNote"></p>
   </div>
 
-  <footer>EIMEC · Informe Social Media · vista previa con datos de ejemplo · los datos e imágenes reales saldrán en vivo de Metricool</footer>
+  <footer id="foot">EIMEC · Informe Social Media · datos reales de Metricool</footer>
 </div>
 
 </div><!-- /dashboard -->
 
 <script>
 'use strict';
-/* =====================================================================
-   EIMEC Informe Social Media — vista previa interactiva
-   Todos los datos son de EJEMPLO, generados de forma determinista.
-   Cuando se conecte la API de Metricool, estas funciones de generación
-   se sustituyen por fetch() al proxy /api/metricool.
-   ===================================================================== */
+/* EIMEC Informe Social Media — datos reales de Metricool (data.json generado via API) */
 
 // ---------------- utilidades ----------------
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};}
 function fmtInt(n){return Math.round(n).toLocaleString('es-ES');}
 function fmtBig(n){return n>=1e6 ? (n/1e6).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' M' : fmtInt(n);}
 function fmtPct(n,d){if(d===undefined)d=1;return n.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';}
 function fmtSigned(n){return (n<0?'−':'+')+fmtInt(Math.abs(n));}
 function fmtSignedPct(n,d){if(d===undefined)d=1;return (n<0?'▼ −':'▲ +')+Math.abs(n).toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';}
 function cls(n){return n<0?'down':'up';}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-function fmtDay(d){return d.getDate()+' '+MESES[d.getMonth()];}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtDayStr(iso){var p=iso.split('-');return parseInt(p[2],10)+' '+MESES[parseInt(p[1],10)-1];}
+function nz(v){return v==null?0:v;}
+function dash(v){return v==null?'—':fmtInt(v);}
 
-var DAYS=180;
-var TODAY=new Date(); TODAY.setHours(0,0,0,0);
-function dateOfIndex(i){var d=new Date(TODAY); d.setDate(d.getDate()-(DAYS-1-i)); return d;}
-function indexOfDate(d){var ms=(d-dateOfIndex(0))/86400000; return Math.round(ms);}
-
-// ---------------- metadatos de redes ----------------
 var NETMETA={
-  ig:{name:'Instagram',abbr:'IG',color:'var(--ig)',grad:'linear-gradient(150deg,#8AA6C9,#31456E)',formats:['Reel','Carrusel','Imagen']},
-  tt:{name:'TikTok',abbr:'TT',color:'var(--tt)',grad:'linear-gradient(150deg,#5E6B85,#1C2436)',formats:['Vídeo']},
-  yt:{name:'YouTube',abbr:'YT',color:'var(--yt)',grad:'linear-gradient(150deg,#C99A8A,#6E3A31)',formats:['Short','Vídeo']},
-  fb:{name:'Facebook',abbr:'FB',color:'var(--fb)',grad:'linear-gradient(150deg,#8FA8BE,#2E4A66)',formats:['Imagen','Vídeo']},
-  li:{name:'LinkedIn',abbr:'IN',color:'var(--li)',grad:'linear-gradient(150deg,#9DB8AE,#3E5E52)',formats:['Imagen','Carrusel']}
+  ig:{name:'Instagram',abbr:'IG',color:'var(--ig)',grad:'linear-gradient(150deg,#8AA6C9,#31456E)',folLbl:'Seguidores',reachLbl:'Alcance'},
+  tt:{name:'TikTok',abbr:'TT',color:'var(--tt)',grad:'linear-gradient(150deg,#5E6B85,#1C2436)',folLbl:'Seguidores',reachLbl:'Visualizaciones'},
+  yt:{name:'YouTube',abbr:'YT',color:'var(--yt)',grad:'linear-gradient(150deg,#C99A8A,#6E3A31)',folLbl:'Suscriptores',reachLbl:'Visualizaciones'},
+  fb:{name:'Facebook',abbr:'FB',color:'var(--fb)',grad:'linear-gradient(150deg,#8FA8BE,#2E4A66)',folLbl:'Seguidores',reachLbl:'Alcance'},
+  li:{name:'LinkedIn',abbr:'IN',color:'var(--li)',grad:'linear-gradient(150deg,#9DB8AE,#3E5E52)',folLbl:'Seguidores',reachLbl:'Impresiones'}
 };
-var FMTMULT={'Reel':2.6,'Vídeo':2.1,'Short':1.8,'Carrusel':1.15,'Imagen':0.6};
-var FMTER={'Reel':0.040,'Vídeo':0.035,'Short':0.033,'Carrusel':0.031,'Imagen':0.021};
+var FMT_ORDER=['Reel','Carrusel','Imagen','Vídeo','Short','Documento','Articulo','Artículo','Texto','Post'];
+var VIDEO_FMTS={'Reel':1,'Vídeo':1,'Short':1};
 
-// ---------------- configuración de marcas ----------------
-var BRANDS={
- 'eimec.es':{seed:11,community:128430,reachPerPost:52000,followsPerDay:52,posts90:38,storiesPer30:26,gbp:true,
-   nets:{ig:.53,tt:.19,yt:.095,fb:.155,li:.024},
-   handles:{ig:'@eimec.es',tt:'@eimec',yt:'EIMEC',fb:'EIMEC Formación',li:'EIMEC'},
-   avatar:'ES',
-   titles:['Resultado blefaroplastia — antes/después','Máster en Medicina Estética: abrimos plazas','Dr. Cano: 3 errores al elegir formación','Prácticas reales con pacientes — así se vive','Testimonio alumna: de médico general a estética','Nueva edición del Experto Universitario','Rinomodelación sin cirugía: caso práctico','Cómo es un día de clase en EIMEC','Ácido hialurónico: técnica y seguridad','Entrega de diplomas — promoción 2026','5 preguntas antes de empezar en estética','Toxina botulínica: zonas y dosis','Caso clínico: labios naturales','Visita nuestras instalaciones en Madrid','Becas y financiación: lo que debes saber']},
- 'eimec.clinic':{seed:22,community:21360,reachPerPost:9500,followsPerDay:11,posts90:24,storiesPer30:12,gbp:false,
-   nets:{ig:.62,tt:.2,yt:.08,fb:.10},
-   handles:{ig:'@eimec.clinic',tt:'@eimec.clinic',yt:'EIMEC Clinic',fb:'EIMEC Clinic'},
-   avatar:'CL',
-   titles:['Antes/después: armonización facial','Tu primera consulta, paso a paso','Peeling químico: para quién sí','Resultados reales: mesoterapia','Preguntas frecuentes sobre rellenos','Cuidados post-tratamiento','Piel sana en verano: guía rápida','Caso real: ojeras','La importancia del diagnóstico facial','Promoción del mes en clínica']},
- 'EIMEC Talks':{seed:33,community:4820,reachPerPost:6800,followsPerDay:16,posts90:15,storiesPer30:6,gbp:false,
-   nets:{ig:.55,tt:.25,yt:.12,fb:.08},
-   handles:{ig:'@eimectalks',tt:'@eimec.talks',yt:'EIMEC Talks',fb:'EIMEC Talks'},
-   avatar:'TK',
-   titles:['Episodio: el futuro de la medicina estética','Entrevista: de residente a referente','Clip: lo que nadie cuenta de la estética','Debate: ética y redes sociales','Episodio: emprender una clínica','Clip: errores de novato','Entrevista: mujeres líderes en estética','Episodio: tendencias 2026']},
- 'Zainela Laborde':{seed:44,community:9140,reachPerPost:4200,followsPerDay:6,posts90:18,storiesPer30:14,gbp:false,
-   nets:{ig:.82,li:.18},
-   handles:{ig:'@zainelalaborde',li:'Zainela Laborde'},
-   avatar:'ZL',
-   titles:['Rutina de mañana de una doctora','Mi técnica favorita de labios','Congreso: lo que aprendí','Detrás de cámaras en consulta','Consejo para médicos que empiezan','Caso clínico comentado','Mi experiencia como docente','Q&A: vuestras preguntas']},
- 'eimec.global':{seed:55,community:2030,reachPerPost:2600,followsPerDay:5,posts90:10,storiesPer30:4,gbp:false,
-   nets:{ig:.7,yt:.3},
-   handles:{ig:'@eimec',yt:'EIMEC Global'},
-   avatar:'GL',
-   titles:['Aesthetic medicine training in Madrid','Meet our international students','Why doctors choose EIMEC','Campus tour — English edition','Admissions open: international program','Student story: from Dubai to Madrid']}
-};
-var BRAND_KEYS=Object.keys(BRANDS);
-
-// ---------------- generación determinista de datos ----------------
-var CACHE={};
-function genBrand(key){
-  if(CACHE[key]) return CACHE[key];
-  var b=BRANDS[key], rng=mulberry32(b.seed);
-  var netKeys=Object.keys(b.nets);
-
-  // publicaciones sobre 180 días
-  var posts=[], count=Math.round(b.posts90*2);
-  for(var k=0;k<count;k++){
-    var day=Math.floor(rng()*DAYS);
-    // red ponderada
-    var r=rng(), acc=0, net=netKeys[0];
-    for(var ni=0;ni<netKeys.length;ni++){acc+=b.nets[netKeys[ni]]; if(r<=acc){net=netKeys[ni]; break;}}
-    var fmts=NETMETA[net].formats;
-    var fmt=fmts[Math.floor(rng()*fmts.length)];
-    var reach=b.reachPerPost*FMTMULT[fmt]*(0.45+rng()*1.6);
-    var er=FMTER[fmt]*(0.75+rng()*0.55);
-    var inter=reach*er;
-    var hours=[13,17,19,20,20,21];
-    posts.push({
-      day:day, net:net, fmt:fmt,
-      title:b.titles[k%b.titles.length],
-      hour:hours[Math.floor(rng()*hours.length)], min:Math.floor(rng()*60),
-      reach:reach, inter:inter, er:er*100,
-      saves:inter*(0.10+rng()*0.06), shares:inter*(0.07+rng()*0.06)
-    });
-  }
-  posts.sort(function(a,c){return a.day-c.day;});
-
-  // series diarias (baseline + aportación de posts)
-  var baseReach=(b.reachPerPost*b.posts90/90)*0.55;
-  var dReach=[], dInter=[], dFol=[], dFolNet={};
-  netKeys.forEach(function(n){dFolNet[n]=[];});
-  for(var i=0;i<DAYS;i++){
-    dReach.push(baseReach*(0.7+rng()*0.6));
-    dInter.push(dReach[i]*0.021*(0.8+rng()*0.4));
-    var f=b.followsPerDay*(0.65+rng()*0.7);
-    dFol.push(f);
-    netKeys.forEach(function(n){dFolNet[n].push(f*b.nets[n]);});
-  }
-  posts.forEach(function(p){
-    dReach[p.day]+=p.reach; dInter[p.day]+=p.inter;
-    var spike=p.reach*((p.fmt==='Reel'||p.fmt==='Vídeo'||p.fmt==='Short')?0.0011:0.0005);
-    p.folSpike=spike;
-    dFol[p.day]+=spike; dFolNet[p.net][p.day]+=spike;
-  });
-
-  // comunidad acumulada (hoy = b.community, hacia atrás restando altas)
-  var community=[]; community[DAYS-1]=b.community;
-  for(var j=DAYS-2;j>=0;j--) community[j]=community[j+1]-dFol[j+1];
-
-  CACHE[key]={cfg:b,posts:posts,dReach:dReach,dInter:dInter,dFol:dFol,dFolNet:dFolNet,community:community,netKeys:netKeys};
-  return CACHE[key];
+var BRAND_ORDER=['eimec.es','eimec.clinic','EIMEC Talks','Zainela Laborde','eimec.global'];
+function orderedBrands(){
+  var keys=Object.keys(DATA.brands);
+  return BRAND_ORDER.filter(function(k){return keys.indexOf(k)>=0;})
+    .concat(keys.filter(function(k){return BRAND_ORDER.indexOf(k)<0;}));
 }
+var DATA=null, DAYS=[], IDX={}, N=0, END=0;
+var state={brand:'eimec.es', period:30, custom:null, gal:{net:'all',fmt:'all',sort:'inter',limit:12}};
 
-function sum(arr,from,to){var s=0;for(var i=from;i<=to;i++)s+=arr[i];return s;}
-
-// estadísticas de un periodo [from,to] (índices)
-function periodStats(key,from,to){
-  var d=genBrand(key), days=to-from+1;
-  var st={from:from,to:to,days:days};
-  st.posts=d.posts.filter(function(p){return p.day>=from&&p.day<=to;});
-  st.reach=sum(d.dReach,from,to);
-  st.inter=sum(d.dInter,from,to);
-  st.folDelta=sum(d.dFol,from,to);
-  st.communityEnd=d.community[to];
-  st.stories=d.cfg.nets.ig?Math.round(d.cfg.storiesPer30*days/30):0;
-  st.storiesReach=st.stories*d.cfg.community*0.045;
-  st.storiesInter=st.storiesReach*0.011;
-  st.totalReach=st.reach+st.storiesReach;
-  st.totalInter=st.inter+st.storiesInter;
-  st.impressions=st.totalReach*1.65;
-  st.pubs=st.posts.length+st.stories;
-  st.er=st.totalReach>0?st.totalInter/st.totalReach*100:0;
-  st.interPerPost=st.posts.length?st.posts.reduce(function(a,p){return a+p.inter;},0)/st.posts.length:0;
-  st.folByNet={};
-  d.netKeys.forEach(function(n){st.folByNet[n]=sum(d.dFolNet[n],from,to);});
-  return st;
-}
-function prevWindow(from,to){var len=to-from+1; var pf=from-len, pt=from-1; if(pf<0){pf=0;pt=Math.max(0,len-1<from?from-1:0);} return [pf,pt];}
-
-// ---------------- estado ----------------
-var state={brand:'eimec.es', period:30, custom:null, gal:{net:'all',fmt:'all',sort:'inter'}};
 function currentWindow(){
   if(state.period==='custom'&&state.custom) return state.custom;
   var p=(state.period==='custom')?30:state.period;
-  return [DAYS-p,DAYS-1];
+  return [Math.max(0,END-p+1),END];
+}
+function prevWindow(from,to){
+  var len=to-from+1, pf=from-len, pt=from-1;
+  if(pt<0) return null;
+  if(pf<0) pf=0;
+  return [pf,pt];
 }
 
-// ---------------- constructores de SVG ----------------
-function resample(arr,from,to,buckets){
-  var out=[], len=to-from+1, per=len/buckets;
-  for(var i=0;i<buckets;i++){
-    var a=from+Math.floor(i*per), c=Math.min(to,from+Math.floor((i+1)*per)-1);
-    if(c<a)c=a;
-    out.push({sum:sum(arr,a,c),from:a,to:c});
+// ---------------- agregaciones ----------------
+function sumR(arr,f,t){if(!arr)return 0;var s=0;for(var i=f;i<=t;i++)s+=nz(arr[i]);return s;}
+function brandNets(B){return Object.keys(B.nets);}
+function postsIn(B,f,t){
+  var out=[];
+  brandNets(B).forEach(function(n){
+    B.nets[n].posts.forEach(function(p){if(p.day>=f&&p.day<=t)out.push(p);});
+  });
+  return out;
+}
+function pReach(p){return p.reach!=null?p.reach:(p.views!=null?p.views:0);}
+function netReach(Nt,f,t){var s=sumR(Nt.reach,f,t); if(s>0)return s;
+  return Nt.posts.reduce(function(a,p){return a+(p.day>=f&&p.day<=t?pReach(p):0);},0);}
+function netInter(Nt,f,t){var s=sumR(Nt.inter,f,t); if(s>0)return s;
+  return Nt.posts.reduce(function(a,p){return a+(p.day>=f&&p.day<=t?nz(p.inter):0);},0);}
+function netViews(Nt,f,t){return sumR(Nt.views,f,t);}
+function netFollows(Nt,f,t){return sumR(Nt.follows,f,t);}
+function folAt(Nt,i){var v=Nt.followers&&Nt.followers[i]; return v==null?nz(Nt.followersNow):v;}
+
+function periodStats(B,f,t){
+  var st={from:f,to:t,days:t-f+1,posts:postsIn(B,f,t)};
+  st.reach=0; st.imp=0; st.inter=0; st.folDelta=0; st.communityEnd=0;
+  brandNets(B).forEach(function(n){
+    var Nt=B.nets[n];
+    var r=netReach(Nt,f,t), v=netViews(Nt,f,t);
+    st.reach+=r; st.imp+=(v>0?v:r);
+    st.inter+=netInter(Nt,f,t);
+    st.folDelta+=netFollows(Nt,f,t);
+    st.communityEnd+=folAt(Nt,t);
+  });
+  var ig=B.nets.ig;
+  st.stories=ig?Math.round(sumR(ig.stories,f,t)):0;
+  st.storiesReach=ig?sumR(ig.storiesReach,f,t):0;
+  st.pubs=st.posts.length+st.stories;
+  st.er=st.reach>0?st.inter/st.reach*100:0;
+  var pi=st.posts.reduce(function(a,p){return a+nz(p.inter);},0);
+  st.interPerPost=st.posts.length?pi/st.posts.length:0;
+  return st;
+}
+function communityAt(B,i){var s=0;brandNets(B).forEach(function(n){s+=folAt(B.nets[n],i);});return s;}
+function followsDay(B,i){var s=0;brandNets(B).forEach(function(n){s+=nz(B.nets[n].follows&&B.nets[n].follows[i]);});return s;}
+function reachDay(B,i){var s=0;brandNets(B).forEach(function(n){s+=nz(B.nets[n].reach&&B.nets[n].reach[i]);});return s;}
+function interDay(B,i){var s=0;brandNets(B).forEach(function(n){s+=nz(B.nets[n].inter&&B.nets[n].inter[i]);});return s;}
+
+// ---------------- SVG builders ----------------
+function buckets(f,t,B,fn){
+  var len=t-f+1, nb=Math.min(15,len), out=[], per=len/nb;
+  for(var i=0;i<nb;i++){
+    var a=f+Math.floor(i*per), b=Math.min(t,f+Math.floor((i+1)*per)-1); if(b<a)b=a;
+    var s=0; for(var j=a;j<=b;j++)s+=fn(B,j);
+    out.push({sum:s,from:a,to:b});
   }
   return out;
 }
-function kfmt(v){return v>=10000?(v/1000).toLocaleString('es-ES',{maximumFractionDigits:1})+'k':fmtInt(v);}
+function kfmt(v){return Math.abs(v)>=10000?(v/1000).toLocaleString('es-ES',{maximumFractionDigits:1})+'k':fmtInt(v);}
 
-function svgFollowers(key,from,to){
-  var d=genBrand(key), B=15;
-  var buckets=resample(d.dFol,from,to,B);
-  var cum=buckets.map(function(bk){return d.community[bk.to];});
+function svgFollowers(B,f,t){
+  var bks=buckets(f,t,B,followsDay);
+  var nb=bks.length;
+  var cum=bks.map(function(bk){return communityAt(B,bk.to);});
   var lo=Math.min.apply(null,cum), hi=Math.max.apply(null,cum);
   if(hi===lo)hi=lo+1;
   var pad=(hi-lo)*0.15; lo-=pad; hi+=pad;
-  var X=function(i){return 40+i*(616/(B-1));};
+  var X=function(i){return 46+(nb>1?i*(610/(nb-1)):0);};
   var Y=function(v){return 42+(hi-v)/(hi-lo)*151;};
   var line=cum.map(function(v,i){return (i?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1);}).join(' ');
-  var area=line+' L656,205 L40,205 Z';
-  // rejilla: 4 ticks
   var g='',lab='';
-  for(var t=0;t<4;t++){
-    var v=lo+(hi-lo)*(t+0.5)/4, y=Y(v);
-    g+='<line x1="40" y1="'+y.toFixed(1)+'" x2="660" y2="'+y.toFixed(1)+'"/>';
+  for(var k=0;k<4;k++){
+    var v=lo+(hi-lo)*(k+0.5)/4, y=Y(v);
+    g+='<line x1="46" y1="'+y.toFixed(1)+'" x2="660" y2="'+y.toFixed(1)+'"/>';
     lab+='<text x="0" y="'+(y+4).toFixed(1)+'">'+kfmt(v)+'</text>';
   }
-  // barras de altas netas
-  var maxB=Math.max.apply(null,buckets.map(function(b){return b.sum;}))||1;
+  var maxB=Math.max.apply(null,bks.map(function(b){return Math.abs(b.sum);}))||1;
   var bars='', maxIdx=0;
-  buckets.forEach(function(bk,i){if(bk.sum>buckets[maxIdx].sum)maxIdx=i;});
-  buckets.forEach(function(bk,i){
-    var h=Math.max(3,bk.sum/maxB*60), x=X(i)-8;
-    bars+='<rect x="'+x.toFixed(1)+'" y="'+(290-h).toFixed(1)+'" width="16" height="'+h.toFixed(1)+'" rx="2" fill="'+(i===maxIdx?'var(--teal)':'var(--teal-soft)')+'"/>';
+  bks.forEach(function(bk,i){if(bk.sum>bks[maxIdx].sum)maxIdx=i;});
+  bks.forEach(function(bk,i){
+    var h=Math.max(3,Math.abs(bk.sum)/maxB*60), x=X(i)-8;
+    var fill=bk.sum<0?'var(--bad)':(i===maxIdx?'var(--teal)':'var(--teal-soft)');
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+(290-h).toFixed(1)+'" width="16" height="'+h.toFixed(1)+'" rx="2" fill="'+fill+'"/>';
   });
-  // anotación del mejor tramo
-  var top=buckets[maxIdx], topPost=null;
-  genBrand(key).posts.forEach(function(p){if(p.day>=top.from&&p.day<=top.to&&(!topPost||p.reach>topPost.reach))topPost=p;});
-  var annX=Math.min(560,Math.max(45,X(maxIdx)-60));
-  var ann='<text x="'+annX+'" y="226" font-size="10.5" fill="var(--teal)" font-weight="700">+'+fmtInt(top.sum)+(topPost?' · '+esc(NETMETA[topPost.net].name+' '+topPost.fmt):'')+'</text>';
-  var d0=fmtDay(dateOfIndex(from)), d1=fmtDay(dateOfIndex(Math.floor((from+to)/2))), d2=fmtDay(dateOfIndex(to));
+  var top=bks[maxIdx], topPost=null;
+  postsIn(B,top.from,top.to).forEach(function(p){if(!topPost||pReach(p)>pReach(topPost))topPost=p;});
+  var annX=Math.min(540,Math.max(150,X(maxIdx)-60));
+  var ann=top.sum>0?'<text x="'+annX+'" y="240" font-size="10.5" fill="var(--teal)" font-weight="700">+'+fmtInt(top.sum)+(topPost?' · '+esc(NETMETA[topPost.net].name+' '+topPost.fmt):'')+'</text>':'';
   return '<svg viewBox="0 0 700 300" width="100%" role="img" aria-label="Comunidad por día">'
     +'<g stroke="var(--line)" stroke-width="1">'+g+'</g>'
     +'<g font-size="10.5" fill="var(--muted)">'+lab+'</g>'
-    +'<path d="'+area+'" fill="var(--teal)" opacity="0.13"/>'
+    +'<path d="'+line+' L'+X(nb-1).toFixed(1)+',205 L46,205 Z" fill="var(--teal)" opacity="0.13"/>'
     +'<path d="'+line+'" fill="none" stroke="var(--teal)" stroke-width="3"/>'
-    +'<circle cx="656" cy="'+Y(cum[B-1]).toFixed(1)+'" r="4.5" fill="var(--teal)"/>'
-    +'<text x="590" y="'+(Y(cum[B-1])-10).toFixed(1)+'" font-size="11.5" fill="var(--ink)" font-weight="700">'+fmtInt(cum[B-1])+'</text>'
-    +'<g font-size="10.5" fill="var(--muted)"><text x="40" y="222">'+d0+'</text><text x="330" y="222">'+d1+'</text><text x="620" y="222">'+d2+'</text></g>'
-    +'<text x="40" y="250" font-size="10.5" fill="var(--muted)">altas netas por tramo</text>'
+    +'<circle cx="'+X(nb-1).toFixed(1)+'" cy="'+Y(cum[nb-1]).toFixed(1)+'" r="4.5" fill="var(--teal)"/>'
+    +'<text x="'+(X(nb-1)-70).toFixed(1)+'" y="'+(Y(cum[nb-1])-10).toFixed(1)+'" font-size="11.5" fill="var(--ink)" font-weight="700">'+fmtInt(cum[nb-1])+'</text>'
+    +'<g font-size="10.5" fill="var(--muted)"><text x="46" y="222">'+fmtDayStr(DAYS[f])+'</text><text x="330" y="222">'+fmtDayStr(DAYS[Math.floor((f+t)/2)])+'</text><text x="618" y="222">'+fmtDayStr(DAYS[t])+'</text></g>'
+    +'<text x="46" y="250" font-size="10.5" fill="var(--muted)">altas netas por tramo</text>'
     +bars+ann+'</svg>';
 }
 
-function svgWeekly(key){
-  var d=genBrand(key), weeks=[];
+function weeklyInfo(B){
+  var weeks=[];
   for(var w=7;w>=0;w--){
-    var to=DAYS-1-w*7, from=to-6;
-    weeks.push({from:from,to:to,sum:sum(d.dFol,from,to)});
+    var to=END-w*7, from=to-6;
+    if(from<0){from=0;}
+    var s=0; for(var i=from;i<=to;i++)s+=followsDay(B,i);
+    weeks.push({from:from,to:to,sum:s});
   }
-  var max=Math.max.apply(null,weeks.map(function(x){return x.sum;}))||1;
   var cur=weeks.slice(4), prev=weeks.slice(0,4);
   var avgCur=cur.reduce(function(a,x){return a+x.sum;},0)/4;
   var avgPrev=prev.reduce(function(a,x){return a+x.sum;},0)/4;
-  var yAvg=200-avgCur/max*150;
+  return {weeks:weeks,avgCur:avgCur,avgPrev:avgPrev};
+}
+function svgWeekly(B){
+  var wi=weeklyInfo(B), weeks=wi.weeks;
+  var max=Math.max.apply(null,weeks.map(function(x){return Math.abs(x.sum);}))||1;
+  var yAvg=200-Math.max(0,wi.avgCur)/max*150;
   var bars='',vals='',labs='';
   weeks.forEach(function(wk,i){
-    var h=Math.max(4,wk.sum/max*150), x=30+i*76;
-    var fill=i<4?'fill="var(--muted)" opacity=".35"':'fill="var(--teal)"';
+    var h=Math.max(4,Math.abs(wk.sum)/max*150), x=30+i*76;
+    var fill=wk.sum<0?'fill="var(--bad)" opacity=".7"':(i<4?'fill="var(--muted)" opacity=".35"':'fill="var(--teal)"');
     bars+='<rect x="'+x+'" y="'+(200-h).toFixed(1)+'" width="50" height="'+h.toFixed(1)+'" rx="4" '+fill+'/>';
-    vals+='<text x="'+(x+25)+'" y="'+(193-h).toFixed(1)+'">+'+fmtInt(wk.sum)+'</text>';
-    labs+='<text x="'+(x+25)+'" y="216">'+fmtDay(dateOfIndex(wk.from))+'</text>';
+    vals+='<text x="'+(x+25)+'" y="'+(193-h).toFixed(1)+'">'+fmtSigned(wk.sum)+'</text>';
+    labs+='<text x="'+(x+25)+'" y="216">'+fmtDayStr(DAYS[wk.from])+'</text>';
   });
   var svg='<svg viewBox="0 0 640 240" width="100%" role="img" aria-label="Nuevos seguidores por semana">'
     +'<line x1="20" y1="200" x2="630" y2="200" stroke="var(--line)" stroke-width="1.5"/>'
@@ -539,45 +451,43 @@ function svgWeekly(key){
     +bars
     +'<g font-size="11.5" font-weight="700" fill="var(--ink)" text-anchor="middle">'+vals+'</g>'
     +'<g font-size="10.5" fill="var(--muted)" text-anchor="middle">'+labs+'</g></svg>';
-  var deltaPct=avgPrev>0?(avgCur-avgPrev)/avgPrev*100:0;
-  var best=Math.max.apply(null,prev.map(function(x){return x.sum;}));
-  var nBetter=cur.filter(function(x){return x.sum>best;}).length;
-  var note='Media semanal (línea discontinua): <b class="'+cls(deltaPct)+'">+'+fmtInt(avgCur)+'</b> vs. <b>+'+fmtInt(avgPrev)+'</b> de las 4 semanas anteriores (<b class="'+cls(deltaPct)+'">'+fmtSignedPct(deltaPct,0)+'</b>).'
-    +(nBetter?' '+nBetter+' de las 4 semanas recientes superan la mejor semana del bloque anterior.':'');
-  return {svg:svg,note:note,avgCur:avgCur,avgPrev:avgPrev,weeks:weeks};
+  var deltaPct=wi.avgPrev!==0?(wi.avgCur-wi.avgPrev)/Math.abs(wi.avgPrev)*100:0;
+  var note='Media semanal (línea discontinua): <b class="'+cls(wi.avgCur)+'">'+fmtSigned(wi.avgCur)+'</b> vs. <b>'+fmtSigned(wi.avgPrev)+'</b> de las 4 semanas anteriores'
+    +(wi.avgPrev!==0?' (<b class="'+cls(deltaPct)+'">'+fmtSignedPct(deltaPct,0)+'</b>)':'')+'.';
+  return {svg:svg,note:note,info:wi};
 }
 
-function svgGrowthByNet(key,from,to){
-  var st=periodStats(key,from,to), d=genBrand(key);
-  var rows=d.netKeys.map(function(n){return {n:n,v:st.folByNet[n]};}).sort(function(a,b){return b.v-a.v;});
-  var max=rows.length?rows[0].v:1; if(max<=0)max=1;
-  var H=rows.length*32+10, out='';
+function svgGrowthByNet(B,f,t){
+  var rows=brandNets(B).map(function(n){return {n:n,v:netFollows(B.nets[n],f,t)};}).sort(function(a,b){return b.v-a.v;});
+  var max=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v);}))||1;
+  var out='';
   rows.forEach(function(r,i){
-    var y=30+i*32, w=Math.max(6,r.v/max*180);
+    var y=30+i*32, w=Math.max(6,Math.abs(r.v)/max*180);
+    var color=r.v<0?'var(--bad)':NETMETA[r.n].color;
     out+='<text x="0" y="'+y+'" font-size="12" fill="var(--muted)">'+NETMETA[r.n].name+'</text>'
-       +'<rect x="86" y="'+(y-12)+'" width="'+w.toFixed(1)+'" height="16" rx="3" fill="'+NETMETA[r.n].color+'" opacity=".9"/>'
-       +'<text x="'+(90+w)+'" y="'+y+'" font-size="12" fill="var(--ink)" font-weight="700">+'+fmtInt(r.v)+'</text>';
+       +'<rect x="86" y="'+(y-12)+'" width="'+w.toFixed(1)+'" height="16" rx="3" fill="'+color+'" opacity=".9"/>'
+       +'<text x="'+(90+w)+'" y="'+y+'" font-size="12" fill="var(--ink)" font-weight="700">'+fmtSigned(r.v)+'</text>';
   });
-  var total=rows.reduce(function(a,r){return a+r.v;},0)||1;
-  var top=rows[0], second=rows[1];
-  var note=NETMETA[top.n].name+' aporta el '+fmtPct(top.v/total*100,0)+' del crecimiento'
-    +(second?'; '+NETMETA[second.n].name+' el '+fmtPct(second.v/total*100,0)+'.':'.');
-  return {svg:'<svg viewBox="0 0 360 '+(H+30)+'" width="100%" role="img" aria-label="Crecimiento por red">'+out+'</svg>',note:note};
+  var H=rows.length*32+20;
+  var pos=rows.filter(function(r){return r.v>0;});
+  var total=pos.reduce(function(a,r){return a+r.v;},0);
+  var note=total>0&&pos.length?NETMETA[pos[0].n].name+' aporta el '+fmtPct(pos[0].v/total*100,0)+' del crecimiento positivo del periodo.':'Sin crecimiento neto positivo en el periodo.';
+  return {svg:'<svg viewBox="0 0 360 '+H+'" width="100%" role="img" aria-label="Crecimiento por red">'+out+'</svg>',note:note};
 }
 
-function svgReach(key,from,to){
-  var d=genBrand(key), B=15;
-  var rb=resample(d.dReach,from,to,B), ib=resample(d.dInter,from,to,B);
+function svgReach(B,f,t){
+  var rb=buckets(f,t,B,reachDay), ib=buckets(f,t,B,interDay);
+  var nb=rb.length;
   var rv=rb.map(function(x){return x.sum;}), iv=ib.map(function(x){return x.sum;});
   var rmax=Math.max.apply(null,rv)||1, imax=Math.max.apply(null,iv)||1;
-  var X=function(i){return i*(640/(B-1));};
+  var X=function(i){return nb>1?i*(640/(nb-1)):0;};
   var YR=function(v){return 30+(1-v/rmax)*140;};
   var YI=function(v){return 200-(v/imax)*46;};
   var rline=rv.map(function(v,i){return (i?'L':'M')+X(i).toFixed(1)+','+YR(v).toFixed(1);}).join(' ');
   var iline=iv.map(function(v,i){return (i?'L':'M')+X(i).toFixed(1)+','+YI(v).toFixed(1);}).join(' ');
   var maxIdx=0; rv.forEach(function(v,i){if(v>rv[maxIdx])maxIdx=i;});
   var topPost=null;
-  d.posts.forEach(function(p){if(p.day>=rb[maxIdx].from&&p.day<=rb[maxIdx].to&&(!topPost||p.reach>topPost.reach))topPost=p;});
+  postsIn(B,rb[maxIdx].from,rb[maxIdx].to).forEach(function(p){if(!topPost||pReach(p)>pReach(topPost))topPost=p;});
   var annX=Math.min(500,Math.max(5,X(maxIdx)-50));
   var ann=topPost?'<text x="'+annX+'" y="'+(YR(rv[maxIdx])-10).toFixed(1)+'" font-size="11" fill="var(--muted)">'+esc(NETMETA[topPost.net].name+' '+topPost.fmt)+'</text>':'';
   return '<svg viewBox="0 0 640 220" width="100%" role="img" aria-label="Alcance e interacciones por día">'
@@ -589,12 +499,13 @@ function svgReach(key,from,to){
     +ann+'</svg>';
 }
 
-// ---------------- render de secciones ----------------
+// ---------------- render ----------------
 function sparkline(vals,color){
-  var max=Math.max.apply(null,vals)||1, min=Math.min.apply(null,vals);
+  var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals);
   if(max===min)max=min+1;
-  var pts=vals.map(function(v,i){return (i?'L':'M')+(i*(140/(vals.length-1))).toFixed(1)+','+(24-((v-min)/(max-min))*20+1).toFixed(1);}).join(' ');
-  var lastY=(24-((vals[vals.length-1]-min)/(max-min))*20+1).toFixed(1);
+  var L=vals.length;
+  var pts=vals.map(function(v,i){return (i?'L':'M')+(i*(140/(L-1))).toFixed(1)+','+(24-((v-min)/(max-min))*20+1).toFixed(1);}).join(' ');
+  var lastY=(24-((vals[L-1]-min)/(max-min))*20+1).toFixed(1);
   return '<svg viewBox="0 0 140 26" width="100%" height="26"><path d="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2"/><circle cx="140" cy="'+lastY+'" r="2.6" fill="'+color+'"/></svg>';
 }
 function kpiCard(lbl,val,difHTML,spark,subL,subR){
@@ -602,45 +513,41 @@ function kpiCard(lbl,val,difHTML,spark,subL,subR){
     +'<div class="k-dif">'+difHTML+'</div>'+spark
     +'<div class="k-sub"><span>'+subL+'</span><b>'+subR+'</b></div></div>';
 }
+function difHTML(cur,prev,fmtPrev){
+  if(prev==null||prev===0) return '<span class="up">—</span> <span>sin periodo previo</span>';
+  var d=(cur-prev)/Math.abs(prev)*100;
+  return '<span class="'+cls(d)+'">'+fmtSignedPct(d)+'</span> <span>('+fmtPrev+' ant.)</span>';
+}
 
-function renderKPIs(st,pv,key){
-  var d=genBrand(key), w=currentWindow();
-  var fol10=resample(d.dFol,w[0],w[1],8).map(function(x){return x.sum;});
-  var cum=[], acc=st.communityEnd-st.folDelta;
-  fol10.forEach(function(v){acc+=v; cum.push(acc);});
-  var reach10=resample(d.dReach,w[0],w[1],8).map(function(x){return x.sum;});
-  var inter10=resample(d.dInter,w[0],w[1],8).map(function(x){return x.sum;});
-  var interTrendUp=inter10[inter10.length-1]>=inter10[0];
-
-  var dImp=pv.impressions>0?(st.impressions-pv.impressions)/pv.impressions*100:0;
-  var dReach=pv.totalReach>0?(st.totalReach-pv.totalReach)/pv.totalReach*100:0;
-  var dInter=pv.totalInter>0?(st.totalInter-pv.totalInter)/pv.totalInter*100:0;
-  var dEr=st.er-pv.er;
-  var dIpp=pv.interPerPost>0?(st.interPerPost-pv.interPerPost)/pv.interPerPost*100:0;
-  var folPct=st.communityEnd-st.folDelta>0?st.folDelta/(st.communityEnd-st.folDelta)*100:0;
-
+function renderKPIs(B,st,pv){
+  var w=currentWindow(), f=w[0], t=w[1];
+  var bk=buckets(f,t,B,followsDay);
+  var cum=bk.map(function(b){return communityAt(B,b.to);});
+  var rb=buckets(f,t,B,reachDay).map(function(x){return x.sum;});
+  var ib=buckets(f,t,B,interDay).map(function(x){return x.sum;});
   var html='';
+  var base=st.communityEnd-st.folDelta;
   html+=kpiCard('Comunidad total',fmtInt(st.communityEnd),
-    '<span class="up">▲ +'+fmtInt(st.folDelta)+'</span> <span>(+'+folPct.toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</span>',
-    sparkline(cum,'var(--teal)'),'media/día','<span class="up">+'+fmtInt(st.folDelta/st.days)+'</span>');
-  html+=kpiCard('Alcance',fmtBig(st.totalReach),
-    '<span class="'+cls(dReach)+'">'+fmtSignedPct(dReach)+'</span> <span>('+fmtBig(pv.totalReach)+' ant.)</span>',
-    sparkline(reach10,'var(--teal)'),'media/día',fmtInt(st.totalReach/st.days));
-  html+=kpiCard('Impresiones',fmtBig(st.impressions),
-    '<span class="'+cls(dImp)+'">'+fmtSignedPct(dImp)+'</span> <span>('+fmtBig(pv.impressions)+' ant.)</span>',
-    sparkline(reach10.map(function(v){return v*1.65;}),'var(--teal)'),'frecuencia','1,7×');
-  html+=kpiCard('Interacciones',fmtInt(st.totalInter),
-    '<span class="'+cls(dInter)+'">'+fmtSignedPct(dInter)+'</span> <span>('+fmtInt(pv.totalInter)+' ant.)</span>',
-    sparkline(inter10,interTrendUp?'var(--teal)':'var(--bad)'),
-    'por publicación','<span class="'+cls(dIpp)+'">'+fmtInt(st.interPerPost)+' ('+(dIpp<0?'−':'+')+Math.abs(dIpp).toLocaleString('es-ES',{maximumFractionDigits:0})+'%)</span>');
+    '<span class="'+cls(st.folDelta)+'">'+(st.folDelta<0?'▼ ':'▲ ')+fmtSigned(st.folDelta)+'</span> <span>('+(base>0?(st.folDelta<0?'−':'+')+Math.abs(st.folDelta/base*100).toLocaleString('es-ES',{maximumFractionDigits:1})+'%':'—')+')</span>',
+    sparkline(cum,'var(--teal)'),'media/día','<span class="'+cls(st.folDelta)+'">'+fmtSigned(st.folDelta/st.days)+'</span>');
+  html+=kpiCard('Alcance',fmtBig(st.reach), pv?difHTML(st.reach,pv.reach,fmtBig(pv.reach)):'<span>—</span>',
+    sparkline(rb,'var(--teal)'),'media/día',fmtInt(st.reach/st.days));
+  html+=kpiCard('Impresiones',fmtBig(st.imp), pv?difHTML(st.imp,pv.imp,fmtBig(pv.imp)):'<span>—</span>',
+    sparkline(rb,'var(--teal)'),'sobre alcance',(st.reach>0?(st.imp/st.reach).toLocaleString('es-ES',{maximumFractionDigits:1})+'×':'—'));
+  var ippDelta=pv&&pv.interPerPost>0?(st.interPerPost-pv.interPerPost)/pv.interPerPost*100:null;
+  html+=kpiCard('Interacciones',fmtInt(st.inter), pv?difHTML(st.inter,pv.inter,fmtInt(pv.inter)):'<span>—</span>',
+    sparkline(ib,ib[ib.length-1]>=ib[0]?'var(--teal)':'var(--bad)'),
+    'por publicación', st.posts.length? fmtInt(st.interPerPost)+(ippDelta!=null?' ('+(ippDelta<0?'−':'+')+Math.abs(ippDelta).toLocaleString('es-ES',{maximumFractionDigits:0})+'%)':'') : '—');
+  var erDelta=pv?st.er-pv.er:null;
   html+=kpiCard('Engagement',fmtPct(st.er,2),
-    '<span class="'+cls(dEr)+'">'+(dEr<0?'▼ −':'▲ +')+Math.abs(dEr).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' pt</span> <span>('+fmtPct(pv.er,2)+' ant.)</span>',
-    sparkline(inter10.map(function(v,i){return reach10[i]>0?v/reach10[i]:0;}),'var(--teal)'),'benchmark sector*','1,9%');
-  var bars10=resample(new Array(DAYS).fill(0).map(function(_,i){return d.posts.filter(function(p){return p.day===i;}).length;}),w[0],w[1],7).map(function(x){return x.sum;});
-  var maxb=Math.max.apply(null,bars10)||1;
-  var barsSvg='<svg viewBox="0 0 140 26" width="100%" height="26"><g fill="var(--teal-soft)">'+bars10.map(function(v,i){var h=Math.max(2,v/maxb*22);return '<rect x="'+(4+i*20)+'" y="'+(26-h)+'" width="12" height="'+h+'"/>';}).join('')+'</g></svg>';
+    erDelta!=null?'<span class="'+cls(erDelta)+'">'+(erDelta<0?'▼ −':'▲ +')+Math.abs(erDelta).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' pt</span> <span>('+fmtPct(pv.er,2)+' ant.)</span>':'<span>—</span>',
+    sparkline(ib.map(function(v,i){return rb[i]>0?v/rb[i]:0;}),'var(--teal)'),'benchmark sector*','1,9%');
+  var pubsD=pv?st.pubs-pv.pubs:null;
+  var pcs=buckets(f,t,B,function(Bb,i){var c=0;brandNets(Bb).forEach(function(n){Bb.nets[n].posts.forEach(function(p){if(p.day===i)c++;});});return c;}).map(function(x){return x.sum;});
+  var maxpc=Math.max.apply(null,pcs)||1;
+  var barsSvg='<svg viewBox="0 0 140 26" width="100%" height="26"><g fill="var(--teal-soft)">'+pcs.slice(0,7).map(function(v,i){var h=Math.max(2,v/maxpc*22);return '<rect x="'+(4+i*20)+'" y="'+(26-h)+'" width="12" height="'+h+'"/>';}).join('')+'</g></svg>';
   html+=kpiCard('Publicaciones',fmtInt(st.pubs),
-    '<span class="'+cls(st.pubs-pv.pubs)+'">'+(st.pubs-pv.pubs<0?'▼ ':'▲ ')+fmtSigned(st.pubs-pv.pubs)+'</span> <span>vs. '+fmtInt(pv.pubs)+'</span>',
+    pubsD!=null?'<span class="'+cls(pubsD)+'">'+(pubsD<0?'▼ ':'▲ ')+fmtSigned(pubsD)+'</span> <span>vs. '+fmtInt(pv.pubs)+'</span>':'<span>—</span>',
     barsSvg,'ritmo',(st.pubs/st.days).toLocaleString('es-ES',{maximumFractionDigits:1})+' / día');
   document.getElementById('kpiRow').innerHTML=html;
 }
@@ -648,107 +555,105 @@ function renderKPIs(st,pv,key){
 function insightCard(tag,color,title,body){
   return '<div class="ins" style="--ic:'+color+'"><span class="tag">'+tag+'</span><b>'+title+'</b><p>'+body+'</p></div>';
 }
-function renderInsights(st,pv,key,weekInfo){
-  var cards=[];
-  var feed=st.posts;
-  // 1 · formato líder por alcance
+function renderInsights(B,st,pv,wk){
+  var cards=[], feed=st.posts;
   if(feed.length>=3){
     var byFmt={};
-    feed.forEach(function(p){if(!byFmt[p.fmt])byFmt[p.fmt]={n:0,reach:0};byFmt[p.fmt].n++;byFmt[p.fmt].reach+=p.reach;});
-    var totReach=feed.reduce(function(a,p){return a+p.reach;},0);
-    var topF=null;
-    Object.keys(byFmt).forEach(function(f){if(!topF||byFmt[f].reach>byFmt[topF].reach)topF=f;});
-    var tf=byFmt[topF], share=tf.reach/totReach*100, cshare=tf.n/feed.length*100;
-    var avgTop=tf.reach/tf.n, restN=feed.length-tf.n;
-    var avgRest=restN>0?(totReach-tf.reach)/restN:0;
-    if(share>cshare+8){
-      cards.push(insightCard('Fortaleza','var(--good)',
-        'El formato '+topF+' concentra el '+fmtPct(share,0)+' del alcance con el '+fmtPct(cshare,0)+' de las publicaciones',
-        'Alcance medio por '+topF+': '+fmtInt(avgTop)+(avgRest>0?' vs. '+fmtInt(avgRest)+' del resto de formatos ('+(avgTop/Math.max(1,avgRest)).toLocaleString('es-ES',{maximumFractionDigits:1})+'×).':'.')));
+    feed.forEach(function(p){if(!byFmt[p.fmt])byFmt[p.fmt]={n:0,reach:0};byFmt[p.fmt].n++;byFmt[p.fmt].reach+=pReach(p);});
+    var totReach=feed.reduce(function(a,p){return a+pReach(p);},0);
+    if(totReach>0){
+      var topF=null;
+      Object.keys(byFmt).forEach(function(x){if(!topF||byFmt[x].reach>byFmt[topF].reach)topF=x;});
+      var tf=byFmt[topF], share=tf.reach/totReach*100, cshare=tf.n/feed.length*100;
+      var avgTop=tf.reach/tf.n, restN=feed.length-tf.n;
+      var avgRest=restN>0?(totReach-tf.reach)/restN:0;
+      if(share>cshare+5){
+        cards.push(insightCard('Fortaleza','var(--good)',
+          'El formato '+esc(topF)+' concentra el '+fmtPct(share,0)+' del alcance con el '+fmtPct(cshare,0)+' de las publicaciones',
+          'Alcance medio por '+esc(topF)+': '+fmtInt(avgTop)+(avgRest>0?' vs. '+fmtInt(avgRest)+' del resto ('+(avgTop/avgRest).toLocaleString('es-ES',{maximumFractionDigits:1})+'×).':'.')));
+      }
     }
   }
-  // 2 · interacción por publicación
-  if(pv.interPerPost>0&&st.posts.length>0){
+  if(pv&&pv.interPerPost>0&&feed.length>0){
     var dIpp=(st.interPerPost-pv.interPerPost)/pv.interPerPost*100;
-    if(dIpp<-3){
-      cards.push(insightCard('Alerta','var(--bad)',
-        'La interacción por publicación cae un '+Math.abs(dIpp).toLocaleString('es-ES',{maximumFractionDigits:0})+'%',
-        'Baja de '+fmtInt(pv.interPerPost)+' a '+fmtInt(st.interPerPost)+' interacciones por pieza. Publicar más no está compensando la pérdida de eficacia: revisar los posts con ER más bajo del periodo.'));
-    } else if(dIpp>3){
-      cards.push(insightCard('Fortaleza','var(--good)',
-        'La interacción por publicación sube un '+dIpp.toLocaleString('es-ES',{maximumFractionDigits:0})+'%',
-        'De '+fmtInt(pv.interPerPost)+' a '+fmtInt(st.interPerPost)+' interacciones por pieza: el contenido gana eficacia además de volumen.'));
-    }
+    if(dIpp<-5) cards.push(insightCard('Alerta','var(--bad)',
+      'La interacción por publicación cae un '+Math.abs(dIpp).toLocaleString('es-ES',{maximumFractionDigits:0})+'%',
+      'Baja de '+fmtInt(pv.interPerPost)+' a '+fmtInt(st.interPerPost)+' interacciones por pieza respecto al periodo anterior.'));
+    else if(dIpp>5) cards.push(insightCard('Fortaleza','var(--good)',
+      'La interacción por publicación sube un '+dIpp.toLocaleString('es-ES',{maximumFractionDigits:0})+'%',
+      'De '+fmtInt(pv.interPerPost)+' a '+fmtInt(st.interPerPost)+' interacciones por pieza: el contenido gana eficacia.'));
   }
-  // 3 · red más eficiente (seguidores por publicación)
-  var d=genBrand(key);
-  var eff=d.netKeys.map(function(n){
+  var eff=brandNets(B).map(function(n){
     var pn=feed.filter(function(p){return p.net===n;}).length;
-    return {n:n,posts:pn,fol:st.folByNet[n],rate:pn>0?st.folByNet[n]/pn:0};
-  }).filter(function(x){return x.posts>=1;}).sort(function(a,b){return b.rate-a.rate;});
+    var fol=netFollows(B.nets[n],st.from,st.to);
+    return {n:n,posts:pn,fol:fol,rate:pn>0?fol/pn:0};
+  }).filter(function(x){return x.posts>=1&&x.fol>0;}).sort(function(a,b){return b.rate-a.rate;});
   if(eff.length>=2){
-    var best=eff[0], worst=eff[eff.length-1];
+    var bst=eff[0], wrs=eff[eff.length-1];
     cards.push(insightCard('Oportunidad','var(--teal)',
-      NETMETA[best.n].name+' es la red más eficiente: ≈'+fmtInt(best.rate)+' seguidores por publicación',
-      'Frente a ≈'+fmtInt(worst.rate)+' de '+NETMETA[worst.n].name+'. Aumentar el ritmo en '+NETMETA[best.n].name+' es la palanca de crecimiento más barata del periodo.'));
+      NETMETA[bst.n].name+' es la red más eficiente: ≈'+fmtInt(bst.rate)+' seguidores por publicación',
+      'Frente a ≈'+fmtInt(wrs.rate)+' de '+NETMETA[wrs.n].name+'. Aumentar el ritmo en '+NETMETA[bst.n].name+' es la palanca de crecimiento más barata del periodo.'));
   }
-  // 4 · red más débil por ER
-  var erNet=d.netKeys.map(function(n){
+  var erNet=brandNets(B).map(function(n){
     var ps=feed.filter(function(p){return p.net===n;});
     if(ps.length<2)return null;
-    var r=ps.reduce(function(a,p){return a+p.reach;},0), it=ps.reduce(function(a,p){return a+p.inter;},0);
-    return {n:n,posts:ps.length,er:r>0?it/r*100:0,fol:st.folByNet[n]};
+    var r=ps.reduce(function(a,p){return a+pReach(p);},0), it=ps.reduce(function(a,p){return a+nz(p.inter);},0);
+    return {n:n,posts:ps.length,er:r>0?it/r*100:0};
   }).filter(Boolean).sort(function(a,b){return a.er-b.er;});
   if(erNet.length>=2){
     var weak=erNet[0];
     cards.push(insightCard('Alerta','var(--bad)',
       NETMETA[weak.n].name+' es la red con peor retorno: ER '+fmtPct(weak.er)+' con '+weak.posts+' publicaciones',
-      'Sugerencia: reciclar ahí las piezas ganadoras de otras redes en lugar de crear contenido propio, y liberar ese tiempo hacia la red más eficiente.'));
+      'Sugerencia: reciclar ahí las piezas ganadoras de otras redes en lugar de crear contenido propio.'));
   }
-  // 5 · benchmark
   var bm=1.9;
-  if(st.er>bm){
-    cards.push(insightCard('Fortaleza','var(--good)',
+  if(st.reach>0){
+    if(st.er>bm) cards.push(insightCard('Fortaleza','var(--good)',
       'Engagement '+fmtPct(st.er,2)+': un '+fmtPct((st.er-bm)/bm*100,0)+' por encima del benchmark del sector',
-      'La comunidad responde mejor que la media de salud/educación ('+fmtPct(bm)+'). El margen de mejora está en el alcance, no en la calidad del contenido.'));
-  } else {
-    cards.push(insightCard('Alerta','var(--bad)',
+      'La comunidad responde mejor que la media de salud/educación ('+fmtPct(bm)+'). El margen está en el alcance, no en la calidad.'));
+    else cards.push(insightCard('Alerta','var(--bad)',
       'Engagement '+fmtPct(st.er,2)+': por debajo del benchmark del sector ('+fmtPct(bm)+')',
-      'Revisar mix de formatos: aumentar el peso de los formatos con mejor ER del periodo y reducir el contenido institucional de bajo rendimiento.'));
+      'Revisar el mix de formatos: más peso a los formatos con mejor ER del periodo y menos contenido de bajo rendimiento.'));
   }
-  // 6 · ritmo semanal
-  if(weekInfo&&weekInfo.avgPrev>0){
-    var dw=(weekInfo.avgCur-weekInfo.avgPrev)/weekInfo.avgPrev*100;
+  if(wk&&wk.info.avgPrev!==0){
+    var dw=(wk.info.avgCur-wk.info.avgPrev)/Math.abs(wk.info.avgPrev)*100;
     cards.push(insightCard(dw>=0?'Oportunidad':'Alerta',dw>=0?'var(--teal)':'var(--bad)',
-      'Ritmo de captación semanal: '+fmtSignedPct(dw,0).replace('▲ ','').replace('▼ ','')+' vs. el mes anterior',
-      'Media de +'+fmtInt(weekInfo.avgCur)+' seguidores/semana en las últimas 4 semanas frente a +'+fmtInt(weekInfo.avgPrev)+' en las 4 previas.'+(dw>=0?' Mantener la cadencia actual de publicación.':' Revisar qué cambió en el contenido o la frecuencia.')));
+      'Ritmo de captación semanal: '+(dw<0?'−':'+')+Math.abs(dw).toLocaleString('es-ES',{maximumFractionDigits:0})+'% vs. el mes anterior',
+      'Media de '+fmtSigned(wk.info.avgCur)+' seguidores/semana en las últimas 4 semanas frente a '+fmtSigned(wk.info.avgPrev)+' en las 4 previas.'));
   }
-  document.getElementById('insightRow').innerHTML=cards.slice(0,6).join('');
+  document.getElementById('insightRow').innerHTML=cards.slice(0,6).join('')||'<div class="ins"><p>Sin datos suficientes en el periodo para generar insights.</p></div>';
 }
 
-var CAMICON={
+var CAM={
   photo:'<rect x="2.5" y="6" width="19" height="14" rx="2.5"/><circle cx="12" cy="13" r="4"/><path d="M8 6l1.5-2.5h5L16 6"/>',
   play:'<polygon points="8,5 19,12 8,19"/>',
   carousel:'<rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/>'
 };
 function iconFor(fmt){
-  if(fmt==='Reel'||fmt==='Vídeo'||fmt==='Short')return CAMICON.play;
-  if(fmt==='Carrusel')return CAMICON.carousel;
-  return CAMICON.photo;
+  if(VIDEO_FMTS[fmt])return CAM.play;
+  if(fmt==='Carrusel')return CAM.carousel;
+  return CAM.photo;
+}
+function brandFormats(B){
+  var set={};
+  brandNets(B).forEach(function(n){B.nets[n].posts.forEach(function(p){set[p.fmt]=1;});});
+  var out=Object.keys(set);
+  out.sort(function(a,b){var ia=FMT_ORDER.indexOf(a),ib=FMT_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+  return out;
 }
 
-function renderGalleryFilters(key){
-  var d=genBrand(key), g=state.gal, html='';
+function renderGalleryFilters(B){
+  var g=state.gal, html='';
   html+='<span class="lbl">Red</span>';
   html+='<span class="chip'+(g.net==='all'?' on':'')+'" onclick="setGal(\'net\',\'all\')">Todas</span>';
-  d.netKeys.forEach(function(n){
+  brandNets(B).forEach(function(n){
+    if(!B.nets[n].posts.length)return;
     html+='<span class="chip'+(g.net===n?' on':'')+'" onclick="setGal(\'net\',\''+n+'\')">'+NETMETA[n].name+'</span>';
   });
   html+='<span class="sep"></span><span class="lbl">Formato</span>';
-  var fmts=[]; d.netKeys.forEach(function(n){NETMETA[n].formats.forEach(function(f){if(fmts.indexOf(f)<0)fmts.push(f);});});
   html+='<span class="chip'+(g.fmt==='all'?' on':'')+'" onclick="setGal(\'fmt\',\'all\')">Todos</span>';
-  fmts.forEach(function(f){
-    html+='<span class="chip'+(g.fmt===f?' on':'')+'" onclick="setGal(\'fmt\',\''+f+'\')">'+f+'</span>';
+  brandFormats(B).forEach(function(fm){
+    html+='<span class="chip'+(g.fmt===fm?' on':'')+'" onclick="setGal(\'fmt\',\''+esc(fm)+'\')">'+esc(fm)+'</span>';
   });
   html+='<span class="sep"></span><span class="lbl">Ordenar</span>';
   [['inter','Interacciones'],['reach','Alcance'],['er','Engagement'],['date','Fecha']].forEach(function(o){
@@ -757,275 +662,305 @@ function renderGalleryFilters(key){
   document.getElementById('galFilters').innerHTML=html;
 }
 
-function renderGallery(st,key){
-  var g=state.gal;
-  var all=st.posts.slice();
-  var avgInter=all.length?all.reduce(function(a,p){return a+p.inter;},0)/all.length:0;
-  // ranking global por interacciones (independiente del filtro)
-  var byInter=all.slice().sort(function(a,b){return b.inter-a.inter;});
+function renderGallery(B,st){
+  var g=state.gal, all=st.posts.slice();
+  var avgInter=all.length?all.reduce(function(a,p){return a+nz(p.inter);},0)/all.length:0;
+  var byInter=all.slice().sort(function(a,b){return nz(b.inter)-nz(a.inter);});
   var rankMap=new Map(); byInter.forEach(function(p,i){rankMap.set(p,i+1);});
-
   var list=all.filter(function(p){return (g.net==='all'||p.net===g.net)&&(g.fmt==='all'||p.fmt===g.fmt);});
-  var sorters={inter:function(a,b){return b.inter-a.inter;},reach:function(a,b){return b.reach-a.reach;},
-    er:function(a,b){return b.er-a.er;},date:function(a,b){return b.day-a.day;}};
+  var sorters={
+    inter:function(a,b){return nz(b.inter)-nz(a.inter);},
+    reach:function(a,b){return pReach(b)-pReach(a);},
+    er:function(a,b){return nz(b.er)-nz(a.er);},
+    date:function(a,b){return b.day-a.day;}};
   list.sort(sorters[g.sort]);
-  var shown=list.slice(0,12);
-
+  var shown=list.slice(0,g.limit);
   var html=shown.map(function(p){
     var nm=NETMETA[p.net];
-    var reachLbl=(p.net==='tt'||p.net==='yt')?'Visualizaciones':'Alcance';
-    var dt=dateOfIndex(p.day);
-    return '<div class="post" style="--nc:'+nm.color+'; --pg:'+nm.grad+'">'
+    var reachVal=(p.net==='tt'||p.net==='yt')?(p.views!=null?p.views:p.reach):(p.reach!=null?p.reach:p.views);
+    var img=p.image?'<img src="'+esc(p.image)+'" loading="lazy" alt="" onerror="this.remove()">':'';
+    var play=VIDEO_FMTS[p.fmt]?'<span class="playov"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><polygon points="8,5 19,12 8,19"/></svg></span>':'';
+    var row3=p.saves!=null?['Guardados',fmtInt(p.saves)]:(p.likes!=null?['Me gusta',fmtInt(p.likes)]:['Comentarios',dash(p.comments)]);
+    var row4=p.shares!=null?['Compartidos',fmtInt(p.shares)]:['Comentarios',dash(p.comments)];
+    var er=p.er!=null?p.er:(reachVal>0?nz(p.inter)/reachVal*100:null);
+    return '<a class="post" href="'+esc(p.url||'#')+'" target="_blank" rel="noopener" title="Abrir en '+nm.name+'" style="--nc:'+nm.color+'; --pg:'+nm.grad+'">'
       +'<div class="ph"><svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4">'+iconFor(p.fmt)+'</svg>'
-      +'<span class="netp">'+nm.name+'</span><span class="fmt">'+p.fmt+'</span>'
-      +'<span class="rank">#'+rankMap.get(p)+'</span></div>'
+      +img
+      +'<span class="netp">'+nm.name+'</span><span class="fmt">'+esc(p.fmt)+'</span>'
+      +'<span class="rank">#'+rankMap.get(p)+'</span>'+play+'</div>'
       +'<div class="pb"><div class="pt">'+esc(p.title)+'</div>'
-      +'<div class="pd">'+fmtDay(dt)+' · '+String(p.hour).padStart(2,'0')+':'+String(p.min).padStart(2,'0')+'</div>'
+      +'<div class="pd">'+fmtDayStr(DAYS[p.day])+(p.time?' · '+esc(p.time):'')+'</div>'
       +'<div class="pm">'
-      +'<span>'+reachLbl+'</span><b>'+fmtInt(p.reach)+'</b>'
-      +'<span>Interacciones</span><b>'+fmtInt(p.inter)+'</b>'
-      +'<span>Guardados</span><b>'+fmtInt(p.saves)+'</b>'
-      +'<span>Compartidos</span><b>'+fmtInt(p.shares)+'</b>'
-      +'<span>Engagement</span><b class="er">'+fmtPct(p.er)+'</b>'
-      +'<span>vs. media cuenta</span><b class="'+(p.inter>=avgInter?'up':'down')+'">×'+(avgInter>0?(p.inter/avgInter).toLocaleString('es-ES',{maximumFractionDigits:1}):'—')+'</b>'
-      +'</div></div></div>';
+      +'<span>'+nm.reachLbl+'</span><b>'+dash(reachVal)+'</b>'
+      +'<span>Interacciones</span><b>'+dash(p.inter)+'</b>'
+      +'<span>'+row3[0]+'</span><b>'+row3[1]+'</b>'
+      +'<span>'+row4[0]+'</span><b>'+row4[1]+'</b>'
+      +'<span>Engagement</span><b class="er">'+(er!=null?fmtPct(er):'—')+'</b>'
+      +'<span>vs. media cuenta</span><b class="'+(nz(p.inter)>=avgInter?'up':'down')+'">'+(avgInter>0?'×'+(nz(p.inter)/avgInter).toLocaleString('es-ES',{maximumFractionDigits:1}):'—')+'</b>'
+      +'</div></div></a>';
   }).join('');
   if(!shown.length) html='<div class="empty">No hay publicaciones con este filtro en el periodo seleccionado.</div>';
   document.getElementById('gallery').innerHTML=html;
-  document.getElementById('galleryNote').innerHTML='Mostrando <b>'+shown.length+'</b> de <b>'+list.length+'</b> publicaciones que cumplen el filtro ('+all.length+' en total en el periodo). En la versión con datos en vivo, cada tarjeta mostrará la <b>miniatura real</b> del post desde Metricool y enlazará a la publicación original.';
+  var more=list.length>shown.length?' <span class="chip" onclick="setGal(\'limit\','+(g.limit+12)+')">Ver 12 más</span>':'';
+  document.getElementById('galleryNote').innerHTML='Mostrando <b>'+shown.length+'</b> de <b>'+list.length+'</b> publicaciones que cumplen el filtro ('+all.length+' en total en el periodo). Clic en una tarjeta abre la publicación original en su red.'+more;
 }
 
-function renderFormatTable(st){
-  var feed=st.posts, byFmt={};
-  feed.forEach(function(p){
+function renderFormatTable(B,st){
+  var byFmt={};
+  st.posts.forEach(function(p){
     if(!byFmt[p.fmt])byFmt[p.fmt]={n:0,reach:0,inter:0};
-    byFmt[p.fmt].n++; byFmt[p.fmt].reach+=p.reach; byFmt[p.fmt].inter+=p.inter;
+    byFmt[p.fmt].n++; byFmt[p.fmt].reach+=pReach(p); byFmt[p.fmt].inter+=nz(p.inter);
   });
-  var rows=Object.keys(byFmt).map(function(f){var x=byFmt[f];return {f:f,n:x.n,reach:x.reach,inter:x.inter};});
-  if(st.stories>0)rows.push({f:'Story',n:st.stories,reach:st.storiesReach,inter:st.storiesInter});
+  var rows=Object.keys(byFmt).map(function(x){var v=byFmt[x];return {f:x,n:v.n,reach:v.reach,inter:v.inter};});
+  if(st.stories>0)rows.push({f:'Story',n:st.stories,reach:st.storiesReach,inter:null});
+  if(!rows.length){document.getElementById('fmtTable').innerHTML='<p class="sub">Sin publicaciones en el periodo.</p>';return;}
   var tot=rows.reduce(function(a,r){return a+r.reach;},0)||1;
   var totN=rows.reduce(function(a,r){return a+r.n;},0);
   rows.sort(function(a,b){return b.reach-a.reach;});
-  var maxShare=rows.length?rows[0].reach/tot:1;
+  var maxShare=rows[0].reach/tot||1;
   var html='<table class="data" style="min-width:560px"><thead><tr><th>Formato</th><th class="num">Publicadas</th><th class="num">Alcance medio</th><th class="num">Interacc. media</th><th class="num">ER medio</th><th class="num">% del alcance total</th></tr></thead><tbody>';
   rows.forEach(function(r,i){
-    var share=r.reach/tot*100, er=r.reach>0?r.inter/r.reach*100:0;
-    var w=Math.max(8,share/(maxShare*100)*76);
-    html+='<tr><td>'+r.f+'</td><td class="num">'+r.n+'</td><td class="num">'+fmtInt(r.reach/Math.max(1,r.n))+'</td>'
-      +'<td class="num">'+fmtInt(r.inter/Math.max(1,r.n))+'</td>'
-      +'<td class="num">'+(i===0?'<b class="er">'+fmtPct(er)+'</b>':fmtPct(er))+'</td>'
+    var share=r.reach/tot*100;
+    var er=r.inter!=null&&r.reach>0?r.inter/r.reach*100:null;
+    var w=Math.max(8,(maxShare>0?share/(maxShare*100):0)*76);
+    html+='<tr><td>'+esc(r.f)+'</td><td class="num">'+r.n+'</td><td class="num">'+(r.n?fmtInt(r.reach/r.n):'—')+'</td>'
+      +'<td class="num">'+(r.inter!=null&&r.n?fmtInt(r.inter/r.n):'—')+'</td>'
+      +'<td class="num">'+(er!=null?(i===0?'<b class="er">'+fmtPct(er)+'</b>':fmtPct(er)):'—')+'</td>'
       +'<td class="num"><span class="bar" style="width:'+w.toFixed(0)+'px"></span>'+fmtPct(share,0)+'</td></tr>';
   });
-  html+='<tr class="total"><td>Total</td><td class="num">'+totN+'</td><td class="num">—</td><td class="num">—</td><td class="num">'+fmtPct(st.er,2)+'</td><td class="num">100%</td></tr>';
-  html+='</tbody></table>';
+  html+='<tr class="total"><td>Total</td><td class="num">'+totN+'</td><td class="num">—</td><td class="num">—</td><td class="num">'+fmtPct(st.er,2)+'</td><td class="num">100%</td></tr></tbody></table>';
   document.getElementById('fmtTable').innerHTML=html;
 }
 
-function renderHeat(key){
-  var b=BRANDS[key], rng=mulberry32(b.seed+7);
-  var hours=['9 h','13 h','17 h','20 h','22 h'], days=['L','M','X','J','V','S','D'];
-  var bias=[[0,1,0,1,0,-1,-1],[1,2,1,2,1,0,0],[1,1,2,1,2,1,0],[2,3,2,3,2,1,1],[1,2,1,2,1,0,0]];
-  var grid=[], best={v:-1,h:0,d:0};
-  for(var h=0;h<5;h++){grid.push([]);
-    for(var dd=0;dd<7;dd++){
-      var v=Math.max(0,Math.min(4,bias[h][dd]+Math.floor(rng()*2)));
-      grid[h].push(v);
-      if(v>best.v){best={v:v,h:h,d:dd};}
-    }
+var BANDS=[[8,10,'8–10 h'],[11,13,'11–13 h'],[14,16,'14–16 h'],[17,19,'17–19 h'],[20,23,'20–23 h']];
+var DAYNAMES=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+function renderHeat(B){
+  var cells=B.bestTimes||[];
+  if(!cells.length){
+    document.getElementById('heatPanel').innerHTML='<p class="sub">Metricool aún no tiene datos de audiencia suficientes para esta cuenta.</p>';
+    document.getElementById('heatNote').innerHTML='';
+    return;
   }
-  var html='<div class="heat"><span class="hh"></span>'+days.map(function(x){return '<span class="hd">'+x+'</span>';}).join('');
-  for(var i=0;i<5;i++){
-    html+='<span class="hh">'+hours[i]+'</span>';
-    for(var j=0;j<7;j++)html+='<span class="cell'+(grid[i][j]?' c'+grid[i][j]:'')+'"></span>';
+  var grid=[], best={v:-1,b:0,d:0}, maxv=0;
+  for(var b=0;b<BANDS.length;b++){grid.push([0,0,0,0,0,0,0]);}
+  cells.forEach(function(c){
+    for(var bi=0;bi<BANDS.length;bi++){
+      if(c.hour>=BANDS[bi][0]&&c.hour<=BANDS[bi][1]){
+        grid[bi][c.dow]+=nz(c.score);
+      }
+    }
+  });
+  for(var i=0;i<BANDS.length;i++)for(var j=0;j<7;j++){if(grid[i][j]>maxv)maxv=grid[i][j]; if(grid[i][j]>best.v)best={v:grid[i][j],b:i,d:j};}
+  var html='<div class="heat"><span class="hh"></span>'+['L','M','X','J','V','S','D'].map(function(x){return '<span class="hd">'+x+'</span>';}).join('');
+  for(var r=0;r<BANDS.length;r++){
+    html+='<span class="hh">'+BANDS[r][2]+'</span>';
+    for(var c2=0;c2<7;c2++){
+      var v=grid[r][c2], klass='';
+      if(maxv>0&&v>0){var q=v/maxv; klass=q>0.75?' c4':q>0.5?' c3':q>0.25?' c2':' c1';}
+      html+='<span class="cell'+klass+'"></span>';
+    }
   }
   html+='</div>';
   document.getElementById('heatPanel').innerHTML=html;
-  var dayNames=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
-  document.getElementById('heatNote').innerHTML='Mejor franja: <b style="color:var(--teal)">'+dayNames[best.d]+', '+hours[best.h].replace(' h','')+'–'+(parseInt(hours[best.h])+1)+' h</b>. En la versión en vivo, este mapa sale del dato de audiencia activa de Metricool.';
+  document.getElementById('heatNote').innerHTML=best.v>0?'Mejor franja: <b style="color:var(--teal)">'+DAYNAMES[best.d]+', '+BANDS[best.b][2]+'</b> (dato de audiencia activa de Metricool).':'';
 }
 
-function renderNetCards(st,key,from,to){
-  var d=genBrand(key), b=d.cfg, html='';
-  d.netKeys.forEach(function(n){
-    var nm=NETMETA[n], ps=st.posts.filter(function(p){return p.net===n;});
-    var reach=ps.reduce(function(a,p){return a+p.reach;},0)+st.reach*b.nets[n]*0.35;
-    var inter=ps.reduce(function(a,p){return a+p.inter;},0)+st.inter*b.nets[n]*0.35;
+function renderNetCards(B,st){
+  var f=st.from, t=st.to, html='';
+  brandNets(B).forEach(function(n){
+    var Nt=B.nets[n], nm=NETMETA[n];
+    var ps=st.posts.filter(function(p){return p.net===n;});
+    var reach=netReach(Nt,f,t), inter=netInter(Nt,f,t);
     var er=reach>0?inter/reach*100:0;
-    var followers=st.communityEnd*b.nets[n];
-    var folLbl=n==='yt'?'Suscriptores':'Seguidores';
-    var reachLbl=(n==='tt'||n==='yt')?'Visualizaciones':'Alcance';
-    var pubsRow=n==='ig'&&st.stories>0
+    var fol=netFollows(Nt,f,t);
+    var pubsRow=(n==='ig'&&st.stories>0)
       ?'<tr><td>Publicaciones / Stories</td><td>'+ps.length+' / '+st.stories+'</td></tr>'
       :'<tr><td>Publicaciones</td><td>'+ps.length+'</td></tr>';
     html+='<div class="net" style="--nc:'+nm.color+'">'
-      +'<div class="n-head"><div class="dot">'+nm.abbr+'</div><div><div class="n-name">'+nm.name+'</div><div class="n-handle">'+esc(b.handles[n]||'')+'</div></div></div>'
+      +'<div class="n-head"><div class="dot">'+nm.abbr+'</div><div><div class="n-name">'+nm.name+'</div><div class="n-handle">'+esc(Nt.handle||'')+'</div></div></div>'
       +'<table>'
-      +'<tr><td>'+folLbl+'</td><td>'+fmtInt(followers)+' <span class="n-dif up">+'+fmtInt(st.folByNet[n])+'</span></td></tr>'
-      +'<tr><td>'+reachLbl+'</td><td>'+fmtBig(reach)+'</td></tr>'
+      +'<tr><td>'+nm.folLbl+'</td><td>'+fmtInt(nz(Nt.followersNow))+' <span class="n-dif '+cls(fol)+'">'+fmtSigned(fol)+'</span></td></tr>'
+      +'<tr><td>'+nm.reachLbl+'</td><td>'+fmtBig(reach)+'</td></tr>'
       +'<tr><td>Interacciones</td><td>'+fmtInt(inter)+'</td></tr>'
       +'<tr><td>Engagement</td><td>'+fmtPct(er)+'</td></tr>'
       +pubsRow
       +'</table></div>';
   });
-  if(b.gbp){
-    var rngG=mulberry32(b.seed+99), f=st.days/30;
-    var visits=8900*f*(0.9+rngG()*0.2), searches=12400*f*(0.9+rngG()*0.2);
-    var clicks=640*f*(0.9+rngG()*0.2), calls=112*f*(0.9+rngG()*0.2), reviews=Math.round(41*f*(0.85+rngG()*0.3));
+  if(B.gbp){
+    var G=B.gbp;
+    var rating=null;
+    for(var i=t;i>=f;i--){if(G.rating&&G.rating[i]!=null){rating=G.rating[i];break;}}
     html+='<div class="net" style="--nc:var(--gbp)">'
-      +'<div class="n-head"><div class="dot">G</div><div><div class="n-name">Google Business</div><div class="n-handle">EIMEC · ficha</div></div></div>'
+      +'<div class="n-head"><div class="dot">G</div><div><div class="n-name">Google Business</div><div class="n-handle">EIMEC · ficha de Google</div></div></div>'
       +'<table>'
-      +'<tr><td>Visitas a la ficha</td><td>'+fmtInt(visits)+'</td></tr>'
-      +'<tr><td>Búsquedas</td><td>'+fmtInt(searches)+'</td></tr>'
-      +'<tr><td>Clics a la web</td><td>'+fmtInt(clicks)+'</td></tr>'
-      +'<tr><td>Llamadas</td><td>'+fmtInt(calls)+'</td></tr>'
-      +'<tr><td>Reseñas nuevas · media</td><td>'+reviews+' · 4,8 ★</td></tr>'
+      +'<tr><td>Vistas de la ficha</td><td>'+fmtInt(sumR(G.views,f,t))+'</td></tr>'
+      +'<tr><td>Clics a la web</td><td>'+fmtInt(sumR(G.webClicks,f,t))+'</td></tr>'
+      +'<tr><td>Llamadas</td><td>'+fmtInt(sumR(G.calls,f,t))+'</td></tr>'
+      +'<tr><td>Cómo llegar</td><td>'+fmtInt(sumR(G.directions,f,t))+'</td></tr>'
+      +'<tr><td>Reseñas nuevas · media</td><td>'+fmtInt(sumR(G.reviews,f,t))+(rating!=null?' · '+rating.toLocaleString('es-ES',{maximumFractionDigits:1})+' ★':'')+'</td></tr>'
       +'</table></div>';
   }
   document.getElementById('netCards').innerHTML=html;
 }
 
-function renderBrandTable(from,to){
-  var rows=BRAND_KEYS.map(function(k){
-    var st=periodStats(k,from,to);
+function renderBrandTable(f,t){
+  var labels=orderedBrands();
+  var rows=labels.map(function(k){
+    var B=DATA.brands[k], st=periodStats(B,f,t);
     var base=st.communityEnd-st.folDelta;
-    return {k:k,st:st,pct:base>0?st.folDelta/base*100:0};
+    return {k:k,B:B,st:st,pct:base>0?st.folDelta/base*100:0};
   });
   var tot={com:0,fol:0,reach:0,pubs:0,inter:0};
-  rows.forEach(function(r){tot.com+=r.st.communityEnd;tot.fol+=r.st.folDelta;tot.reach+=r.st.totalReach;tot.pubs+=r.st.pubs;tot.inter+=r.st.totalInter;});
-  var bestEr=rows.slice().sort(function(a,b){return b.st.er-a.st.er;})[0];
+  rows.forEach(function(r){tot.com+=r.st.communityEnd;tot.fol+=r.st.folDelta;tot.reach+=r.st.reach;tot.pubs+=r.st.pubs;tot.inter+=r.st.inter;});
+  var withEr=rows.filter(function(r){return r.st.reach>0;});
+  var bestEr=withEr.slice().sort(function(a,b){return b.st.er-a.st.er;})[0];
   var bestGrowth=rows.slice().sort(function(a,b){return b.pct-a.pct;})[0];
   var html='<table class="data" style="min-width:560px"><thead><tr><th>Marca</th><th class="num">Comunidad</th><th class="num">Crecimiento</th><th class="num">Alcance</th><th class="num">Publicaciones</th><th class="num">Engagement</th></tr></thead><tbody>';
   rows.forEach(function(r){
-    var erCell=(r.k===bestEr.k)?'<b class="er">'+fmtPct(r.st.er)+'</b>':fmtPct(r.st.er);
-    html+='<tr><td><span class="avatar">'+BRANDS[r.k].avatar+'</span>'+esc(r.k)+'</td>'
+    var erCell=r.st.reach>0?((bestEr&&r.k===bestEr.k)?'<b class="er">'+fmtPct(r.st.er)+'</b>':fmtPct(r.st.er)):'—';
+    html+='<tr><td><span class="avatar">'+esc(r.B.avatar)+'</span>'+esc(r.k)+'</td>'
       +'<td class="num">'+fmtInt(r.st.communityEnd)+'</td>'
-      +'<td class="num up">+'+fmtInt(r.st.folDelta)+' (+'+r.pct.toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</td>'
-      +'<td class="num">'+fmtBig(r.st.totalReach)+'</td>'
+      +'<td class="num '+cls(r.st.folDelta)+'">'+fmtSigned(r.st.folDelta)+' ('+(r.st.folDelta<0?'−':'+')+Math.abs(r.pct).toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</td>'
+      +'<td class="num">'+fmtBig(r.st.reach)+'</td>'
       +'<td class="num">'+fmtInt(r.st.pubs)+'</td>'
       +'<td class="num">'+erCell+'</td></tr>';
   });
   var totBase=tot.com-tot.fol;
   html+='<tr class="total"><td>Grupo EIMEC</td><td class="num">'+fmtInt(tot.com)+'</td>'
-    +'<td class="num up">+'+fmtInt(tot.fol)+' (+'+(totBase>0?(tot.fol/totBase*100):0).toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</td>'
+    +'<td class="num '+cls(tot.fol)+'">'+fmtSigned(tot.fol)+' ('+(tot.fol<0?'−':'+')+(totBase>0?Math.abs(tot.fol/totBase*100).toLocaleString('es-ES',{maximumFractionDigits:1}):'0')+'%)</td>'
     +'<td class="num">'+fmtBig(tot.reach)+'</td><td class="num">'+fmtInt(tot.pubs)+'</td>'
     +'<td class="num">'+fmtPct(tot.reach>0?tot.inter/tot.reach*100:0)+'</td></tr>';
   html+='</tbody></table>';
   document.getElementById('brandTable').innerHTML=html;
-  document.getElementById('brandNote').innerHTML='<b>'+esc(bestGrowth.k)+'</b> es la cuenta con mayor crecimiento relativo (+'+bestGrowth.pct.toLocaleString('es-ES',{maximumFractionDigits:1})+'%) y <b>'+esc(bestEr.k)+'</b> la de mejor engagement ('+fmtPct(bestEr.st.er)+'): candidatas a más inversión de contenido.';
+  document.getElementById('brandNote').innerHTML=
+    (bestGrowth?'<b>'+esc(bestGrowth.k)+'</b> es la cuenta con mayor crecimiento relativo ('+fmtSigned(bestGrowth.st.folDelta)+', '+(bestGrowth.st.folDelta<0?'−':'+')+Math.abs(bestGrowth.pct).toLocaleString('es-ES',{maximumFractionDigits:1})+'%)':'')
+    +(bestEr?' y <b>'+esc(bestEr.k)+'</b> la de mejor engagement ('+fmtPct(bestEr.st.er)+').':'.')
+    +' Nota: eimec.es y eimec.global comparten el mismo canal de YouTube, por lo que sus suscriptores aparecen en ambas filas.';
 }
 
 // ---------------- render principal ----------------
 function renderAll(){
-  var key=state.brand, w=currentWindow(), from=w[0], to=w[1];
-  var st=periodStats(key,from,to);
-  var pw=prevWindow(from,to), pv=periodStats(key,pw[0],pw[1]);
+  var key=state.brand, B=DATA.brands[key];
+  if(!B){key=Object.keys(DATA.brands)[0]; state.brand=key; B=DATA.brands[key];}
+  var w=currentWindow(), f=w[0], t=w[1];
+  var st=periodStats(B,f,t);
+  var pw=prevWindow(f,t);
+  var pv=pw?periodStats(B,pw[0],pw[1]):null;
 
-  // header
   var tabs='';
-  BRAND_KEYS.forEach(function(k){
+  orderedBrands().forEach(function(k){
     tabs+='<div class="tab'+(k===key?' active':'')+'" onclick="setBrand(\''+k.replace(/'/g,"\\'")+'\')">'+esc(k)+'</div>';
   });
   document.getElementById('brandTabs').innerHTML=tabs;
-  var now=new Date();
-  document.getElementById('updatedAt').textContent='Actualizado: '+fmtDay(now)+' '+now.getFullYear()+', '
-    +String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' · Europe/Madrid';
 
-  // chips periodo
+  var gen=DATA.generatedAt||'';
+  var genTxt=gen?fmtDayStr(gen.slice(0,10))+' '+gen.slice(0,4)+', '+gen.slice(11,16):'';
+  document.getElementById('updatedAt').textContent='Sincronizado con Metricool: '+genTxt+' · Europe/Madrid';
+  document.getElementById('banner').textContent='Datos reales de Metricool · sincronizado '+genTxt+' · clic en una publicación para abrirla en su red';
+  document.getElementById('foot').textContent='EIMEC · Informe Social Media · datos reales de Metricool via API · sincronizado '+genTxt;
+
   [['p7',7],['p30',30],['p90',90],['pcustom','custom']].forEach(function(x){
     document.getElementById(x[0]).className='chip'+(state.period===x[1]?' on':'');
   });
   document.getElementById('customRange').className='customrange'+(state.period==='custom'?' visible':'');
-
   document.getElementById('compareLabel').textContent='Comparando: '
-    +fmtDay(dateOfIndex(from))+' – '+fmtDay(dateOfIndex(to))+' vs. '
-    +fmtDay(dateOfIndex(pw[0]))+' – '+fmtDay(dateOfIndex(pw[1]));
-  document.getElementById('sec1sub').textContent='datos generales · todas las redes de '+key+' · cada KPI con variación, media diaria y tendencia';
+    +fmtDayStr(DAYS[f])+' – '+fmtDayStr(DAYS[t])+(pw?' vs. '+fmtDayStr(DAYS[pw[0]])+' – '+fmtDayStr(DAYS[pw[1]]):'');
+  document.getElementById('sec1sub').textContent='datos generales · todas las redes de '+key+' · variación vs. periodo anterior';
 
-  renderKPIs(st,pv,key);
-  var wk=svgWeekly(key);
-  renderInsights(st,pv,key,wk);
-  renderGalleryFilters(key);
-  renderGallery(st,key);
-  renderFormatTable(st);
-  renderHeat(key);
+  renderKPIs(B,st,pv);
+  var wk=svgWeekly(B);
+  renderInsights(B,st,pv,wk);
+  renderGalleryFilters(B);
+  renderGallery(B,st);
+  renderFormatTable(B,st);
+  renderHeat(B);
 
-  document.getElementById('folSub').textContent='Del '+fmtDay(dateOfIndex(from))+' al '+fmtDay(dateOfIndex(to))+' · todas las redes de '+key+' · arriba la comunidad acumulada, abajo las altas netas por tramo';
-  document.getElementById('folChart').innerHTML=svgFollowers(key,from,to);
-  var best=0,worst=Infinity, d=genBrand(key);
-  for(var i=from;i<=to;i++){if(d.dFol[i]>best)best=d.dFol[i]; if(d.dFol[i]<worst)worst=d.dFol[i];}
+  document.getElementById('folSub').textContent='Del '+fmtDayStr(DAYS[f])+' al '+fmtDayStr(DAYS[t])+' · todas las redes de '+key+' · arriba la comunidad acumulada, abajo las altas netas por tramo';
+  document.getElementById('folChart').innerHTML=svgFollowers(B,f,t);
+  var best=-Infinity,worst=Infinity;
+  for(var i=f;i<=t;i++){var v=followsDay(B,i); if(v>best)best=v; if(v<worst)worst=v;}
   document.getElementById('folLegend').innerHTML=
     '<span><i style="background:var(--teal)"></i>Comunidad acumulada</span>'
     +'<span><i style="background:var(--teal-soft)"></i>Altas netas por tramo</span>'
-    +'<span style="margin-left:auto">Total del periodo: <b class="up">+'+fmtInt(st.folDelta)+'</b> · mejor día: <b>+'+fmtInt(best)+'</b> · peor día: <b>+'+fmtInt(worst)+'</b></span>';
+    +'<span style="margin-left:auto">Total del periodo: <b class="'+cls(st.folDelta)+'">'+fmtSigned(st.folDelta)+'</b> · mejor día: <b>'+fmtSigned(best)+'</b> · peor día: <b>'+fmtSigned(worst)+'</b></span>';
 
   document.getElementById('weekChart').innerHTML=wk.svg;
   document.getElementById('weekNote').innerHTML=wk.note;
-
-  var gr=svgGrowthByNet(key,from,to);
+  var gr=svgGrowthByNet(B,f,t);
   document.getElementById('growthChart').innerHTML=gr.svg;
   document.getElementById('growthNote').innerHTML=gr.note;
 
-  document.getElementById('reachSub').textContent='Del '+fmtDay(dateOfIndex(from))+' al '+fmtDay(dateOfIndex(to))+' · suma de todas las redes · el punto marca el mejor tramo y su contenido';
-  document.getElementById('reachChart').innerHTML=svgReach(key,from,to);
+  document.getElementById('reachSub').textContent='Del '+fmtDayStr(DAYS[f])+' al '+fmtDayStr(DAYS[t])+' · suma de todas las redes · el punto marca el mejor tramo y su contenido';
+  document.getElementById('reachChart').innerHTML=svgReach(B,f,t);
 
-  renderNetCards(st,key,from,to);
-  renderBrandTable(from,to);
+  renderNetCards(B,st);
+  renderBrandTable(f,t);
 }
 
 // ---------------- interacción ----------------
-function setBrand(k){state.brand=k; state.gal={net:'all',fmt:'all',sort:'inter'}; renderAll();}
+function setBrand(k){state.brand=k; state.gal={net:'all',fmt:'all',sort:'inter',limit:12}; renderAll();}
 function setPeriod(p){
   state.period=p;
   if(p==='custom'){
-    var f=document.getElementById('dateFrom'), t=document.getElementById('dateTo');
-    var min=dateOfIndex(0), max=dateOfIndex(DAYS-1);
-    var iso=function(d){return d.toISOString().slice(0,10);};
-    f.min=iso(min); f.max=iso(max); t.min=iso(min); t.max=iso(max);
-    if(!f.value){var d30=new Date(TODAY); d30.setDate(d30.getDate()-29); f.value=iso(d30);}
-    if(!t.value){t.value=iso(max);}
+    var fi=document.getElementById('dateFrom'), ti=document.getElementById('dateTo');
+    fi.min=DAYS[0]; fi.max=DAYS[END]; ti.min=DAYS[0]; ti.max=DAYS[END];
+    if(!fi.value)fi.value=DAYS[Math.max(0,END-29)];
+    if(!ti.value)ti.value=DAYS[END];
     document.getElementById('customRange').className='customrange visible';
     [['p7',7],['p30',30],['p90',90],['pcustom','custom']].forEach(function(x){
       document.getElementById(x[0]).className='chip'+(state.period===x[1]?' on':'');
     });
-    return; // se renderiza al pulsar Aplicar
+    return;
   }
-  state.custom=null;
+  state.custom=null; state.gal.limit=12;
   renderAll();
 }
 function applyCustom(){
-  var f=new Date(document.getElementById('dateFrom').value);
-  var t=new Date(document.getElementById('dateTo').value);
-  if(isNaN(f)||isNaN(t))return;
-  f.setHours(0,0,0,0); t.setHours(0,0,0,0);
-  var fi=Math.max(0,Math.min(DAYS-1,indexOfDate(f)));
-  var ti=Math.max(0,Math.min(DAYS-1,indexOfDate(t)));
+  var f=document.getElementById('dateFrom').value, t=document.getElementById('dateTo').value;
+  if(!(f in IDX)||!(t in IDX))return;
+  var fi=IDX[f], ti=IDX[t];
   if(ti<fi){var tmp=fi;fi=ti;ti=tmp;}
-  state.custom=[fi,ti];
+  state.custom=[fi,ti]; state.gal.limit=12;
   renderAll();
 }
 function setGal(field,val){
   state.gal[field]=val;
-  var w=currentWindow(), st=periodStats(state.brand,w[0],w[1]);
-  renderGalleryFilters(state.brand);
-  renderGallery(st,state.brand);
+  if(field!=='limit')state.gal.limit=12;
+  var B=DATA.brands[state.brand], w=currentWindow();
+  var st=periodStats(B,w[0],w[1]);
+  renderGalleryFilters(B);
+  renderGallery(B,st);
 }
 
-// ---------------- login ----------------
+// ---------------- carga + login ----------------
+function loadData(){
+  return fetch('data.json',{cache:'no-store'}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
+    DATA=d; DAYS=d.days; N=DAYS.length; END=Math.max(0,N-2);
+    IDX={}; DAYS.forEach(function(x,i){IDX[x]=i;});
+    renderAll();
+  }).catch(function(e){
+    document.getElementById('loadError').style.display='block';
+    document.getElementById('loadError').textContent='No se pudieron cargar los datos ('+e.message+'). Recarga la página.';
+  });
+}
 var PASSWORD='social-eimec-2026', AUTH_KEY='social_auth';
 function checkPassword(){
   var input=document.getElementById('passwordInput');
-  var err=document.getElementById('loginError');
   if(input.value===PASSWORD){
     sessionStorage.setItem(AUTH_KEY,'true');
     showDashboard();
   } else {
-    err.style.display='block'; input.value=''; input.focus();
+    document.getElementById('loginError').style.display='block';
+    input.value=''; input.focus();
   }
 }
 function showDashboard(){
   document.getElementById('loginContainer').style.display='none';
   document.getElementById('dashboard').style.display='block';
-  renderAll();
+  loadData();
 }
 if(sessionStorage.getItem(AUTH_KEY)==='true'){showDashboard();}
 </script>
