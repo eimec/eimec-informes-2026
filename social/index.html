@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>EIMEC · Informe Social Media</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1F2A4E;
+    --teal:#006F74;
+    --teal-soft:#69C2C2;
+    --blue:#2E5082;
+    --bg:#F4F7F8;
+    --card:#FFFFFF;
+    --ink:#22304F;
+    --muted:#66738C;
+    --line:#E2E9EC;
+    --good:#1B8A5A;
+    --bad:#C0392B;
+    --chip:#EAF3F3;
+    --ig:#E1306C; --tt:#161823; --fb:#1877F2; --yt:#E52D27; --li:#0A66C2; --gbp:#2E9E5B;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Montserrat","Segoe UI",system-ui,-apple-system,sans-serif;
+    margin:0; padding:0;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:0 20px}
+
+  /* ---------- login ---------- */
+  .login-container{display:flex; justify-content:center; align-items:center; min-height:100vh; padding:24px;
+    background:linear-gradient(160deg,var(--navy) 0%, #2A3A66 60%, var(--teal) 140%)}
+  .login-box{background:rgba(255,255,255,.98); padding:44px 40px; border-radius:20px;
+    box-shadow:0 40px 80px -24px rgba(10,16,30,.55); width:100%; max-width:380px; text-align:center}
+  .login-logo{width:56px; height:56px; margin:0 auto 18px; border-radius:14px;
+    background:linear-gradient(135deg,var(--navy),var(--teal)); color:#fff; font-size:26px; font-weight:800;
+    display:flex; align-items:center; justify-content:center}
+  .login-box h1{font-size:20px; margin:0 0 4px; color:var(--ink); font-weight:700}
+  .login-box .sub{font-size:13px; color:var(--muted); margin-bottom:26px}
+  .login-box input{width:100%; padding:13px 14px; margin-bottom:16px; border:1.5px solid var(--line);
+    border-radius:10px; font-size:15px; font-family:inherit}
+  .login-box input:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 4px rgba(0,111,116,.14)}
+  .login-box button{width:100%; padding:13px; background:var(--navy); color:#fff; border:none; border-radius:10px;
+    font-size:15px; font-weight:700; cursor:pointer; font-family:inherit}
+  .login-box button:hover{background:var(--teal)}
+  .login-box button:active{transform:translateY(1px)}
+  .login-error{color:var(--bad); font-size:13px; margin-top:10px; display:none}
+
+  #dashboard{display:none; padding-bottom:48px}
+
+  .mock-banner{
+    background:var(--teal); color:#fff; text-align:center;
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    padding:7px 12px; font-weight:600;
+  }
+
+  /* ---------- header ---------- */
+  header.top{background:var(--navy); color:#fff; padding:26px 0 0}
+  header.top .wrap{display:flex; flex-direction:column; gap:18px}
+  .brandline{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
+  .brandline .logo{font-weight:800; font-size:22px; letter-spacing:.22em; color:#fff}
+  .brandline .logo span{color:var(--teal-soft)}
+  .brandline h1{font-size:15px; font-weight:500; color:#C9D4E8; margin:0; letter-spacing:.02em}
+  .brandline .date{margin-left:auto; font-size:12px; color:#8FA0C0}
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; padding-bottom:14px}
+  .tab{padding:7px 14px; border-radius:6px 6px 0 0; font-size:13px; color:#B9C6DE; cursor:pointer}
+  .tab.active{background:var(--bg); color:var(--ink); font-weight:700}
+
+  /* ---------- filtros ---------- */
+  .filters{display:flex; gap:8px; align-items:center; margin:18px 0 6px; flex-wrap:wrap}
+  .filters .lbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em}
+  .chip{background:var(--card); border:1px solid var(--line); color:var(--muted);
+    font-size:13px; padding:6px 14px; border-radius:99px; cursor:pointer}
+  .chip.on{background:var(--teal); border-color:var(--teal); color:#fff; font-weight:600}
+
+  h2.sec{font-size:13px; text-transform:uppercase; letter-spacing:.16em; color:var(--teal);
+    margin:34px 0 12px; font-weight:700}
+  h2.sec small{color:var(--muted); text-transform:none; letter-spacing:0; font-weight:500; margin-left:10px}
+  h2.sec .prio{background:var(--chip); color:var(--teal); font-size:10.5px; border-radius:4px;
+    padding:2px 8px; margin-right:8px; letter-spacing:.08em; vertical-align:1px}
+
+  /* ---------- KPI cards ---------- */
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:12px}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:15px 16px 12px}
+  .kpi .k-lbl{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em}
+  .kpi .k-val{font-size:26px; font-weight:800; color:var(--navy); margin-top:5px; font-variant-numeric:tabular-nums}
+  .kpi .k-dif{font-size:12.5px; margin-top:3px; font-weight:600}
+  .up{color:var(--good)} .down{color:var(--bad)}
+  .kpi .k-dif span{color:var(--muted); font-weight:400}
+  .kpi .k-sub{font-size:11px; color:var(--muted); margin-top:6px; border-top:1px dashed var(--line); padding-top:6px;
+    display:flex; justify-content:space-between; font-variant-numeric:tabular-nums}
+  .kpi svg{display:block; margin-top:8px}
+
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px}
+  .panel h3{margin:0 0 4px; font-size:15px; color:var(--navy)}
+  .panel .sub{font-size:12.5px; color:var(--muted); margin:0 0 14px; line-height:1.55}
+
+  .grid2{display:grid; grid-template-columns:1.6fr 1fr; gap:14px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+
+  .legend{display:flex; gap:18px; font-size:12.5px; color:var(--muted); margin-top:10px; flex-wrap:wrap}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px}
+
+  /* ---------- insights ---------- */
+  .insights{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
+  .ins{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--ic,var(--teal));
+    border-radius:10px; padding:14px 16px}
+  .ins b{display:block; font-size:13px; margin-bottom:5px; color:var(--navy)}
+  .ins p{margin:0; font-size:12.5px; color:var(--muted); line-height:1.55}
+  .ins .tag{font-size:10px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; color:var(--ic)}
+
+  /* ---------- galería de publicaciones ---------- */
+  .gal-filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
+  .gal-filters .sep{width:1px; height:20px; background:var(--line); margin:0 4px}
+  .gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:12px}
+  .post{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    display:flex; flex-direction:column}
+  .post .ph{position:relative; aspect-ratio:4/5; background:var(--pg); display:flex; align-items:center; justify-content:center}
+  .post .ph .cam{width:44px; height:44px; opacity:.55}
+  .post .ph .netp{position:absolute; top:8px; left:8px; font-size:10px; font-weight:800; color:#fff;
+    background:var(--nc); border-radius:4px; padding:2px 7px; letter-spacing:.05em}
+  .post .ph .fmt{position:absolute; top:8px; right:8px; font-size:10px; font-weight:700; color:#fff;
+    background:rgba(10,16,30,.55); border-radius:4px; padding:2px 7px}
+  .post .ph .rank{position:absolute; bottom:8px; left:8px; font-size:11px; font-weight:800; color:#fff;
+    background:var(--teal); border-radius:99px; padding:2px 9px}
+  .post .pb{padding:11px 12px 12px; display:flex; flex-direction:column; gap:7px; flex:1}
+  .post .pt{font-size:12.5px; font-weight:600; line-height:1.35}
+  .post .pd{font-size:11px; color:var(--muted)}
+  .post .pm{display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; font-size:11.5px; margin-top:auto;
+    border-top:1px dashed var(--line); padding-top:8px; font-variant-numeric:tabular-nums}
+  .post .pm span{color:var(--muted)}
+  .post .pm b{text-align:right; font-weight:700}
+  .post .er{color:var(--teal); font-weight:800}
+
+  /* ---------- tablas ---------- */
+  .tblwrap{overflow-x:auto}
+  table.data{width:100%; border-collapse:collapse; font-size:13.5px; min-width:640px}
+  table.data th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+    color:var(--muted); font-weight:700; padding:8px 10px; border-bottom:2px solid var(--line)}
+  table.data td{padding:9px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums}
+  table.data td.num,table.data th.num{text-align:right}
+  table.data tr.total td{font-weight:800; border-top:2px solid var(--line); border-bottom:none}
+  .bar{display:inline-block; height:8px; border-radius:3px; background:var(--teal); vertical-align:middle; margin-right:8px}
+  .pill{display:inline-block; font-size:11px; font-weight:700; color:#fff; border-radius:4px;
+    padding:2px 8px; background:var(--nc,var(--teal))}
+  .avatar{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-size:10.5px;
+    font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-right:9px;vertical-align:middle}
+
+  /* ---------- network cards ---------- */
+  .nets{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px}
+  .net{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px;
+    border-top:3px solid var(--nc,var(--teal))}
+  .net .n-head{display:flex; align-items:center; gap:9px; margin-bottom:10px}
+  .net .dot{width:26px; height:26px; border-radius:7px; background:var(--nc); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800}
+  .net .n-name{font-weight:700; font-size:14px}
+  .net .n-handle{font-size:11.5px; color:var(--muted)}
+  .net table{width:100%; border-collapse:collapse; font-size:13px}
+  .net td{padding:4px 0; color:var(--muted)}
+  .net td:last-child{text-align:right; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums}
+  .net .n-dif{font-size:11.5px; font-weight:700}
+
+  /* ---------- heatmap ---------- */
+  .heat{display:grid; grid-template-columns:52px repeat(7,1fr); gap:4px; font-size:11px; color:var(--muted)}
+  .heat .hh{align-self:center}
+  .heat .hd{text-align:center; font-weight:700; padding-bottom:2px}
+  .heat .cell{height:22px; border-radius:4px; background:var(--chip)}
+  .heat .c1{background:#CFE5E5}
+  .heat .c2{background:#9CCCCB}
+  .heat .c3{background:#4E9EA0}
+  .heat .c4{background:var(--teal)}
+
+  .how{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px}
+  .how .step{background:var(--card); border:1px dashed var(--teal-soft); border-radius:10px; padding:16px}
+  .how .step b{display:block; color:var(--teal); font-size:12px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px}
+  .how .step p{margin:0; font-size:13px; color:var(--muted); line-height:1.55}
+
+  footer{margin-top:40px; text-align:center; font-size:12px; color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ==================== LOGIN ==================== -->
+<div class="login-container" id="loginContainer">
+  <div class="login-box">
+    <div class="login-logo">E</div>
+    <h1>Informe Social Media</h1>
+    <div class="sub">EIMEC · acceso restringido a dirección</div>
+    <input type="password" id="passwordInput" placeholder="Contraseña de acceso" onkeydown="if(event.key==='Enter')checkPassword()">
+    <button onclick="checkPassword()">Entrar al informe</button>
+    <div class="login-error" id="loginError">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div id="dashboard">
+
+<div class="mock-banner">Vista previa · datos de ejemplo — pendiente de conectar la API de Metricool para datos en vivo</div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brandline">
+      <div class="logo">EIMEC<span>·</span></div>
+      <h1>Informe Social Media — en vivo desde Metricool</h1>
+      <div class="date">Actualizado: 13 jul 2026, 10:42 · Europe/Madrid</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active">eimec.es</div>
+      <div class="tab">eimec.clinic</div>
+      <div class="tab">EIMEC Talks</div>
+      <div class="tab">Zainela Laborde</div>
+      <div class="tab">eimec.global</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="filters">
+    <span class="lbl">Periodo</span>
+    <span class="chip">7 días</span>
+    <span class="chip on">30 días</span>
+    <span class="chip">90 días</span>
+    <span class="chip">Personalizado</span>
+    <span class="lbl" style="margin-left:auto">Comparando: 13 jun – 13 jul vs. 14 may – 12 jun</span>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1 · RESUMEN EJECUTIVO -->
+  <!-- ============================================================ -->
+  <h2 class="sec"><span class="prio">1</span>Resumen ejecutivo <small>datos generales · todas las redes de eimec.es · cada KPI con variación, media diaria y tendencia</small></h2>
+  <div class="kpis">
+    <div class="kpi">
+      <div class="k-lbl">Comunidad total</div>
+      <div class="k-val">128.430</div>
+      <div class="k-dif up">▲ +2.140 <span>(+1,7%)</span></div>
+      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,20 L20,19 L40,17 L60,16 L80,13 L100,11 L120,8 L140,5" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="5" r="2.6" fill="var(--teal)"/></svg>
+      <div class="k-sub"><span>media/día</span><b class="up">+71</b></div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Alcance</div>
+      <div class="k-val">1,84 M</div>
+      <div class="k-dif up">▲ +12,3% <span>(1,64 M ant.)</span></div>
+      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,18 L20,20 L40,14 L60,17 L80,10 L100,14 L120,7 L140,9" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="9" r="2.6" fill="var(--teal)"/></svg>
+      <div class="k-sub"><span>media/día</span><b>61.300</b></div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Impresiones</div>
+      <div class="k-val">3,12 M</div>
+      <div class="k-dif up">▲ +8,9% <span>(2,86 M ant.)</span></div>
+      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,19 L20,17 L40,18 L60,13 L80,15 L100,10 L120,12 L140,8" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="8" r="2.6" fill="var(--teal)"/></svg>
+      <div class="k-sub"><span>frecuencia</span><b>1,7×</b></div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Interacciones</div>
+      <div class="k-val">46.870</div>
+      <div class="k-dif down">▼ −3,1% <span>(48.370 ant.)</span></div>
+      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,10 L20,12 L40,9 L60,14 L80,12 L100,16 L120,14 L140,17" fill="none" stroke="var(--bad)" stroke-width="2"/><circle cx="140" cy="17" r="2.6" fill="var(--bad)"/></svg>
+      <div class="k-sub"><span>por publicación</span><b class="down">732 (−12%)</b></div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Engagement</div>
+      <div class="k-val">2,54%</div>
+      <div class="k-dif up">▲ +0,21 pt <span>(2,33% ant.)</span></div>
+      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,16 L20,17 L40,14 L60,15 L80,12 L100,13 L120,10 L140,8" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="8" r="2.6" fill="var(--teal)"/></svg>
+      <div class="k-sub"><span>benchmark sector*</span><b>1,9%</b></div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Publicaciones</div>
+      <div class="k-val">64</div>
+      <div class="k-dif up">▲ +9 <span>vs. 55</span></div>
+      <svg viewBox="0 0 140 26" width="100%" height="26"><g fill="var(--teal-soft)"><rect x="4" y="12" width="12" height="14"/><rect x="24" y="8" width="12" height="18"/><rect x="44" y="14" width="12" height="12"/><rect x="64" y="6" width="12" height="20"/><rect x="84" y="10" width="12" height="16"/><rect x="104" y="4" width="12" height="22"/><rect x="124" y="9" width="12" height="17"/></g></svg>
+      <div class="k-sub"><span>ritmo</span><b>2,1 / día</b></div>
+    </div>
+  </div>
+  <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Benchmark: mediana de engagement en salud/educación que publica Metricool en su estudio anual — comparable automático en el informe.</p>
+
+  <!-- ============================================================ -->
+  <!-- 2 · INSIGHTS -->
+  <!-- ============================================================ -->
+  <h2 class="sec"><span class="prio">2</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos, como en el Informe de Dirección</small></h2>
+  <div class="insights">
+    <div class="ins" style="--ic:var(--good)">
+      <span class="tag">Fortaleza</span>
+      <b>El formato Reel de resultados clínicos multiplica ×3,2 el alcance medio</b>
+      <p>Los 9 Reels del periodo concentran el 61% del alcance total con solo el 14% de las publicaciones. Alcance medio: 124.400 vs. 38.600 del resto de formatos.</p>
+    </div>
+    <div class="ins" style="--ic:var(--bad)">
+      <span class="tag">Alerta</span>
+      <b>Las interacciones caen −3,1% pese a publicar +16% más</b>
+      <p>La interacción por publicación baja de 879 a 732 (−12%). Causa: 5 posts institucionales con ER &lt; 0,8% diluyen la media. Publicar más no está compensando la pérdida de eficacia por pieza.</p>
+    </div>
+    <div class="ins" style="--ic:var(--teal)">
+      <span class="tag">Oportunidad</span>
+      <b>TikTok es la red más eficiente: +3,6% de comunidad con 11 vídeos</b>
+      <p>Coste por seguidor nuevo en esfuerzo de contenido: 1 vídeo ≈ 78 seguidores, frente a 1 post de IG ≈ 26. Duplicar el ritmo en TikTok es la palanca de crecimiento más barata.</p>
+    </div>
+    <div class="ins" style="--ic:var(--bad)">
+      <span class="tag">Alerta</span>
+      <b>Facebook plano: +95 seguidores y ER 1,8% con 14 publicaciones</b>
+      <p>Es la red con peor retorno por pieza. Recomendación: dejar de crear contenido propio y reciclar los 3 Reels ganadores del mes; liberar ese tiempo hacia TikTok.</p>
+    </div>
+    <div class="ins" style="--ic:var(--teal)">
+      <span class="tag">Oportunidad</span>
+      <b>Google Business genera 112 llamadas y 640 clics a la web</b>
+      <p>Es el canal social con conversión más directa a negocio y solo tiene 41 reseñas nuevas. Pedir reseña sistemática post-curso lo aceleraría sin coste de contenido.</p>
+    </div>
+    <div class="ins" style="--ic:var(--good)">
+      <span class="tag">Fortaleza</span>
+      <b>Engagement 2,54%: un 34% por encima del benchmark del sector</b>
+      <p>La comunidad responde mejor que la media de salud/educación (1,9%). El margen está en el alcance, no en la calidad: más distribución del mismo tipo de contenido.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 3 · PUBLICACIONES (imágenes + performance + filtros) -->
+  <!-- ============================================================ -->
+  <h2 class="sec"><span class="prio">3</span>Publicaciones del periodo <small>con imagen real de cada post (miniatura vía Metricool) y su performance individual</small></h2>
+  <div class="panel">
+    <div class="gal-filters">
+      <span class="lbl">Red</span>
+      <span class="chip on">Todas</span><span class="chip">Instagram</span><span class="chip">TikTok</span><span class="chip">YouTube</span><span class="chip">Facebook</span><span class="chip">LinkedIn</span>
+      <span class="sep"></span>
+      <span class="lbl">Formato</span>
+      <span class="chip on">Todos</span><span class="chip">Reel</span><span class="chip">Carrusel</span><span class="chip">Imagen</span><span class="chip">Vídeo</span><span class="chip">Story</span>
+      <span class="sep"></span>
+      <span class="lbl">Ordenar</span>
+      <span class="chip on">Interacciones ▾</span><span class="chip">Alcance</span><span class="chip">Engagement</span><span class="chip">Fecha</span>
+    </div>
+    <div class="gallery">
+
+      <div class="post" style="--nc:var(--ig); --pg:linear-gradient(150deg,#8AA6C9,#31456E)">
+        <div class="ph">
+          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><rect x="2.5" y="6" width="19" height="14" rx="2.5"/><circle cx="12" cy="13" r="4"/><path d="M8 6l1.5-2.5h5L16 6"/></svg>
+          <span class="netp">Instagram</span><span class="fmt">Reel</span><span class="rank">#1</span>
+        </div>
+        <div class="pb">
+          <div class="pt">Resultado blefaroplastia — antes/después</div>
+          <div class="pd">02 jul · 20:14</div>
+          <div class="pm">
+            <span>Alcance</span><b>412.000</b>
+            <span>Interacciones</span><b>18.640</b>
+            <span>Guardados</span><b>2.310</b>
+            <span>Compartidos</span><b>1.870</b>
+            <span>Engagement</span><b class="er">4,5%</b>
+            <span>vs. media cuenta</span><b class="up">×5,6</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="post" style="--nc:var(--tt); --pg:linear-gradient(150deg,#5E6B85,#1C2436)">
+        <div class="ph">
+          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><polygon points="8,5 19,12 8,19"/></svg>
+          <span class="netp">TikTok</span><span class="fmt">Vídeo</span><span class="rank">#2</span>
+        </div>
+        <div class="pb">
+          <div class="pt">Máster en Medicina Estética: abrimos plazas</div>
+          <div class="pd">28 jun · 13:05</div>
+          <div class="pm">
+            <span>Visualizaciones</span><b>186.000</b>
+            <span>Interacciones</span><b>7.210</b>
+            <span>Retención media</span><b>62%</b>
+            <span>Compartidos</span><b>940</b>
+            <span>Engagement</span><b class="er">3,9%</b>
+            <span>vs. media cuenta</span><b class="up">×2,4</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="post" style="--nc:var(--ig); --pg:linear-gradient(150deg,#9DB8AE,#3E5E52)">
+        <div class="ph">
+          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><polygon points="8,5 19,12 8,19"/></svg>
+          <span class="netp">Instagram</span><span class="fmt">Reel</span><span class="rank">#3</span>
+        </div>
+        <div class="pb">
+          <div class="pt">Dr. Cano: 3 errores al elegir formación</div>
+          <div class="pd">05 jul · 20:31</div>
+          <div class="pm">
+            <span>Alcance</span><b>148.000</b>
+            <span>Interacciones</span><b>5.980</b>
+            <span>Guardados</span><b>1.640</b>
+            <span>Compartidos</span><b>720</b>
+            <span>Engagement</span><b class="er">4,0%</b>
+            <span>vs. media cuenta</span><b class="up">×2,0</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="post" style="--nc:var(--yt); --pg:linear-gradient(150deg,#C99A8A,#6E3A31)">
+        <div class="ph">
+          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><polygon points="8,5 19,12 8,19"/></svg>
+          <span class="netp">YouTube</span><span class="fmt">Short</span><span class="rank">#4</span>
+        </div>
+        <div class="pb">
+          <div class="pt">Prácticas reales con pacientes — así se vive</div>
+          <div class="pd">21 jun · 17:00</div>
+          <div class="pm">
+            <span>Visualizaciones</span><b>96.000</b>
+            <span>Interacciones</span><b>3.420</b>
+            <span>Suscriptores +</span><b>184</b>
+            <span>CTR</span><b>5,2%</b>
+            <span>Engagement</span><b class="er">3,6%</b>
+            <span>vs. media cuenta</span><b class="up">×1,8</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="post" style="--nc:var(--ig); --pg:linear-gradient(150deg,#B4A6C9,#4A3A6E)">
+        <div class="ph">
+          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/></svg>
+          <span class="netp">Instagram</span><span class="fmt">Carrusel</span><span class="rank">#5</span>
+        </div>
+        <div class="pb">
+          <div class="pt">Testimonio alumna: de médico general a estética</div>
+          <div class="pd">30 jun · 13:22</div>
+          <div class="pm">
+            <span>Alcance</span><b>74.000</b>
+            <span>Interacciones</span><b>2.910</b>
+            <span>Guardados</span><b>980</b>
+            <span>Compartidos</span><b>310</b>
+            <span>Engagement</span><b class="er">3,9%</b>
+            <span>vs. media cuenta</span><b class="up">×1,5</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="post" style="--nc:var(--li); --pg:linear-gradient(150deg,#8FA8BE,#2E4A66)">
+        <div class="ph">
+          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><rect x="2.5" y="6" width="19" height="14" rx="2.5"/><circle cx="12" cy="13" r="4"/><path d="M8 6l1.5-2.5h5L16 6"/></svg>
+          <span class="netp">LinkedIn</span><span class="fmt">Imagen</span><span class="rank">#6</span>
+        </div>
+        <div class="pb">
+          <div class="pt">Nueva edición del Experto Universitario</div>
+          <div class="pd">24 jun · 09:10</div>
+          <div class="pm">
+            <span>Impresiones</span><b>18.400</b>
+            <span>Interacciones</span><b>820</b>
+            <span>Clics al enlace</span><b>96</b>
+            <span>Compartidos</span><b>44</b>
+            <span>Engagement</span><b class="er">4,5%</b>
+            <span>vs. media cuenta</span><b class="up">×1,3</b>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <p class="sub" style="margin:14px 0 0">En la versión con datos en vivo: <b>todas</b> las publicaciones del periodo (con paginación), cada tarjeta muestra la <b>miniatura real del post</b> que devuelve Metricool y enlaza a la publicación original. Los filtros de red, formato y orden funcionan sobre los datos en vivo.</p>
+  </div>
+
+  <!-- ---- rendimiento por formato ---- -->
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel tblwrap">
+      <h3>Rendimiento por formato</h3>
+      <p class="sub">Qué tipo de contenido rinde más por unidad publicada — la tabla clave para decidir el mix del mes siguiente</p>
+      <table class="data" style="min-width:560px">
+        <thead><tr><th>Formato</th><th class="num">Publicadas</th><th class="num">Alcance medio</th><th class="num">Interacc. media</th><th class="num">ER medio</th><th class="num">% del alcance total</th></tr></thead>
+        <tbody>
+          <tr><td>Reel / Vídeo corto</td><td class="num">20</td><td class="num">124.400</td><td class="num">4.610</td><td class="num"><b class="er">3,8%</b></td><td class="num"><span class="bar" style="width:76px"></span>61%</td></tr>
+          <tr><td>Carrusel</td><td class="num">9</td><td class="num">41.200</td><td class="num">1.480</td><td class="num">3,1%</td><td class="num"><span class="bar" style="width:24px"></span>19%</td></tr>
+          <tr><td>Imagen</td><td class="num">14</td><td class="num">22.600</td><td class="num">540</td><td class="num">2,0%</td><td class="num"><span class="bar" style="width:15px"></span>12%</td></tr>
+          <tr><td>Story</td><td class="num">26</td><td class="num">6.100</td><td class="num">120</td><td class="num">1,1%</td><td class="num"><span class="bar" style="width:10px"></span>8%</td></tr>
+          <tr class="total"><td>Total</td><td class="num">69</td><td class="num">—</td><td class="num">—</td><td class="num">2,54%</td><td class="num">100%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h3>Mejores horas para publicar</h3>
+      <p class="sub">Instagram · audiencia activa según Metricool</p>
+      <div class="heat">
+        <span class="hh"></span><span class="hd">L</span><span class="hd">M</span><span class="hd">X</span><span class="hd">J</span><span class="hd">V</span><span class="hd">S</span><span class="hd">D</span>
+        <span class="hh">9 h</span><span class="cell c1"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell"></span><span class="cell"></span>
+        <span class="hh">13 h</span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell c1"></span>
+        <span class="hh">17 h</span><span class="cell c2"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c1"></span>
+        <span class="hh">20 h</span><span class="cell c3"></span><span class="cell c4"></span><span class="cell c3"></span><span class="cell c4"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c2"></span>
+        <span class="hh">22 h</span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell c1"></span>
+      </div>
+      <p class="sub" style="margin:12px 0 0">Mejor franja: <b style="color:var(--teal)">martes y jueves, 20–21 h</b>. El 71% de tus posts con ER &gt; 3% se publicaron en franjas oscuras.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 4 · SEGUIDORES -->
+  <!-- ============================================================ -->
+  <h2 class="sec"><span class="prio">4</span>Seguidores — evolución <small>comunidad por día, altas netas diarias y ritmo semanal</small></h2>
+
+  <div class="panel">
+    <h3>Comunidad total por día</h3>
+    <p class="sub">Últimos 30 días · todas las redes de eimec.es · arriba la comunidad acumulada, abajo las altas netas de cada día (altas − bajas)</p>
+    <svg viewBox="0 0 700 300" width="100%" role="img" aria-label="Comunidad total por día y altas netas diarias">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="40" y1="73" x2="660" y2="73"/><line x1="40" y1="108" x2="660" y2="108"/>
+        <line x1="40" y1="143" x2="660" y2="143"/><line x1="40" y1="179" x2="660" y2="179"/>
+      </g>
+      <g font-size="10.5" fill="var(--muted)">
+        <text x="0" y="77">128,0k</text><text x="0" y="112">127,5k</text>
+        <text x="0" y="147">127,0k</text><text x="0" y="183">126,5k</text>
+      </g>
+      <path d="M40,193 L84,187 L128,182 L172,175 L216,163 L260,158 L304,153 L348,142 L392,119 L436,112 L480,104 L524,88 L568,80 L612,57 L656,42 L656,205 L40,205 Z"
+            fill="var(--teal)" opacity="0.13"/>
+      <path d="M40,193 L84,187 L128,182 L172,175 L216,163 L260,158 L304,153 L348,142 L392,119 L436,112 L480,104 L524,88 L568,80 L612,57 L656,42"
+            fill="none" stroke="var(--teal)" stroke-width="3"/>
+      <circle cx="656" cy="42" r="4.5" fill="var(--teal)"/>
+      <g font-size="11.5" fill="var(--ink)" font-weight="700">
+        <text x="596" y="30">128.430</text>
+      </g>
+      <g font-size="10.5" fill="var(--muted)">
+        <text x="40" y="222">13 jun</text><text x="330" y="222">28 jun</text><text x="625" y="222">13 jul</text>
+      </g>
+      <g fill="var(--teal-soft)">
+        <rect x="76" y="275" width="16" height="15" rx="2"/>
+        <rect x="120" y="277" width="16" height="13" rx="2"/>
+        <rect x="164" y="272" width="16" height="18" rx="2"/>
+        <rect x="208" y="259" width="16" height="31" rx="2"/>
+        <rect x="252" y="275" width="16" height="15" rx="2"/>
+        <rect x="296" y="279" width="16" height="11" rx="2"/>
+        <rect x="340" y="261" width="16" height="29" rx="2"/>
+        <rect x="384" y="230" width="16" height="60" rx="2" fill="var(--teal)"/>
+        <rect x="428" y="274" width="16" height="16" rx="2"/>
+        <rect x="472" y="270" width="16" height="20" rx="2"/>
+        <rect x="516" y="248" width="16" height="42" rx="2"/>
+        <rect x="560" y="268" width="16" height="22" rx="2"/>
+        <rect x="604" y="232" width="16" height="58" rx="2" fill="var(--teal)"/>
+        <rect x="648" y="252" width="16" height="38" rx="2"/>
+      </g>
+      <g font-size="10.5" fill="var(--muted)">
+        <text x="40" y="250">altas netas/día</text>
+        <text x="371" y="226" fill="var(--teal)" font-weight="700">+330 · Reel #3</text>
+        <text x="580" y="228" fill="var(--teal)" font-weight="700">+320 · Reel #1</text>
+      </g>
+    </svg>
+    <div class="legend">
+      <span><i style="background:var(--teal)"></i>Comunidad acumulada</span>
+      <span><i style="background:var(--teal-soft)"></i>Altas netas por día</span>
+      <span style="margin-left:auto">Total del periodo: <b class="up">+2.140</b> · mejor día: <b>+330</b> · peor día: <b>+38</b></span>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel">
+      <h3>Nuevos seguidores por semana</h3>
+      <p class="sub">8 semanas · en gris el periodo anterior, en turquesa el actual</p>
+      <svg viewBox="0 0 640 240" width="100%" role="img" aria-label="Nuevos seguidores por semana">
+        <line x1="20" y1="200" x2="630" y2="200" stroke="var(--line)" stroke-width="1.5"/>
+        <line x1="20" y1="98" x2="630" y2="98" stroke="var(--blue)" stroke-width="1.5" stroke-dasharray="6 5" opacity=".6"/>
+        <text x="20" y="92" font-size="10.5" fill="var(--blue)">media actual: +535/sem</text>
+        <g>
+          <rect x="30" y="107" width="50" height="93" rx="4" fill="var(--muted)" opacity=".35"/>
+          <rect x="106" y="99" width="50" height="101" rx="4" fill="var(--muted)" opacity=".35"/>
+          <rect x="182" y="127" width="50" height="73" rx="4" fill="var(--muted)" opacity=".35"/>
+          <rect x="258" y="72" width="50" height="128" rx="4" fill="var(--muted)" opacity=".35"/>
+          <rect x="334" y="86" width="50" height="114" rx="4" fill="var(--teal)"/>
+          <rect x="410" y="50" width="50" height="150" rx="4" fill="var(--teal)"/>
+          <rect x="486" y="67" width="50" height="133" rx="4" fill="var(--teal)"/>
+          <rect x="562" y="56" width="50" height="144" rx="4" fill="var(--teal)"/>
+        </g>
+        <g font-size="11.5" font-weight="700" fill="var(--ink)" text-anchor="middle">
+          <text x="55" y="100">+380</text><text x="131" y="92">+410</text><text x="207" y="120">+295</text><text x="283" y="65">+520</text>
+          <text x="359" y="79">+465</text><text x="435" y="43">+610</text><text x="511" y="60">+540</text><text x="587" y="49">+585</text>
+        </g>
+        <g font-size="10.5" fill="var(--muted)" text-anchor="middle">
+          <text x="55" y="216">18 may</text><text x="131" y="216">25 may</text><text x="207" y="216">1 jun</text><text x="283" y="216">8 jun</text>
+          <text x="359" y="216">15 jun</text><text x="435" y="216">22 jun</text><text x="511" y="216">29 jun</text><text x="587" y="216">6 jul</text>
+        </g>
+      </svg>
+      <p class="sub" style="margin:10px 0 0">Media semanal: <b class="up">+535</b> vs. <b>+401</b> del periodo anterior (<b class="up">+33%</b>). 3 de las 4 semanas actuales superan la mejor semana del periodo previo.</p>
+    </div>
+    <div class="panel">
+      <h3>Crecimiento por red</h3>
+      <p class="sub">Balance neto del periodo (altas − bajas)</p>
+      <svg viewBox="0 0 360 220" width="100%" role="img" aria-label="Barras de crecimiento de seguidores por red">
+        <g font-size="12" fill="var(--muted)" font-family="inherit">
+          <text x="0" y="30">Instagram</text><rect x="86" y="18" width="190" height="16" rx="3" fill="var(--ig)" opacity=".9"/><text x="284" y="30" fill="var(--ink)" font-weight="700">+1.240</text>
+          <text x="0" y="62">TikTok</text><rect x="86" y="50" width="132" height="16" rx="3" fill="var(--tt)" opacity=".9"/><text x="226" y="62" fill="var(--ink)" font-weight="700">+860</text>
+          <text x="0" y="94">YouTube</text><rect x="86" y="82" width="52" height="16" rx="3" fill="var(--yt)" opacity=".9"/><text x="146" y="94" fill="var(--ink)" font-weight="700">+310</text>
+          <text x="0" y="126">LinkedIn</text><rect x="86" y="114" width="38" height="16" rx="3" fill="var(--li)" opacity=".9"/><text x="132" y="126" fill="var(--ink)" font-weight="700">+180</text>
+          <text x="0" y="158">Facebook</text><rect x="86" y="146" width="24" height="16" rx="3" fill="var(--fb)" opacity=".9"/><text x="118" y="158" fill="var(--ink)" font-weight="700">+95</text>
+          <text x="0" y="190">GBP*</text><rect x="86" y="178" width="12" height="16" rx="3" fill="var(--gbp)" opacity=".9"/><text x="106" y="190" fill="var(--ink)" font-weight="700">+41</text>
+        </g>
+      </svg>
+      <p class="sub" style="margin:8px 0 0">* Google Business Profile: reseñas nuevas en el periodo. Instagram aporta el 58% del crecimiento; TikTok el 40% con la mitad de publicaciones.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 5 · ALCANCE E INTERACCIONES -->
+  <!-- ============================================================ -->
+  <h2 class="sec"><span class="prio">5</span>Alcance e interacciones por día</h2>
+  <div class="panel">
+    <p class="sub">Últimos 30 días · suma de todas las redes · los picos coinciden con los Reels #1 y #3</p>
+    <svg viewBox="0 0 640 220" width="100%" role="img" aria-label="Gráfico de alcance e interacciones por día">
+      <g stroke="var(--line)" stroke-width="1">
+        <line x1="0" y1="55" x2="640" y2="55"/><line x1="0" y1="110" x2="640" y2="110"/><line x1="0" y1="165" x2="640" y2="165"/>
+      </g>
+      <path d="M0,170 L45,150 L90,158 L135,120 L180,132 L225,96 L270,118 L315,84 L360,100 L405,64 L450,92 L495,52 L540,74 L585,40 L640,58 L640,220 L0,220 Z"
+            fill="var(--teal)" opacity="0.14"/>
+      <path d="M0,170 L45,150 L90,158 L135,120 L180,132 L225,96 L270,118 L315,84 L360,100 L405,64 L450,92 L495,52 L540,74 L585,40 L640,58"
+            fill="none" stroke="var(--teal)" stroke-width="2.5"/>
+      <path d="M0,196 L45,190 L90,193 L135,180 L180,186 L225,172 L270,181 L315,166 L360,175 L405,158 L450,170 L495,152 L540,163 L585,146 L640,155"
+            fill="none" stroke="var(--blue)" stroke-width="2" stroke-dasharray="5 4"/>
+      <circle cx="495" cy="52" r="4" fill="var(--teal)"/><circle cx="585" cy="40" r="4" fill="var(--teal)"/>
+      <g font-size="11" fill="var(--muted)"><text x="470" y="40">Reel #3</text><text x="560" y="28">Reel #1</text></g>
+    </svg>
+    <div class="legend">
+      <span><i style="background:var(--teal)"></i>Alcance</span>
+      <span><i style="background:var(--blue)"></i>Interacciones</span>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6 · DETALLE POR RED -->
+  <!-- ============================================================ -->
+  <h2 class="sec"><span class="prio">6</span>Detalle por red <small>ficha completa de cada canal</small></h2>
+  <div class="nets">
+    <div class="net" style="--nc:var(--ig)">
+      <div class="n-head"><div class="dot">IG</div><div><div class="n-name">Instagram</div><div class="n-handle">@eimec.es</div></div></div>
+      <table>
+        <tr><td>Seguidores</td><td>68.410 <span class="n-dif up">+1.240</span></td></tr>
+        <tr><td>Alcance</td><td>1,12 M</td></tr>
+        <tr><td>Interacciones</td><td>31.200</td></tr>
+        <tr><td>Engagement</td><td>2,8%</td></tr>
+        <tr><td>Posts / Reels / Stories</td><td>12 / 9 / 26</td></tr>
+      </table>
+    </div>
+    <div class="net" style="--nc:var(--tt)">
+      <div class="n-head"><div class="dot">TT</div><div><div class="n-name">TikTok</div><div class="n-handle">@eimec</div></div></div>
+      <table>
+        <tr><td>Seguidores</td><td>24.900 <span class="n-dif up">+860</span></td></tr>
+        <tr><td>Visualizaciones</td><td>486.000</td></tr>
+        <tr><td>Interacciones</td><td>9.340</td></tr>
+        <tr><td>Engagement</td><td>1,9%</td></tr>
+        <tr><td>Vídeos publicados</td><td>11</td></tr>
+      </table>
+    </div>
+    <div class="net" style="--nc:var(--yt)">
+      <div class="n-head"><div class="dot">YT</div><div><div class="n-name">YouTube</div><div class="n-handle">EIMEC</div></div></div>
+      <table>
+        <tr><td>Suscriptores</td><td>12.150 <span class="n-dif up">+310</span></td></tr>
+        <tr><td>Visualizaciones</td><td>96.400</td></tr>
+        <tr><td>Horas de visionado</td><td>4.120</td></tr>
+        <tr><td>Vídeos / Shorts</td><td>3 / 8</td></tr>
+        <tr><td>CTR impresiones</td><td>4,6%</td></tr>
+      </table>
+    </div>
+    <div class="net" style="--nc:var(--fb)">
+      <div class="n-head"><div class="dot">FB</div><div><div class="n-name">Facebook</div><div class="n-handle">EIMEC Formación</div></div></div>
+      <table>
+        <tr><td>Seguidores</td><td>19.870 <span class="n-dif up">+95</span></td></tr>
+        <tr><td>Alcance</td><td>210.000</td></tr>
+        <tr><td>Interacciones</td><td>3.850</td></tr>
+        <tr><td>Engagement</td><td>1,8%</td></tr>
+        <tr><td>Publicaciones</td><td>14</td></tr>
+      </table>
+    </div>
+    <div class="net" style="--nc:var(--li)">
+      <div class="n-head"><div class="dot">IN</div><div><div class="n-name">LinkedIn</div><div class="n-handle">EIMEC</div></div></div>
+      <table>
+        <tr><td>Seguidores</td><td>3.060 <span class="n-dif up">+180</span></td></tr>
+        <tr><td>Impresiones</td><td>41.200</td></tr>
+        <tr><td>Interacciones</td><td>1.480</td></tr>
+        <tr><td>Engagement</td><td>3,6%</td></tr>
+        <tr><td>Publicaciones</td><td>6</td></tr>
+      </table>
+    </div>
+    <div class="net" style="--nc:var(--gbp)">
+      <div class="n-head"><div class="dot">G</div><div><div class="n-name">Google Business</div><div class="n-handle">EIMEC · ficha</div></div></div>
+      <table>
+        <tr><td>Visitas a la ficha</td><td>8.900</td></tr>
+        <tr><td>Búsquedas</td><td>12.400</td></tr>
+        <tr><td>Clics a la web</td><td>640</td></tr>
+        <tr><td>Llamadas</td><td>112</td></tr>
+        <tr><td>Reseñas nuevas · media</td><td>41 · 4,8 ★</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7 · COMPARATIVA DE MARCAS -->
+  <!-- ============================================================ -->
+  <h2 class="sec"><span class="prio">7</span>Comparativa de marcas EIMEC <small>las 5 cuentas de Metricool, mismo periodo</small></h2>
+  <div class="panel tblwrap">
+    <table class="data" style="min-width:560px">
+      <thead><tr><th>Marca</th><th class="num">Comunidad</th><th class="num">Crecimiento</th><th class="num">Alcance</th><th class="num">Publicaciones</th><th class="num">Engagement</th></tr></thead>
+      <tbody>
+        <tr><td><span class="avatar">ES</span>eimec.es</td><td class="num">128.430</td><td class="num up">+2.140 (+1,7%)</td><td class="num">1,84 M</td><td class="num">64</td><td class="num">2,5%</td></tr>
+        <tr><td><span class="avatar">CL</span>eimec.clinic</td><td class="num">21.360</td><td class="num up">+410 (+2,0%)</td><td class="num">296.000</td><td class="num">22</td><td class="num">2,1%</td></tr>
+        <tr><td><span class="avatar">TK</span>EIMEC Talks</td><td class="num">4.820</td><td class="num up">+590 (+14,0%)</td><td class="num">88.000</td><td class="num">9</td><td class="num"><b class="er">5,2%</b></td></tr>
+        <tr><td><span class="avatar">ZL</span>Zainela Laborde</td><td class="num">9.140</td><td class="num up">+220 (+2,5%)</td><td class="num">64.000</td><td class="num">12</td><td class="num">3,3%</td></tr>
+        <tr><td><span class="avatar">GL</span>eimec.global</td><td class="num">2.030</td><td class="num up">+160 (+8,6%)</td><td class="num">31.000</td><td class="num">6</td><td class="num">2,9%</td></tr>
+        <tr class="total"><td>Grupo EIMEC</td><td class="num">165.780</td><td class="num up">+3.520 (+2,2%)</td><td class="num">2,32 M</td><td class="num">113</td><td class="num">2,7%</td></tr>
+      </tbody>
+    </table>
+    <p class="sub" style="margin:12px 0 0">EIMEC Talks es la cuenta con mayor velocidad de crecimiento relativo (+14%) y mejor engagement (5,2%): candidata a más inversión de contenido.</p>
+  </div>
+
+  <footer>EIMEC · Informe Social Media · vista previa con datos de ejemplo · los datos e imágenes reales saldrán en vivo de Metricool</footer>
+</div>
+
+</div><!-- /dashboard -->
+
+<script>
+  const PASSWORD = 'social-eimec-2026';
+  const AUTH_KEY = 'social_auth';
+
+  function checkPassword() {
+    const input = document.getElementById('passwordInput');
+    const err = document.getElementById('loginError');
+    if (input.value === PASSWORD) {
+      sessionStorage.setItem(AUTH_KEY, 'true');
+      showDashboard();
+    } else {
+      err.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  function showDashboard() {
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+  }
+
+  if (sessionStorage.getItem(AUTH_KEY) === 'true') {
+    showDashboard();
+  }
+</script>
+</body>
+</html>
