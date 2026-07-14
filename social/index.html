@@ -206,6 +206,7 @@
 
   <h2 class="sec"><span class="prio">1</span>Resumen ejecutivo <small id="sec1sub"></small></h2>
   <div class="kpis" id="kpiRow"></div>
+  <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Engagement por publicación: interacciones ÷ alcance de las publicaciones del periodo (metodología Metricool). Benchmark: mediana del sector salud/educación del estudio anual de Metricool.</p>
 
   <h2 class="sec"><span class="prio">2</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos reales</small></h2>
   <div class="insights" id="insightRow"></div>
@@ -289,6 +290,7 @@ function fmtSigned(n){return (n<0?'−':'+')+fmtInt(Math.abs(n));}
 function fmtSignedPct(n,d){if(d===undefined)d=1;return (n<0?'▼ −':'▲ +')+Math.abs(n).toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';}
 function cls(n){return n<0?'down':'up';}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function jsq(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 var MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 function fmtDayStr(iso){var p=iso.split('-');return parseInt(p[2],10)+' '+MESES[parseInt(p[1],10)-1];}
 function nz(v){return v==null?0:v;}
@@ -320,8 +322,7 @@ function currentWindow(){
 }
 function prevWindow(from,to){
   var len=to-from+1, pf=from-len, pt=from-1;
-  if(pt<0) return null;
-  if(pf<0) pf=0;
+  if(pt<0||pf<0) return null; // sin histórico completo: no comparar ventanas de distinta longitud
   return [pf,pt];
 }
 
@@ -335,12 +336,22 @@ function postsIn(B,f,t){
   });
   return out;
 }
-function pReach(p){return p.reach!=null?p.reach:(p.views!=null?p.views:0);}
-function netReach(Nt,f,t){var s=sumR(Nt.reach,f,t); if(s>0)return s;
+function pReach(p){
+  // Facebook y otros pueden traer reach=0 con views>0: usar views como alcance efectivo
+  if(p.reach&&p.reach>0)return p.reach;
+  if(p.views&&p.views>0)return p.views;
+  return p.reach!=null?p.reach:0;}
+/* La fuente de cada métrica se decide UNA vez por red sobre todo el histórico
+   (flags _dReach/_dInter/_dViews calculados al cargar): así el periodo actual y el
+   previo usan siempre la misma metodología y los gráficos cuadran con los KPI. */
+function netReach(Nt,f,t){
+  if(Nt._dReach) return sumR(Nt.reach,f,t);
   return Nt.posts.reduce(function(a,p){return a+(p.day>=f&&p.day<=t?pReach(p):0);},0);}
-function netInter(Nt,f,t){var s=sumR(Nt.inter,f,t); if(s>0)return s;
+function netInter(Nt,f,t){
+  if(Nt._dInter) return sumR(Nt.inter,f,t);
   return Nt.posts.reduce(function(a,p){return a+(p.day>=f&&p.day<=t?nz(p.inter):0);},0);}
 function netViews(Nt,f,t){return sumR(Nt.views,f,t);}
+function netImp(Nt,f,t){return Nt._dViews?sumR(Nt.views,f,t):netReach(Nt,f,t);}
 function netFollows(Nt,f,t){return sumR(Nt.follows,f,t);}
 function folAt(Nt,i){var v=Nt.followers&&Nt.followers[i]; return v==null?nz(Nt.followersNow):v;}
 
@@ -349,8 +360,8 @@ function periodStats(B,f,t){
   st.reach=0; st.imp=0; st.inter=0; st.folDelta=0; st.communityEnd=0;
   brandNets(B).forEach(function(n){
     var Nt=B.nets[n];
-    var r=netReach(Nt,f,t), v=netViews(Nt,f,t);
-    st.reach+=r; st.imp+=(v>0?v:r);
+    st.reach+=netReach(Nt,f,t);
+    st.imp+=netImp(Nt,f,t);
     st.inter+=netInter(Nt,f,t);
     st.folDelta+=netFollows(Nt,f,t);
     st.communityEnd+=folAt(Nt,t);
@@ -360,18 +371,30 @@ function periodStats(B,f,t){
   st.storiesReach=ig?sumR(ig.storiesReach,f,t):0;
   st.pubs=st.posts.length+st.stories;
   st.er=st.reach>0?st.inter/st.reach*100:0;
-  var pi=st.posts.reduce(function(a,p){return a+nz(p.inter);},0);
-  st.interPerPost=st.posts.length?pi/st.posts.length:0;
+  // ER per-post (interacciones/alcance de las publicaciones): metodología Metricool,
+  // comparable con el benchmark; st.er (sobre alcance de cuenta) queda solo como interno.
+  st.pi=st.posts.reduce(function(a,p){return a+nz(p.inter);},0);
+  st.pr=st.posts.reduce(function(a,p){return a+pReach(p);},0);
+  st.erPost=st.pr>0?st.pi/st.pr*100:null;
+  st.interPerPost=st.posts.length?st.pi/st.posts.length:0;
   return st;
 }
 function communityAt(B,i){var s=0;brandNets(B).forEach(function(n){s+=folAt(B.nets[n],i);});return s;}
 function followsDay(B,i){var s=0;brandNets(B).forEach(function(n){s+=nz(B.nets[n].follows&&B.nets[n].follows[i]);});return s;}
-function reachDay(B,i){var s=0;brandNets(B).forEach(function(n){s+=nz(B.nets[n].reach&&B.nets[n].reach[i]);});return s;}
-function interDay(B,i){var s=0;brandNets(B).forEach(function(n){s+=nz(B.nets[n].inter&&B.nets[n].inter[i]);});return s;}
+function reachDay(B,i){var s=0;brandNets(B).forEach(function(n){var Nt=B.nets[n];
+  if(Nt._dReach){s+=nz(Nt.reach&&Nt.reach[i]);}
+  else{Nt.posts.forEach(function(p){if(p.day===i)s+=pReach(p);});}});return s;}
+function interDay(B,i){var s=0;brandNets(B).forEach(function(n){var Nt=B.nets[n];
+  if(Nt._dInter){s+=nz(Nt.inter&&Nt.inter[i]);}
+  else{Nt.posts.forEach(function(p){if(p.day===i)s+=nz(p.inter);});}});return s;}
+function impDay(B,i){var s=0;brandNets(B).forEach(function(n){var Nt=B.nets[n];
+  if(Nt._dViews){s+=nz(Nt.views&&Nt.views[i]);}
+  else if(Nt._dReach){s+=nz(Nt.reach&&Nt.reach[i]);}
+  else{Nt.posts.forEach(function(p){if(p.day===i)s+=pReach(p);});}});return s;}
 
 // ---------------- SVG builders ----------------
-function buckets(f,t,B,fn){
-  var len=t-f+1, nb=Math.min(15,len), out=[], per=len/nb;
+function buckets(f,t,B,fn,nbOpt){
+  var len=t-f+1, nb=Math.min(nbOpt||15,len), out=[], per=len/nb;
   for(var i=0;i<nb;i++){
     var a=f+Math.floor(i*per), b=Math.min(t,f+Math.floor((i+1)*per)-1); if(b<a)b=a;
     var s=0; for(var j=a;j<=b;j++)s+=fn(B,j);
@@ -405,10 +428,13 @@ function svgFollowers(B,f,t){
     var fill=bk.sum<0?'var(--bad)':(i===maxIdx?'var(--teal)':'var(--teal-soft)');
     bars+='<rect x="'+x.toFixed(1)+'" y="'+(290-h).toFixed(1)+'" width="16" height="'+h.toFixed(1)+'" rx="2" fill="'+fill+'"/>';
   });
-  var top=bks[maxIdx], topPost=null;
+  var top=bks[maxIdx], topPost=null, maxDaily=0;
+  for(var di=top.from;di<=top.to;di++){var fv=followsDay(B,di); if(fv>maxDaily)maxDaily=fv;}
   postsIn(B,top.from,top.to).forEach(function(p){if(!topPost||pReach(p)>pReach(topPost))topPost=p;});
-  var annX=Math.min(540,Math.max(150,X(maxIdx)-60));
-  var ann=top.sum>0?'<text x="'+annX+'" y="240" font-size="10.5" fill="var(--teal)" font-weight="700">+'+fmtInt(top.sum)+(topPost?' · '+esc(NETMETA[topPost.net].name+' '+topPost.fmt):'')+'</text>':'';
+  var annX=Math.min(500,Math.max(150,X(maxIdx)-60));
+  // no atribuir a un post los saltos que son correcciones del API (p. ej. TikTok +796 el 4 jun 2026)
+  var annTxt=maxDaily>=300?' · incluye un ajuste del API de Metricool':(topPost?' · '+esc(NETMETA[topPost.net].name+' '+topPost.fmt):'');
+  var ann=top.sum>0?'<text x="'+annX+'" y="240" font-size="10.5" fill="var(--teal)" font-weight="700">+'+fmtInt(top.sum)+annTxt+'</text>':'';
   return '<svg viewBox="0 0 700 300" width="100%" role="img" aria-label="Comunidad por día">'
     +'<g stroke="var(--line)" stroke-width="1">'+g+'</g>'
     +'<g font-size="10.5" fill="var(--muted)">'+lab+'</g>'
@@ -502,9 +528,10 @@ function svgReach(B,f,t){
 
 // ---------------- render ----------------
 function sparkline(vals,color){
+  var L=vals.length;
+  if(L<2)return '<svg viewBox="0 0 140 26" width="100%" height="26"><circle cx="70" cy="13" r="2.6" fill="'+color+'"/></svg>';
   var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals);
   if(max===min)max=min+1;
-  var L=vals.length;
   var pts=vals.map(function(v,i){return (i?'L':'M')+(i*(140/(L-1))).toFixed(1)+','+(24-((v-min)/(max-min))*20+1).toFixed(1);}).join(' ');
   var lastY=(24-((vals[L-1]-min)/(max-min))*20+1).toFixed(1);
   return '<svg viewBox="0 0 140 26" width="100%" height="26"><path d="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2"/><circle cx="140" cy="'+lastY+'" r="2.6" fill="'+color+'"/></svg>';
@@ -515,7 +542,8 @@ function kpiCard(lbl,val,difHTML,spark,subL,subR){
     +'<div class="k-sub"><span>'+subL+'</span><b>'+subR+'</b></div></div>';
 }
 function difHTML(cur,prev,fmtPrev){
-  if(prev==null||prev===0) return '<span class="up">—</span> <span>sin periodo previo</span>';
+  if(prev==null) return '<span class="up">—</span> <span>sin histórico suficiente</span>';
+  if(prev===0) return '<span class="up">—</span> <span>periodo previo sin actividad</span>';
   var d=(cur-prev)/Math.abs(prev)*100;
   return '<span class="'+cls(d)+'">'+fmtSignedPct(d)+'</span> <span>('+fmtPrev+' ant.)</span>';
 }
@@ -526,29 +554,31 @@ function renderKPIs(B,st,pv){
   var cum=bk.map(function(b){return communityAt(B,b.to);});
   var rb=buckets(f,t,B,reachDay).map(function(x){return x.sum;});
   var ib=buckets(f,t,B,interDay).map(function(x){return x.sum;});
+  var vb=buckets(f,t,B,impDay).map(function(x){return x.sum;});
   var html='';
   var base=st.communityEnd-st.folDelta;
   html+=kpiCard('Comunidad total',fmtInt(st.communityEnd),
     '<span class="'+cls(st.folDelta)+'">'+(st.folDelta<0?'▼ ':'▲ ')+fmtSigned(st.folDelta)+'</span> <span>('+(base>0?(st.folDelta<0?'−':'+')+Math.abs(st.folDelta/base*100).toLocaleString('es-ES',{maximumFractionDigits:1})+'%':'—')+')</span>',
     sparkline(cum,'var(--teal)'),'media/día','<span class="'+cls(st.folDelta)+'">'+fmtSigned(st.folDelta/st.days)+'</span>');
-  html+=kpiCard('Alcance',fmtBig(st.reach), pv?difHTML(st.reach,pv.reach,fmtBig(pv.reach)):'<span>—</span>',
+  html+=kpiCard('Alcance',fmtBig(st.reach), difHTML(st.reach,pv?pv.reach:null,pv?fmtBig(pv.reach):''),
     sparkline(rb,'var(--teal)'),'media/día',fmtInt(st.reach/st.days));
-  html+=kpiCard('Impresiones',fmtBig(st.imp), pv?difHTML(st.imp,pv.imp,fmtBig(pv.imp)):'<span>—</span>',
-    sparkline(rb,'var(--teal)'),'sobre alcance',(st.reach>0?(st.imp/st.reach).toLocaleString('es-ES',{maximumFractionDigits:1})+'×':'—'));
+  html+=kpiCard('Impresiones',fmtBig(st.imp), difHTML(st.imp,pv?pv.imp:null,pv?fmtBig(pv.imp):''),
+    sparkline(vb,'var(--teal)'),'sobre alcance',(st.reach>0?(st.imp/st.reach).toLocaleString('es-ES',{maximumFractionDigits:1})+'×':'—'));
   var ippDelta=pv&&pv.interPerPost>0?(st.interPerPost-pv.interPerPost)/pv.interPerPost*100:null;
-  html+=kpiCard('Interacciones',fmtInt(st.inter), pv?difHTML(st.inter,pv.inter,fmtInt(pv.inter)):'<span>—</span>',
+  html+=kpiCard('Interacciones',fmtInt(st.inter), difHTML(st.inter,pv?pv.inter:null,pv?fmtInt(pv.inter):''),
     sparkline(ib,ib[ib.length-1]>=ib[0]?'var(--teal)':'var(--bad)'),
     'por publicación', st.posts.length? fmtInt(st.interPerPost)+(ippDelta!=null?' ('+(ippDelta<0?'−':'+')+Math.abs(ippDelta).toLocaleString('es-ES',{maximumFractionDigits:0})+'%)':'') : '—');
-  var erDelta=pv?st.er-pv.er:null;
-  html+=kpiCard('Engagement',fmtPct(st.er,2),
-    erDelta!=null?'<span class="'+cls(erDelta)+'">'+(erDelta<0?'▼ −':'▲ +')+Math.abs(erDelta).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' pt</span> <span>('+fmtPct(pv.er,2)+' ant.)</span>':'<span>—</span>',
+  var erCur=st.erPost, erPrev=pv?pv.erPost:null;
+  var erDelta=(erCur!=null&&erPrev!=null)?erCur-erPrev:null;
+  html+=kpiCard('Engagement',erCur!=null?fmtPct(erCur,2):'—',
+    erDelta!=null?'<span class="'+cls(erDelta)+'">'+(erDelta<0?'▼ −':'▲ +')+Math.abs(erDelta).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' pt</span> <span>('+fmtPct(erPrev,2)+' ant.)</span>':'<span class="up">—</span> <span>'+(erCur==null?'sin publicaciones':'sin comparable')+'</span>',
     sparkline(ib.map(function(v,i){return rb[i]>0?v/rb[i]:0;}),'var(--teal)'),'benchmark sector*','1,9%');
   var pubsD=pv?st.pubs-pv.pubs:null;
-  var pcs=buckets(f,t,B,function(Bb,i){var c=0;brandNets(Bb).forEach(function(n){Bb.nets[n].posts.forEach(function(p){if(p.day===i)c++;});});return c;}).map(function(x){return x.sum;});
+  var pcs=buckets(f,t,B,function(Bb,i){var c=0;brandNets(Bb).forEach(function(n){Bb.nets[n].posts.forEach(function(p){if(p.day===i)c++;});});return c;},7).map(function(x){return x.sum;});
   var maxpc=Math.max.apply(null,pcs)||1;
-  var barsSvg='<svg viewBox="0 0 140 26" width="100%" height="26"><g fill="var(--teal-soft)">'+pcs.slice(0,7).map(function(v,i){var h=Math.max(2,v/maxpc*22);return '<rect x="'+(4+i*20)+'" y="'+(26-h)+'" width="12" height="'+h+'"/>';}).join('')+'</g></svg>';
+  var barsSvg='<svg viewBox="0 0 140 26" width="100%" height="26"><g fill="var(--teal-soft)">'+pcs.map(function(v,i){var h=Math.max(2,v/maxpc*22);return '<rect x="'+(4+i*20)+'" y="'+(26-h)+'" width="12" height="'+h+'"/>';}).join('')+'</g></svg>';
   html+=kpiCard('Publicaciones',fmtInt(st.pubs),
-    pubsD!=null?'<span class="'+cls(pubsD)+'">'+(pubsD<0?'▼ ':'▲ ')+fmtSigned(pubsD)+'</span> <span>vs. '+fmtInt(pv.pubs)+'</span>':'<span>—</span>',
+    pubsD!=null?'<span class="'+cls(pubsD)+'">'+(pubsD<0?'▼ ':'▲ ')+fmtSigned(pubsD)+'</span> <span>vs. '+fmtInt(pv.pubs)+'</span>':'<span class="up">—</span> <span>sin histórico suficiente</span>',
     barsSvg,'ritmo',(st.pubs/st.days).toLocaleString('es-ES',{maximumFractionDigits:1})+' / día');
   document.getElementById('kpiRow').innerHTML=html;
 }
@@ -608,12 +638,12 @@ function renderInsights(B,st,pv,wk){
       'Sugerencia: reciclar ahí las piezas ganadoras de otras redes en lugar de crear contenido propio.'));
   }
   var bm=1.9;
-  if(st.reach>0){
-    if(st.er>bm) cards.push(insightCard('Fortaleza','var(--good)',
-      'Engagement '+fmtPct(st.er,2)+': un '+fmtPct((st.er-bm)/bm*100,0)+' por encima del benchmark del sector',
-      'La comunidad responde mejor que la media de salud/educación ('+fmtPct(bm)+'). El margen está en el alcance, no en la calidad.'));
+  if(st.erPost!=null){
+    if(st.erPost>bm) cards.push(insightCard('Fortaleza','var(--good)',
+      'Engagement '+fmtPct(st.erPost,2)+': un '+fmtPct((st.erPost-bm)/bm*100,0)+' por encima del benchmark del sector',
+      'Las publicaciones del periodo generan más interacción por persona alcanzada que la media de salud/educación ('+fmtPct(bm)+'). El margen de mejora está en el alcance, no en la calidad.'));
     else cards.push(insightCard('Alerta','var(--bad)',
-      'Engagement '+fmtPct(st.er,2)+': por debajo del benchmark del sector ('+fmtPct(bm)+')',
+      'Engagement '+fmtPct(st.erPost,2)+': por debajo del benchmark del sector ('+fmtPct(bm)+')',
       'Revisar el mix de formatos: más peso a los formatos con mejor ER del periodo y menos contenido de bajo rendimiento.'));
   }
   if(wk&&wk.info.avgPrev!==0){
@@ -654,7 +684,7 @@ function renderGalleryFilters(B){
   html+='<span class="sep"></span><span class="lbl">Formato</span>';
   html+='<span class="chip'+(g.fmt==='all'?' on':'')+'" onclick="setGal(\'fmt\',\'all\')">Todos</span>';
   brandFormats(B).forEach(function(fm){
-    html+='<span class="chip'+(g.fmt===fm?' on':'')+'" onclick="setGal(\'fmt\',\''+esc(fm)+'\')">'+esc(fm)+'</span>';
+    html+='<span class="chip'+(g.fmt===fm?' on':'')+'" onclick="setGal(\'fmt\',\''+esc(jsq(fm))+'\')">'+esc(fm)+'</span>';
   });
   html+='<span class="sep"></span><span class="lbl">Ordenar</span>';
   [['inter','Interacciones'],['reach','Alcance'],['er','Engagement'],['date','Fecha']].forEach(function(o){
@@ -665,20 +695,25 @@ function renderGalleryFilters(B){
 
 function renderGallery(B,st){
   var g=state.gal, all=st.posts.slice();
-  var avgInter=all.length?all.reduce(function(a,p){return a+nz(p.inter);},0)/all.length:0;
-  var byInter=all.slice().sort(function(a,b){return nz(b.inter)-nz(a.inter);});
-  var rankMap=new Map(); byInter.forEach(function(p,i){rankMap.set(p,i+1);});
-  var list=all.filter(function(p){return (g.net==='all'||p.net===g.net)&&(g.fmt==='all'||p.fmt===g.fmt);});
+  // media de interacciones POR RED (comparar un Short de YouTube contra la media de Instagram no informa)
+  var netAgg={};
+  all.forEach(function(p){var a=netAgg[p.net]||(netAgg[p.net]={n:0,inter:0}); a.n++; a.inter+=nz(p.inter);});
   var sorters={
     inter:function(a,b){return nz(b.inter)-nz(a.inter);},
     reach:function(a,b){return pReach(b)-pReach(a);},
     er:function(a,b){return nz(b.er)-nz(a.er);},
     date:function(a,b){return b.day-a.day;}};
+  // el ranking sigue el criterio de orden activo (por fecha se rankea por interacciones)
+  var rankCrit=g.sort==='date'?'inter':g.sort;
+  var rankLbl={inter:'interacciones',reach:'alcance',er:'engagement'}[rankCrit];
+  var ranked=all.slice().sort(sorters[rankCrit]);
+  var rankMap=new Map(); ranked.forEach(function(p,i){rankMap.set(p,i+1);});
+  var list=all.filter(function(p){return (g.net==='all'||p.net===g.net)&&(g.fmt==='all'||p.fmt===g.fmt);});
   list.sort(sorters[g.sort]);
   var shown=list.slice(0,g.limit);
   var html=shown.map(function(p){
     var nm=NETMETA[p.net];
-    var reachVal=(p.net==='tt'||p.net==='yt')?(p.views!=null?p.views:p.reach):(p.reach!=null?p.reach:p.views);
+    var reachVal=(p.net==='tt'||p.net==='yt')?(p.views!=null&&p.views>0?p.views:pReach(p)):pReach(p);
     var img=p.image?'<img src="'+esc(p.image)+'" loading="lazy" alt="" onerror="this.remove()">':'';
     var play=VIDEO_FMTS[p.fmt]?'<span class="playov"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><polygon points="8,5 19,12 8,19"/></svg></span>':'';
     var row3=p.saves!=null?['Guardados',fmtInt(p.saves)]:(p.likes!=null?['Me gusta',fmtInt(p.likes)]:['Comentarios',dash(p.comments)]);
@@ -688,7 +723,7 @@ function renderGallery(B,st){
       +'<div class="ph"><svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4">'+iconFor(p.fmt)+'</svg>'
       +img
       +'<span class="netp">'+nm.name+'</span><span class="fmt">'+esc(p.fmt)+'</span>'
-      +'<span class="rank">#'+rankMap.get(p)+'</span>'+play+'</div>'
+      +'<span class="rank" title="Top del periodo por '+rankLbl+'">#'+rankMap.get(p)+'</span>'+play+'</div>'
       +'<div class="pb"><div class="pt">'+esc(p.title)+'</div>'
       +'<div class="pd">'+fmtDayStr(DAYS[p.day])+(p.time?' · '+esc(p.time):'')+'</div>'
       +'<div class="pm">'
@@ -697,7 +732,8 @@ function renderGallery(B,st){
       +'<span>'+row3[0]+'</span><b>'+row3[1]+'</b>'
       +'<span>'+row4[0]+'</span><b>'+row4[1]+'</b>'
       +'<span>Engagement</span><b class="er">'+(er!=null?fmtPct(er):'—')+'</b>'
-      +'<span>vs. media cuenta</span><b class="'+(nz(p.inter)>=avgInter?'up':'down')+'">'+(avgInter>0?'×'+(nz(p.inter)/avgInter).toLocaleString('es-ES',{maximumFractionDigits:1}):'—')+'</b>'
+      +(function(){var a=netAgg[p.net],avgNet=a&&a.n?a.inter/a.n:0;
+        return '<span>vs. media de su red</span><b class="'+(nz(p.inter)>=avgNet?'up':'down')+'">'+(avgNet>0?'×'+(nz(p.inter)/avgNet).toLocaleString('es-ES',{maximumFractionDigits:1}):'—')+'</b>';})()
       +'</div></div></a>';
   }).join('');
   if(!shown.length) html='<div class="empty">No hay publicaciones con este filtro en el periodo seleccionado.</div>';
@@ -729,11 +765,11 @@ function renderFormatTable(B,st){
       +'<td class="num">'+(er!=null?(i===0?'<b class="er">'+fmtPct(er)+'</b>':fmtPct(er)):'—')+'</td>'
       +'<td class="num"><span class="bar" style="width:'+w.toFixed(0)+'px"></span>'+fmtPct(share,0)+'</td></tr>';
   });
-  html+='<tr class="total"><td>Total</td><td class="num">'+totN+'</td><td class="num">—</td><td class="num">—</td><td class="num">'+fmtPct(st.er,2)+'</td><td class="num">100%</td></tr></tbody></table>';
+  html+='<tr class="total"><td>Total</td><td class="num">'+totN+'</td><td class="num">—</td><td class="num">—</td><td class="num">'+(st.erPost!=null?fmtPct(st.erPost,2):'—')+'</td><td class="num">100%</td></tr></tbody></table>';
   document.getElementById('fmtTable').innerHTML=html;
 }
 
-var BANDS=[[8,10,'8–10 h'],[11,13,'11–13 h'],[14,16,'14–16 h'],[17,19,'17–19 h'],[20,23,'20–23 h']];
+var BANDS=[[0,7,'0–7 h'],[8,10,'8–10 h'],[11,13,'11–13 h'],[14,16,'14–16 h'],[17,19,'17–19 h'],[20,23,'20–23 h']];
 var DAYNAMES=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
 function renderHeat(B){
   var cells=B.bestTimes||[];
@@ -772,7 +808,12 @@ function renderNetCards(B,st){
     var Nt=B.nets[n], nm=NETMETA[n];
     var ps=st.posts.filter(function(p){return p.net===n;});
     var reach=netReach(Nt,f,t), inter=netInter(Nt,f,t);
-    var er=reach>0?inter/reach*100:0;
+    // ER per-post (metodología Metricool) cuando hay publicaciones; si no, sobre las series diarias
+    var ppr=ps.reduce(function(a,p){return a+pReach(p);},0);
+    var ppi=ps.reduce(function(a,p){return a+nz(p.inter);},0);
+    var er=ppr>0?ppi/ppr*100:(reach>0?inter/reach*100:0);
+    // tt/yt: la fila se llama "Visualizaciones" — mostrar views (con fallback a reach=videoViews en YT)
+    var reachShown=(n==='tt'||n==='yt')?(function(){var v=netViews(Nt,f,t);return v>0?v:reach;})():reach;
     var fol=netFollows(Nt,f,t);
     var pubsRow=(n==='ig'&&st.stories>0)
       ?'<tr><td>Publicaciones / Stories</td><td>'+ps.length+' / '+st.stories+'</td></tr>'
@@ -781,7 +822,7 @@ function renderNetCards(B,st){
       +'<div class="n-head"><div class="dot">'+nm.abbr+'</div><div><div class="n-name">'+nm.name+'</div><div class="n-handle">'+esc(Nt.handle||'')+'</div></div></div>'
       +'<table>'
       +'<tr><td>'+nm.folLbl+'</td><td>'+fmtInt(nz(Nt.followersNow))+' <span class="n-dif '+cls(fol)+'">'+fmtSigned(fol)+'</span></td></tr>'
-      +'<tr><td>'+nm.reachLbl+'</td><td>'+fmtBig(reach)+'</td></tr>'
+      +'<tr><td>'+nm.reachLbl+'</td><td>'+fmtBig(reachShown)+'</td></tr>'
       +'<tr><td>Interacciones</td><td>'+fmtInt(inter)+'</td></tr>'
       +'<tr><td>Engagement</td><td>'+fmtPct(er)+'</td></tr>'
       +pubsRow
@@ -811,14 +852,26 @@ function renderBrandTable(f,t){
     var base=st.communityEnd-st.folDelta;
     return {k:k,B:B,st:st,pct:base>0?st.folDelta/base*100:0};
   });
-  var tot={com:0,fol:0,reach:0,pubs:0,inter:0};
-  rows.forEach(function(r){tot.com+=r.st.communityEnd;tot.fol+=r.st.folDelta;tot.reach+=r.st.reach;tot.pubs+=r.st.pubs;tot.inter+=r.st.inter;});
-  var withEr=rows.filter(function(r){return r.st.reach>0;});
-  var bestEr=withEr.slice().sort(function(a,b){return b.st.er-a.st.er;})[0];
+  // total del grupo: eimec.es y eimec.global comparten canal de YouTube — se cuenta UNA sola vez
+  var tot={com:0,fol:0,reach:0,pubs:0,pi:0,pr:0};
+  rows.forEach(function(r){
+    var st=r.st;
+    var dCom=st.communityEnd, dFol=st.folDelta, dReach=st.reach, dPubs=st.pubs, dPi=st.pi, dPr=st.pr;
+    if(r.k==='eimec.global'&&r.B.nets.yt&&DATA.brands['eimec.es']&&DATA.brands['eimec.es'].nets.yt){
+      var Y=r.B.nets.yt;
+      dCom-=folAt(Y,t); dFol-=netFollows(Y,f,t); dReach-=netReach(Y,f,t);
+      var yps=st.posts.filter(function(p){return p.net==='yt';});
+      dPubs-=yps.length;
+      yps.forEach(function(p){dPi-=nz(p.inter); dPr-=pReach(p);});
+    }
+    tot.com+=dCom; tot.fol+=dFol; tot.reach+=dReach; tot.pubs+=dPubs; tot.pi+=dPi; tot.pr+=dPr;
+  });
+  var withEr=rows.filter(function(r){return r.st.erPost!=null;});
+  var bestEr=withEr.slice().sort(function(a,b){return b.st.erPost-a.st.erPost;})[0];
   var bestGrowth=rows.slice().sort(function(a,b){return b.pct-a.pct;})[0];
   var html='<table class="data" style="min-width:560px"><thead><tr><th>Marca</th><th class="num">Comunidad</th><th class="num">Crecimiento</th><th class="num">Alcance</th><th class="num">Publicaciones</th><th class="num">Engagement</th></tr></thead><tbody>';
   rows.forEach(function(r){
-    var erCell=r.st.reach>0?((bestEr&&r.k===bestEr.k)?'<b class="er">'+fmtPct(r.st.er)+'</b>':fmtPct(r.st.er)):'—';
+    var erCell=r.st.erPost!=null?((bestEr&&r.k===bestEr.k)?'<b class="er">'+fmtPct(r.st.erPost)+'</b>':fmtPct(r.st.erPost)):'—';
     html+='<tr><td><span class="avatar">'+esc(r.B.avatar)+'</span>'+esc(r.k)+'</td>'
       +'<td class="num">'+fmtInt(r.st.communityEnd)+'</td>'
       +'<td class="num '+cls(r.st.folDelta)+'">'+fmtSigned(r.st.folDelta)+' ('+(r.st.folDelta<0?'−':'+')+Math.abs(r.pct).toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</td>'
@@ -830,13 +883,13 @@ function renderBrandTable(f,t){
   html+='<tr class="total"><td>Grupo EIMEC</td><td class="num">'+fmtInt(tot.com)+'</td>'
     +'<td class="num '+cls(tot.fol)+'">'+fmtSigned(tot.fol)+' ('+(tot.fol<0?'−':'+')+(totBase>0?Math.abs(tot.fol/totBase*100).toLocaleString('es-ES',{maximumFractionDigits:1}):'0')+'%)</td>'
     +'<td class="num">'+fmtBig(tot.reach)+'</td><td class="num">'+fmtInt(tot.pubs)+'</td>'
-    +'<td class="num">'+fmtPct(tot.reach>0?tot.inter/tot.reach*100:0)+'</td></tr>';
+    +'<td class="num">'+(tot.pr>0?fmtPct(tot.pi/tot.pr*100):'—')+'</td></tr>';
   html+='</tbody></table>';
   document.getElementById('brandTable').innerHTML=html;
   document.getElementById('brandNote').innerHTML=
     (bestGrowth?'<b>'+esc(bestGrowth.k)+'</b> es la cuenta con mayor crecimiento relativo ('+fmtSigned(bestGrowth.st.folDelta)+', '+(bestGrowth.st.folDelta<0?'−':'+')+Math.abs(bestGrowth.pct).toLocaleString('es-ES',{maximumFractionDigits:1})+'%)':'')
-    +(bestEr?' y <b>'+esc(bestEr.k)+'</b> la de mejor engagement ('+fmtPct(bestEr.st.er)+').':'.')
-    +' Nota: eimec.es y eimec.global comparten el mismo canal de YouTube, por lo que sus suscriptores aparecen en ambas filas.';
+    +(bestEr?' y <b>'+esc(bestEr.k)+'</b> la de mejor engagement ('+fmtPct(bestEr.st.erPost)+').':'.')
+    +' Nota: eimec.es y eimec.global comparten el mismo canal de YouTube; aparece en ambas filas pero en el total del grupo se cuenta una sola vez.';
 }
 
 // ---------------- render principal ----------------
@@ -850,7 +903,7 @@ function renderAll(){
 
   var tabs='';
   orderedBrands().forEach(function(k){
-    tabs+='<div class="tab'+(k===key?' active':'')+'" onclick="setBrand(\''+k.replace(/'/g,"\\'")+'\')">'+esc(k)+'</div>';
+    tabs+='<div class="tab'+(k===key?' active':'')+'" onclick="setBrand(\''+esc(jsq(k))+'\')">'+esc(k)+'</div>';
   });
   document.getElementById('brandTabs').innerHTML=tabs;
 
@@ -919,7 +972,7 @@ function setPeriod(p){
 function applyCustom(){
   var f=document.getElementById('dateFrom').value, t=document.getElementById('dateTo').value;
   if(!(f in IDX)||!(t in IDX))return;
-  var fi=IDX[f], ti=IDX[t];
+  var fi=Math.min(IDX[f],END), ti=Math.min(IDX[t],END); // el último día (hoy) está incompleto en Metricool
   if(ti<fi){var tmp=fi;fi=ti;ti=tmp;}
   state.custom=[fi,ti]; state.gal.limit=12;
   renderAll();
@@ -941,6 +994,16 @@ function loadData(){
   }).then(function(d){
     DATA=d; DAYS=d.days; N=DAYS.length; END=Math.max(0,N-2);
     IDX={}; DAYS.forEach(function(x,i){IDX[x]=i;});
+    // decidir la fuente de cada métrica por red UNA vez, sobre todo el histórico
+    Object.keys(DATA.brands).forEach(function(k){
+      var B=DATA.brands[k];
+      Object.keys(B.nets).forEach(function(n){
+        var Nt=B.nets[n];
+        Nt._dReach=sumR(Nt.reach,0,N-1)>0;
+        Nt._dInter=sumR(Nt.inter,0,N-1)>0;
+        Nt._dViews=sumR(Nt.views,0,N-1)>0;
+      });
+    });
     renderAll();
   }).catch(function(e){
     document.getElementById('loadError').style.display='block';

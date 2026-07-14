@@ -71,6 +71,10 @@ python C:\Users\matia\eimec-informes-2026\social\tools\download_thumbs.py
 ```
 `download_thumbs.py` solo descarga las imágenes nuevas (idempotente) y pone a null las URLs caducadas.
 
+**REGLA CRÍTICA: después de CUALQUIER ejecución de `assemble.py` hay que ejecutar SIEMPRE `download_thumbs.py`.**
+`assemble.py` reconstruye data.json desde los mc/*.json, que guardan las URLs http originales (caducables);
+sin el paso de thumbs, el informe queda apuntando a imágenes que morirán en días.
+
 ## Paso 3 — validar antes de publicar (obligatorio)
 
 - `python -c "import json;d=json.load(open(r'C:\Users\matia\eimec-informes-2026\social\data.json',encoding='utf-8'));assert len(d['brands'])==5;print('OK',len(d['days']),'dias')"`
