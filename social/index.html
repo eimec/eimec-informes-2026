@@ -68,15 +68,20 @@
   .brandline h1{font-size:15px; font-weight:500; color:#C9D4E8; margin:0; letter-spacing:.02em}
   .brandline .date{margin-left:auto; font-size:12px; color:#8FA0C0}
   .tabs{display:flex; gap:6px; flex-wrap:wrap; padding-bottom:14px}
-  .tab{padding:7px 14px; border-radius:6px 6px 0 0; font-size:13px; color:#B9C6DE; cursor:pointer}
+  .tab{padding:7px 14px; border-radius:6px 6px 0 0; font-size:13px; color:#B9C6DE; cursor:pointer; user-select:none}
+  .tab:hover{color:#fff}
   .tab.active{background:var(--bg); color:var(--ink); font-weight:700}
 
   /* ---------- filtros ---------- */
   .filters{display:flex; gap:8px; align-items:center; margin:18px 0 6px; flex-wrap:wrap}
   .filters .lbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em}
   .chip{background:var(--card); border:1px solid var(--line); color:var(--muted);
-    font-size:13px; padding:6px 14px; border-radius:99px; cursor:pointer}
+    font-size:13px; padding:6px 14px; border-radius:99px; cursor:pointer; user-select:none}
+  .chip:hover{border-color:var(--teal-soft); color:var(--teal)}
   .chip.on{background:var(--teal); border-color:var(--teal); color:#fff; font-weight:600}
+  .customrange{display:none; gap:8px; align-items:center; flex-wrap:wrap}
+  .customrange.visible{display:flex}
+  .customrange input{border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-family:inherit; font-size:13px; color:var(--ink); background:var(--card)}
 
   h2.sec{font-size:13px; text-transform:uppercase; letter-spacing:.16em; color:var(--teal);
     margin:34px 0 12px; font-weight:700}
@@ -118,6 +123,7 @@
   .gal-filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
   .gal-filters .sep{width:1px; height:20px; background:var(--line); margin:0 4px}
   .gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:12px}
+  .gallery .empty{grid-column:1/-1; text-align:center; color:var(--muted); font-size:13px; padding:30px 0}
   .post{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;
     display:flex; flex-direction:column}
   .post .ph{position:relative; aspect-ratio:4/5; background:var(--pg); display:flex; align-items:center; justify-content:center}
@@ -139,15 +145,13 @@
 
   /* ---------- tablas ---------- */
   .tblwrap{overflow-x:auto}
-  table.data{width:100%; border-collapse:collapse; font-size:13.5px; min-width:640px}
+  table.data{width:100%; border-collapse:collapse; font-size:13.5px; min-width:560px}
   table.data th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.09em;
     color:var(--muted); font-weight:700; padding:8px 10px; border-bottom:2px solid var(--line)}
   table.data td{padding:9px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums}
   table.data td.num,table.data th.num{text-align:right}
   table.data tr.total td{font-weight:800; border-top:2px solid var(--line); border-bottom:none}
   .bar{display:inline-block; height:8px; border-radius:3px; background:var(--teal); vertical-align:middle; margin-right:8px}
-  .pill{display:inline-block; font-size:11px; font-weight:700; color:#fff; border-radius:4px;
-    padding:2px 8px; background:var(--nc,var(--teal))}
   .avatar{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-size:10.5px;
     font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-right:9px;vertical-align:middle}
 
@@ -174,11 +178,6 @@
   .heat .c2{background:#9CCCCB}
   .heat .c3{background:#4E9EA0}
   .heat .c4{background:var(--teal)}
-
-  .how{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px}
-  .how .step{background:var(--card); border:1px dashed var(--teal-soft); border-radius:10px; padding:16px}
-  .how .step b{display:block; color:var(--teal); font-size:12px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px}
-  .how .step p{margin:0; font-size:13px; color:var(--muted); line-height:1.55}
 
   footer{margin-top:40px; text-align:center; font-size:12px; color:var(--muted)}
 </style>
@@ -207,15 +206,9 @@
     <div class="brandline">
       <div class="logo">EIMEC<span>·</span></div>
       <h1>Informe Social Media — en vivo desde Metricool</h1>
-      <div class="date">Actualizado: 13 jul 2026, 10:42 · Europe/Madrid</div>
+      <div class="date" id="updatedAt"></div>
     </div>
-    <div class="tabs">
-      <div class="tab active">eimec.es</div>
-      <div class="tab">eimec.clinic</div>
-      <div class="tab">EIMEC Talks</div>
-      <div class="tab">Zainela Laborde</div>
-      <div class="tab">eimec.global</div>
-    </div>
+    <div class="tabs" id="brandTabs"></div>
   </div>
 </header>
 
@@ -223,478 +216,84 @@
 
   <div class="filters">
     <span class="lbl">Periodo</span>
-    <span class="chip">7 días</span>
-    <span class="chip on">30 días</span>
-    <span class="chip">90 días</span>
-    <span class="chip">Personalizado</span>
-    <span class="lbl" style="margin-left:auto">Comparando: 13 jun – 13 jul vs. 14 may – 12 jun</span>
+    <span class="chip" id="p7" onclick="setPeriod(7)">7 días</span>
+    <span class="chip on" id="p30" onclick="setPeriod(30)">30 días</span>
+    <span class="chip" id="p90" onclick="setPeriod(90)">90 días</span>
+    <span class="chip" id="pcustom" onclick="setPeriod('custom')">Personalizado</span>
+    <span class="customrange" id="customRange">
+      <input type="date" id="dateFrom"> <input type="date" id="dateTo">
+      <span class="chip" onclick="applyCustom()">Aplicar</span>
+    </span>
+    <span class="lbl" style="margin-left:auto" id="compareLabel"></span>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- 1 · RESUMEN EJECUTIVO -->
-  <!-- ============================================================ -->
-  <h2 class="sec"><span class="prio">1</span>Resumen ejecutivo <small>datos generales · todas las redes de eimec.es · cada KPI con variación, media diaria y tendencia</small></h2>
-  <div class="kpis">
-    <div class="kpi">
-      <div class="k-lbl">Comunidad total</div>
-      <div class="k-val">128.430</div>
-      <div class="k-dif up">▲ +2.140 <span>(+1,7%)</span></div>
-      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,20 L20,19 L40,17 L60,16 L80,13 L100,11 L120,8 L140,5" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="5" r="2.6" fill="var(--teal)"/></svg>
-      <div class="k-sub"><span>media/día</span><b class="up">+71</b></div>
-    </div>
-    <div class="kpi">
-      <div class="k-lbl">Alcance</div>
-      <div class="k-val">1,84 M</div>
-      <div class="k-dif up">▲ +12,3% <span>(1,64 M ant.)</span></div>
-      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,18 L20,20 L40,14 L60,17 L80,10 L100,14 L120,7 L140,9" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="9" r="2.6" fill="var(--teal)"/></svg>
-      <div class="k-sub"><span>media/día</span><b>61.300</b></div>
-    </div>
-    <div class="kpi">
-      <div class="k-lbl">Impresiones</div>
-      <div class="k-val">3,12 M</div>
-      <div class="k-dif up">▲ +8,9% <span>(2,86 M ant.)</span></div>
-      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,19 L20,17 L40,18 L60,13 L80,15 L100,10 L120,12 L140,8" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="8" r="2.6" fill="var(--teal)"/></svg>
-      <div class="k-sub"><span>frecuencia</span><b>1,7×</b></div>
-    </div>
-    <div class="kpi">
-      <div class="k-lbl">Interacciones</div>
-      <div class="k-val">46.870</div>
-      <div class="k-dif down">▼ −3,1% <span>(48.370 ant.)</span></div>
-      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,10 L20,12 L40,9 L60,14 L80,12 L100,16 L120,14 L140,17" fill="none" stroke="var(--bad)" stroke-width="2"/><circle cx="140" cy="17" r="2.6" fill="var(--bad)"/></svg>
-      <div class="k-sub"><span>por publicación</span><b class="down">732 (−12%)</b></div>
-    </div>
-    <div class="kpi">
-      <div class="k-lbl">Engagement</div>
-      <div class="k-val">2,54%</div>
-      <div class="k-dif up">▲ +0,21 pt <span>(2,33% ant.)</span></div>
-      <svg viewBox="0 0 140 26" width="100%" height="26"><path d="M0,16 L20,17 L40,14 L60,15 L80,12 L100,13 L120,10 L140,8" fill="none" stroke="var(--teal)" stroke-width="2"/><circle cx="140" cy="8" r="2.6" fill="var(--teal)"/></svg>
-      <div class="k-sub"><span>benchmark sector*</span><b>1,9%</b></div>
-    </div>
-    <div class="kpi">
-      <div class="k-lbl">Publicaciones</div>
-      <div class="k-val">64</div>
-      <div class="k-dif up">▲ +9 <span>vs. 55</span></div>
-      <svg viewBox="0 0 140 26" width="100%" height="26"><g fill="var(--teal-soft)"><rect x="4" y="12" width="12" height="14"/><rect x="24" y="8" width="12" height="18"/><rect x="44" y="14" width="12" height="12"/><rect x="64" y="6" width="12" height="20"/><rect x="84" y="10" width="12" height="16"/><rect x="104" y="4" width="12" height="22"/><rect x="124" y="9" width="12" height="17"/></g></svg>
-      <div class="k-sub"><span>ritmo</span><b>2,1 / día</b></div>
-    </div>
-  </div>
-  <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Benchmark: mediana de engagement en salud/educación que publica Metricool en su estudio anual — comparable automático en el informe.</p>
+  <h2 class="sec"><span class="prio">1</span>Resumen ejecutivo <small id="sec1sub"></small></h2>
+  <div class="kpis" id="kpiRow"></div>
+  <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Benchmark: mediana de engagement en salud/educación que publica Metricool en su estudio anual.</p>
 
-  <!-- ============================================================ -->
-  <!-- 2 · INSIGHTS -->
-  <!-- ============================================================ -->
-  <h2 class="sec"><span class="prio">2</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos, como en el Informe de Dirección</small></h2>
-  <div class="insights">
-    <div class="ins" style="--ic:var(--good)">
-      <span class="tag">Fortaleza</span>
-      <b>El formato Reel de resultados clínicos multiplica ×3,2 el alcance medio</b>
-      <p>Los 9 Reels del periodo concentran el 61% del alcance total con solo el 14% de las publicaciones. Alcance medio: 124.400 vs. 38.600 del resto de formatos.</p>
-    </div>
-    <div class="ins" style="--ic:var(--bad)">
-      <span class="tag">Alerta</span>
-      <b>Las interacciones caen −3,1% pese a publicar +16% más</b>
-      <p>La interacción por publicación baja de 879 a 732 (−12%). Causa: 5 posts institucionales con ER &lt; 0,8% diluyen la media. Publicar más no está compensando la pérdida de eficacia por pieza.</p>
-    </div>
-    <div class="ins" style="--ic:var(--teal)">
-      <span class="tag">Oportunidad</span>
-      <b>TikTok es la red más eficiente: +3,6% de comunidad con 11 vídeos</b>
-      <p>Coste por seguidor nuevo en esfuerzo de contenido: 1 vídeo ≈ 78 seguidores, frente a 1 post de IG ≈ 26. Duplicar el ritmo en TikTok es la palanca de crecimiento más barata.</p>
-    </div>
-    <div class="ins" style="--ic:var(--bad)">
-      <span class="tag">Alerta</span>
-      <b>Facebook plano: +95 seguidores y ER 1,8% con 14 publicaciones</b>
-      <p>Es la red con peor retorno por pieza. Recomendación: dejar de crear contenido propio y reciclar los 3 Reels ganadores del mes; liberar ese tiempo hacia TikTok.</p>
-    </div>
-    <div class="ins" style="--ic:var(--teal)">
-      <span class="tag">Oportunidad</span>
-      <b>Google Business genera 112 llamadas y 640 clics a la web</b>
-      <p>Es el canal social con conversión más directa a negocio y solo tiene 41 reseñas nuevas. Pedir reseña sistemática post-curso lo aceleraría sin coste de contenido.</p>
-    </div>
-    <div class="ins" style="--ic:var(--good)">
-      <span class="tag">Fortaleza</span>
-      <b>Engagement 2,54%: un 34% por encima del benchmark del sector</b>
-      <p>La comunidad responde mejor que la media de salud/educación (1,9%). El margen está en el alcance, no en la calidad: más distribución del mismo tipo de contenido.</p>
-    </div>
-  </div>
+  <h2 class="sec"><span class="prio">2</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos</small></h2>
+  <div class="insights" id="insightRow"></div>
 
-  <!-- ============================================================ -->
-  <!-- 3 · PUBLICACIONES (imágenes + performance + filtros) -->
-  <!-- ============================================================ -->
-  <h2 class="sec"><span class="prio">3</span>Publicaciones del periodo <small>con imagen real de cada post (miniatura vía Metricool) y su performance individual</small></h2>
+  <h2 class="sec"><span class="prio">3</span>Publicaciones del periodo <small>con imagen de cada post y su performance individual</small></h2>
   <div class="panel">
-    <div class="gal-filters">
-      <span class="lbl">Red</span>
-      <span class="chip on">Todas</span><span class="chip">Instagram</span><span class="chip">TikTok</span><span class="chip">YouTube</span><span class="chip">Facebook</span><span class="chip">LinkedIn</span>
-      <span class="sep"></span>
-      <span class="lbl">Formato</span>
-      <span class="chip on">Todos</span><span class="chip">Reel</span><span class="chip">Carrusel</span><span class="chip">Imagen</span><span class="chip">Vídeo</span><span class="chip">Story</span>
-      <span class="sep"></span>
-      <span class="lbl">Ordenar</span>
-      <span class="chip on">Interacciones ▾</span><span class="chip">Alcance</span><span class="chip">Engagement</span><span class="chip">Fecha</span>
-    </div>
-    <div class="gallery">
-
-      <div class="post" style="--nc:var(--ig); --pg:linear-gradient(150deg,#8AA6C9,#31456E)">
-        <div class="ph">
-          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><rect x="2.5" y="6" width="19" height="14" rx="2.5"/><circle cx="12" cy="13" r="4"/><path d="M8 6l1.5-2.5h5L16 6"/></svg>
-          <span class="netp">Instagram</span><span class="fmt">Reel</span><span class="rank">#1</span>
-        </div>
-        <div class="pb">
-          <div class="pt">Resultado blefaroplastia — antes/después</div>
-          <div class="pd">02 jul · 20:14</div>
-          <div class="pm">
-            <span>Alcance</span><b>412.000</b>
-            <span>Interacciones</span><b>18.640</b>
-            <span>Guardados</span><b>2.310</b>
-            <span>Compartidos</span><b>1.870</b>
-            <span>Engagement</span><b class="er">4,5%</b>
-            <span>vs. media cuenta</span><b class="up">×5,6</b>
-          </div>
-        </div>
-      </div>
-
-      <div class="post" style="--nc:var(--tt); --pg:linear-gradient(150deg,#5E6B85,#1C2436)">
-        <div class="ph">
-          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><polygon points="8,5 19,12 8,19"/></svg>
-          <span class="netp">TikTok</span><span class="fmt">Vídeo</span><span class="rank">#2</span>
-        </div>
-        <div class="pb">
-          <div class="pt">Máster en Medicina Estética: abrimos plazas</div>
-          <div class="pd">28 jun · 13:05</div>
-          <div class="pm">
-            <span>Visualizaciones</span><b>186.000</b>
-            <span>Interacciones</span><b>7.210</b>
-            <span>Retención media</span><b>62%</b>
-            <span>Compartidos</span><b>940</b>
-            <span>Engagement</span><b class="er">3,9%</b>
-            <span>vs. media cuenta</span><b class="up">×2,4</b>
-          </div>
-        </div>
-      </div>
-
-      <div class="post" style="--nc:var(--ig); --pg:linear-gradient(150deg,#9DB8AE,#3E5E52)">
-        <div class="ph">
-          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><polygon points="8,5 19,12 8,19"/></svg>
-          <span class="netp">Instagram</span><span class="fmt">Reel</span><span class="rank">#3</span>
-        </div>
-        <div class="pb">
-          <div class="pt">Dr. Cano: 3 errores al elegir formación</div>
-          <div class="pd">05 jul · 20:31</div>
-          <div class="pm">
-            <span>Alcance</span><b>148.000</b>
-            <span>Interacciones</span><b>5.980</b>
-            <span>Guardados</span><b>1.640</b>
-            <span>Compartidos</span><b>720</b>
-            <span>Engagement</span><b class="er">4,0%</b>
-            <span>vs. media cuenta</span><b class="up">×2,0</b>
-          </div>
-        </div>
-      </div>
-
-      <div class="post" style="--nc:var(--yt); --pg:linear-gradient(150deg,#C99A8A,#6E3A31)">
-        <div class="ph">
-          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><polygon points="8,5 19,12 8,19"/></svg>
-          <span class="netp">YouTube</span><span class="fmt">Short</span><span class="rank">#4</span>
-        </div>
-        <div class="pb">
-          <div class="pt">Prácticas reales con pacientes — así se vive</div>
-          <div class="pd">21 jun · 17:00</div>
-          <div class="pm">
-            <span>Visualizaciones</span><b>96.000</b>
-            <span>Interacciones</span><b>3.420</b>
-            <span>Suscriptores +</span><b>184</b>
-            <span>CTR</span><b>5,2%</b>
-            <span>Engagement</span><b class="er">3,6%</b>
-            <span>vs. media cuenta</span><b class="up">×1,8</b>
-          </div>
-        </div>
-      </div>
-
-      <div class="post" style="--nc:var(--ig); --pg:linear-gradient(150deg,#B4A6C9,#4A3A6E)">
-        <div class="ph">
-          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/></svg>
-          <span class="netp">Instagram</span><span class="fmt">Carrusel</span><span class="rank">#5</span>
-        </div>
-        <div class="pb">
-          <div class="pt">Testimonio alumna: de médico general a estética</div>
-          <div class="pd">30 jun · 13:22</div>
-          <div class="pm">
-            <span>Alcance</span><b>74.000</b>
-            <span>Interacciones</span><b>2.910</b>
-            <span>Guardados</span><b>980</b>
-            <span>Compartidos</span><b>310</b>
-            <span>Engagement</span><b class="er">3,9%</b>
-            <span>vs. media cuenta</span><b class="up">×1,5</b>
-          </div>
-        </div>
-      </div>
-
-      <div class="post" style="--nc:var(--li); --pg:linear-gradient(150deg,#8FA8BE,#2E4A66)">
-        <div class="ph">
-          <svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><rect x="2.5" y="6" width="19" height="14" rx="2.5"/><circle cx="12" cy="13" r="4"/><path d="M8 6l1.5-2.5h5L16 6"/></svg>
-          <span class="netp">LinkedIn</span><span class="fmt">Imagen</span><span class="rank">#6</span>
-        </div>
-        <div class="pb">
-          <div class="pt">Nueva edición del Experto Universitario</div>
-          <div class="pd">24 jun · 09:10</div>
-          <div class="pm">
-            <span>Impresiones</span><b>18.400</b>
-            <span>Interacciones</span><b>820</b>
-            <span>Clics al enlace</span><b>96</b>
-            <span>Compartidos</span><b>44</b>
-            <span>Engagement</span><b class="er">4,5%</b>
-            <span>vs. media cuenta</span><b class="up">×1,3</b>
-          </div>
-        </div>
-      </div>
-
-    </div>
-    <p class="sub" style="margin:14px 0 0">En la versión con datos en vivo: <b>todas</b> las publicaciones del periodo (con paginación), cada tarjeta muestra la <b>miniatura real del post</b> que devuelve Metricool y enlaza a la publicación original. Los filtros de red, formato y orden funcionan sobre los datos en vivo.</p>
+    <div class="gal-filters" id="galFilters"></div>
+    <div class="gallery" id="gallery"></div>
+    <p class="sub" style="margin:14px 0 0" id="galleryNote"></p>
   </div>
 
-  <!-- ---- rendimiento por formato ---- -->
   <div class="grid2" style="margin-top:14px">
     <div class="panel tblwrap">
       <h3>Rendimiento por formato</h3>
       <p class="sub">Qué tipo de contenido rinde más por unidad publicada — la tabla clave para decidir el mix del mes siguiente</p>
-      <table class="data" style="min-width:560px">
-        <thead><tr><th>Formato</th><th class="num">Publicadas</th><th class="num">Alcance medio</th><th class="num">Interacc. media</th><th class="num">ER medio</th><th class="num">% del alcance total</th></tr></thead>
-        <tbody>
-          <tr><td>Reel / Vídeo corto</td><td class="num">20</td><td class="num">124.400</td><td class="num">4.610</td><td class="num"><b class="er">3,8%</b></td><td class="num"><span class="bar" style="width:76px"></span>61%</td></tr>
-          <tr><td>Carrusel</td><td class="num">9</td><td class="num">41.200</td><td class="num">1.480</td><td class="num">3,1%</td><td class="num"><span class="bar" style="width:24px"></span>19%</td></tr>
-          <tr><td>Imagen</td><td class="num">14</td><td class="num">22.600</td><td class="num">540</td><td class="num">2,0%</td><td class="num"><span class="bar" style="width:15px"></span>12%</td></tr>
-          <tr><td>Story</td><td class="num">26</td><td class="num">6.100</td><td class="num">120</td><td class="num">1,1%</td><td class="num"><span class="bar" style="width:10px"></span>8%</td></tr>
-          <tr class="total"><td>Total</td><td class="num">69</td><td class="num">—</td><td class="num">—</td><td class="num">2,54%</td><td class="num">100%</td></tr>
-        </tbody>
-      </table>
+      <div id="fmtTable"></div>
     </div>
     <div class="panel">
       <h3>Mejores horas para publicar</h3>
       <p class="sub">Instagram · audiencia activa según Metricool</p>
-      <div class="heat">
-        <span class="hh"></span><span class="hd">L</span><span class="hd">M</span><span class="hd">X</span><span class="hd">J</span><span class="hd">V</span><span class="hd">S</span><span class="hd">D</span>
-        <span class="hh">9 h</span><span class="cell c1"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell"></span><span class="cell"></span>
-        <span class="hh">13 h</span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell c1"></span>
-        <span class="hh">17 h</span><span class="cell c2"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c1"></span>
-        <span class="hh">20 h</span><span class="cell c3"></span><span class="cell c4"></span><span class="cell c3"></span><span class="cell c4"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c2"></span>
-        <span class="hh">22 h</span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c3"></span><span class="cell c2"></span><span class="cell c1"></span><span class="cell c1"></span>
-      </div>
-      <p class="sub" style="margin:12px 0 0">Mejor franja: <b style="color:var(--teal)">martes y jueves, 20–21 h</b>. El 71% de tus posts con ER &gt; 3% se publicaron en franjas oscuras.</p>
+      <div id="heatPanel"></div>
+      <p class="sub" style="margin:12px 0 0" id="heatNote"></p>
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- 4 · SEGUIDORES -->
-  <!-- ============================================================ -->
   <h2 class="sec"><span class="prio">4</span>Seguidores — evolución <small>comunidad por día, altas netas diarias y ritmo semanal</small></h2>
-
   <div class="panel">
     <h3>Comunidad total por día</h3>
-    <p class="sub">Últimos 30 días · todas las redes de eimec.es · arriba la comunidad acumulada, abajo las altas netas de cada día (altas − bajas)</p>
-    <svg viewBox="0 0 700 300" width="100%" role="img" aria-label="Comunidad total por día y altas netas diarias">
-      <g stroke="var(--line)" stroke-width="1">
-        <line x1="40" y1="73" x2="660" y2="73"/><line x1="40" y1="108" x2="660" y2="108"/>
-        <line x1="40" y1="143" x2="660" y2="143"/><line x1="40" y1="179" x2="660" y2="179"/>
-      </g>
-      <g font-size="10.5" fill="var(--muted)">
-        <text x="0" y="77">128,0k</text><text x="0" y="112">127,5k</text>
-        <text x="0" y="147">127,0k</text><text x="0" y="183">126,5k</text>
-      </g>
-      <path d="M40,193 L84,187 L128,182 L172,175 L216,163 L260,158 L304,153 L348,142 L392,119 L436,112 L480,104 L524,88 L568,80 L612,57 L656,42 L656,205 L40,205 Z"
-            fill="var(--teal)" opacity="0.13"/>
-      <path d="M40,193 L84,187 L128,182 L172,175 L216,163 L260,158 L304,153 L348,142 L392,119 L436,112 L480,104 L524,88 L568,80 L612,57 L656,42"
-            fill="none" stroke="var(--teal)" stroke-width="3"/>
-      <circle cx="656" cy="42" r="4.5" fill="var(--teal)"/>
-      <g font-size="11.5" fill="var(--ink)" font-weight="700">
-        <text x="596" y="30">128.430</text>
-      </g>
-      <g font-size="10.5" fill="var(--muted)">
-        <text x="40" y="222">13 jun</text><text x="330" y="222">28 jun</text><text x="625" y="222">13 jul</text>
-      </g>
-      <g fill="var(--teal-soft)">
-        <rect x="76" y="275" width="16" height="15" rx="2"/>
-        <rect x="120" y="277" width="16" height="13" rx="2"/>
-        <rect x="164" y="272" width="16" height="18" rx="2"/>
-        <rect x="208" y="259" width="16" height="31" rx="2"/>
-        <rect x="252" y="275" width="16" height="15" rx="2"/>
-        <rect x="296" y="279" width="16" height="11" rx="2"/>
-        <rect x="340" y="261" width="16" height="29" rx="2"/>
-        <rect x="384" y="230" width="16" height="60" rx="2" fill="var(--teal)"/>
-        <rect x="428" y="274" width="16" height="16" rx="2"/>
-        <rect x="472" y="270" width="16" height="20" rx="2"/>
-        <rect x="516" y="248" width="16" height="42" rx="2"/>
-        <rect x="560" y="268" width="16" height="22" rx="2"/>
-        <rect x="604" y="232" width="16" height="58" rx="2" fill="var(--teal)"/>
-        <rect x="648" y="252" width="16" height="38" rx="2"/>
-      </g>
-      <g font-size="10.5" fill="var(--muted)">
-        <text x="40" y="250">altas netas/día</text>
-        <text x="371" y="226" fill="var(--teal)" font-weight="700">+330 · Reel #3</text>
-        <text x="580" y="228" fill="var(--teal)" font-weight="700">+320 · Reel #1</text>
-      </g>
-    </svg>
-    <div class="legend">
-      <span><i style="background:var(--teal)"></i>Comunidad acumulada</span>
-      <span><i style="background:var(--teal-soft)"></i>Altas netas por día</span>
-      <span style="margin-left:auto">Total del periodo: <b class="up">+2.140</b> · mejor día: <b>+330</b> · peor día: <b>+38</b></span>
-    </div>
+    <p class="sub" id="folSub"></p>
+    <div id="folChart"></div>
+    <div class="legend" id="folLegend"></div>
   </div>
-
   <div class="grid2" style="margin-top:14px">
     <div class="panel">
       <h3>Nuevos seguidores por semana</h3>
-      <p class="sub">8 semanas · en gris el periodo anterior, en turquesa el actual</p>
-      <svg viewBox="0 0 640 240" width="100%" role="img" aria-label="Nuevos seguidores por semana">
-        <line x1="20" y1="200" x2="630" y2="200" stroke="var(--line)" stroke-width="1.5"/>
-        <line x1="20" y1="98" x2="630" y2="98" stroke="var(--blue)" stroke-width="1.5" stroke-dasharray="6 5" opacity=".6"/>
-        <text x="20" y="92" font-size="10.5" fill="var(--blue)">media actual: +535/sem</text>
-        <g>
-          <rect x="30" y="107" width="50" height="93" rx="4" fill="var(--muted)" opacity=".35"/>
-          <rect x="106" y="99" width="50" height="101" rx="4" fill="var(--muted)" opacity=".35"/>
-          <rect x="182" y="127" width="50" height="73" rx="4" fill="var(--muted)" opacity=".35"/>
-          <rect x="258" y="72" width="50" height="128" rx="4" fill="var(--muted)" opacity=".35"/>
-          <rect x="334" y="86" width="50" height="114" rx="4" fill="var(--teal)"/>
-          <rect x="410" y="50" width="50" height="150" rx="4" fill="var(--teal)"/>
-          <rect x="486" y="67" width="50" height="133" rx="4" fill="var(--teal)"/>
-          <rect x="562" y="56" width="50" height="144" rx="4" fill="var(--teal)"/>
-        </g>
-        <g font-size="11.5" font-weight="700" fill="var(--ink)" text-anchor="middle">
-          <text x="55" y="100">+380</text><text x="131" y="92">+410</text><text x="207" y="120">+295</text><text x="283" y="65">+520</text>
-          <text x="359" y="79">+465</text><text x="435" y="43">+610</text><text x="511" y="60">+540</text><text x="587" y="49">+585</text>
-        </g>
-        <g font-size="10.5" fill="var(--muted)" text-anchor="middle">
-          <text x="55" y="216">18 may</text><text x="131" y="216">25 may</text><text x="207" y="216">1 jun</text><text x="283" y="216">8 jun</text>
-          <text x="359" y="216">15 jun</text><text x="435" y="216">22 jun</text><text x="511" y="216">29 jun</text><text x="587" y="216">6 jul</text>
-        </g>
-      </svg>
-      <p class="sub" style="margin:10px 0 0">Media semanal: <b class="up">+535</b> vs. <b>+401</b> del periodo anterior (<b class="up">+33%</b>). 3 de las 4 semanas actuales superan la mejor semana del periodo previo.</p>
+      <p class="sub">Últimas 8 semanas · en gris las 4 anteriores, en turquesa las 4 más recientes</p>
+      <div id="weekChart"></div>
+      <p class="sub" style="margin:10px 0 0" id="weekNote"></p>
     </div>
     <div class="panel">
       <h3>Crecimiento por red</h3>
       <p class="sub">Balance neto del periodo (altas − bajas)</p>
-      <svg viewBox="0 0 360 220" width="100%" role="img" aria-label="Barras de crecimiento de seguidores por red">
-        <g font-size="12" fill="var(--muted)" font-family="inherit">
-          <text x="0" y="30">Instagram</text><rect x="86" y="18" width="190" height="16" rx="3" fill="var(--ig)" opacity=".9"/><text x="284" y="30" fill="var(--ink)" font-weight="700">+1.240</text>
-          <text x="0" y="62">TikTok</text><rect x="86" y="50" width="132" height="16" rx="3" fill="var(--tt)" opacity=".9"/><text x="226" y="62" fill="var(--ink)" font-weight="700">+860</text>
-          <text x="0" y="94">YouTube</text><rect x="86" y="82" width="52" height="16" rx="3" fill="var(--yt)" opacity=".9"/><text x="146" y="94" fill="var(--ink)" font-weight="700">+310</text>
-          <text x="0" y="126">LinkedIn</text><rect x="86" y="114" width="38" height="16" rx="3" fill="var(--li)" opacity=".9"/><text x="132" y="126" fill="var(--ink)" font-weight="700">+180</text>
-          <text x="0" y="158">Facebook</text><rect x="86" y="146" width="24" height="16" rx="3" fill="var(--fb)" opacity=".9"/><text x="118" y="158" fill="var(--ink)" font-weight="700">+95</text>
-          <text x="0" y="190">GBP*</text><rect x="86" y="178" width="12" height="16" rx="3" fill="var(--gbp)" opacity=".9"/><text x="106" y="190" fill="var(--ink)" font-weight="700">+41</text>
-        </g>
-      </svg>
-      <p class="sub" style="margin:8px 0 0">* Google Business Profile: reseñas nuevas en el periodo. Instagram aporta el 58% del crecimiento; TikTok el 40% con la mitad de publicaciones.</p>
+      <div id="growthChart"></div>
+      <p class="sub" style="margin:8px 0 0" id="growthNote"></p>
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- 5 · ALCANCE E INTERACCIONES -->
-  <!-- ============================================================ -->
   <h2 class="sec"><span class="prio">5</span>Alcance e interacciones por día</h2>
   <div class="panel">
-    <p class="sub">Últimos 30 días · suma de todas las redes · los picos coinciden con los Reels #1 y #3</p>
-    <svg viewBox="0 0 640 220" width="100%" role="img" aria-label="Gráfico de alcance e interacciones por día">
-      <g stroke="var(--line)" stroke-width="1">
-        <line x1="0" y1="55" x2="640" y2="55"/><line x1="0" y1="110" x2="640" y2="110"/><line x1="0" y1="165" x2="640" y2="165"/>
-      </g>
-      <path d="M0,170 L45,150 L90,158 L135,120 L180,132 L225,96 L270,118 L315,84 L360,100 L405,64 L450,92 L495,52 L540,74 L585,40 L640,58 L640,220 L0,220 Z"
-            fill="var(--teal)" opacity="0.14"/>
-      <path d="M0,170 L45,150 L90,158 L135,120 L180,132 L225,96 L270,118 L315,84 L360,100 L405,64 L450,92 L495,52 L540,74 L585,40 L640,58"
-            fill="none" stroke="var(--teal)" stroke-width="2.5"/>
-      <path d="M0,196 L45,190 L90,193 L135,180 L180,186 L225,172 L270,181 L315,166 L360,175 L405,158 L450,170 L495,152 L540,163 L585,146 L640,155"
-            fill="none" stroke="var(--blue)" stroke-width="2" stroke-dasharray="5 4"/>
-      <circle cx="495" cy="52" r="4" fill="var(--teal)"/><circle cx="585" cy="40" r="4" fill="var(--teal)"/>
-      <g font-size="11" fill="var(--muted)"><text x="470" y="40">Reel #3</text><text x="560" y="28">Reel #1</text></g>
-    </svg>
+    <p class="sub" id="reachSub"></p>
+    <div id="reachChart"></div>
     <div class="legend">
       <span><i style="background:var(--teal)"></i>Alcance</span>
-      <span><i style="background:var(--blue)"></i>Interacciones</span>
+      <span><i style="background:var(--blue)"></i>Interacciones (escala propia)</span>
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- 6 · DETALLE POR RED -->
-  <!-- ============================================================ -->
   <h2 class="sec"><span class="prio">6</span>Detalle por red <small>ficha completa de cada canal</small></h2>
-  <div class="nets">
-    <div class="net" style="--nc:var(--ig)">
-      <div class="n-head"><div class="dot">IG</div><div><div class="n-name">Instagram</div><div class="n-handle">@eimec.es</div></div></div>
-      <table>
-        <tr><td>Seguidores</td><td>68.410 <span class="n-dif up">+1.240</span></td></tr>
-        <tr><td>Alcance</td><td>1,12 M</td></tr>
-        <tr><td>Interacciones</td><td>31.200</td></tr>
-        <tr><td>Engagement</td><td>2,8%</td></tr>
-        <tr><td>Posts / Reels / Stories</td><td>12 / 9 / 26</td></tr>
-      </table>
-    </div>
-    <div class="net" style="--nc:var(--tt)">
-      <div class="n-head"><div class="dot">TT</div><div><div class="n-name">TikTok</div><div class="n-handle">@eimec</div></div></div>
-      <table>
-        <tr><td>Seguidores</td><td>24.900 <span class="n-dif up">+860</span></td></tr>
-        <tr><td>Visualizaciones</td><td>486.000</td></tr>
-        <tr><td>Interacciones</td><td>9.340</td></tr>
-        <tr><td>Engagement</td><td>1,9%</td></tr>
-        <tr><td>Vídeos publicados</td><td>11</td></tr>
-      </table>
-    </div>
-    <div class="net" style="--nc:var(--yt)">
-      <div class="n-head"><div class="dot">YT</div><div><div class="n-name">YouTube</div><div class="n-handle">EIMEC</div></div></div>
-      <table>
-        <tr><td>Suscriptores</td><td>12.150 <span class="n-dif up">+310</span></td></tr>
-        <tr><td>Visualizaciones</td><td>96.400</td></tr>
-        <tr><td>Horas de visionado</td><td>4.120</td></tr>
-        <tr><td>Vídeos / Shorts</td><td>3 / 8</td></tr>
-        <tr><td>CTR impresiones</td><td>4,6%</td></tr>
-      </table>
-    </div>
-    <div class="net" style="--nc:var(--fb)">
-      <div class="n-head"><div class="dot">FB</div><div><div class="n-name">Facebook</div><div class="n-handle">EIMEC Formación</div></div></div>
-      <table>
-        <tr><td>Seguidores</td><td>19.870 <span class="n-dif up">+95</span></td></tr>
-        <tr><td>Alcance</td><td>210.000</td></tr>
-        <tr><td>Interacciones</td><td>3.850</td></tr>
-        <tr><td>Engagement</td><td>1,8%</td></tr>
-        <tr><td>Publicaciones</td><td>14</td></tr>
-      </table>
-    </div>
-    <div class="net" style="--nc:var(--li)">
-      <div class="n-head"><div class="dot">IN</div><div><div class="n-name">LinkedIn</div><div class="n-handle">EIMEC</div></div></div>
-      <table>
-        <tr><td>Seguidores</td><td>3.060 <span class="n-dif up">+180</span></td></tr>
-        <tr><td>Impresiones</td><td>41.200</td></tr>
-        <tr><td>Interacciones</td><td>1.480</td></tr>
-        <tr><td>Engagement</td><td>3,6%</td></tr>
-        <tr><td>Publicaciones</td><td>6</td></tr>
-      </table>
-    </div>
-    <div class="net" style="--nc:var(--gbp)">
-      <div class="n-head"><div class="dot">G</div><div><div class="n-name">Google Business</div><div class="n-handle">EIMEC · ficha</div></div></div>
-      <table>
-        <tr><td>Visitas a la ficha</td><td>8.900</td></tr>
-        <tr><td>Búsquedas</td><td>12.400</td></tr>
-        <tr><td>Clics a la web</td><td>640</td></tr>
-        <tr><td>Llamadas</td><td>112</td></tr>
-        <tr><td>Reseñas nuevas · media</td><td>41 · 4,8 ★</td></tr>
-      </table>
-    </div>
-  </div>
+  <div class="nets" id="netCards"></div>
 
-  <!-- ============================================================ -->
-  <!-- 7 · COMPARATIVA DE MARCAS -->
-  <!-- ============================================================ -->
   <h2 class="sec"><span class="prio">7</span>Comparativa de marcas EIMEC <small>las 5 cuentas de Metricool, mismo periodo</small></h2>
   <div class="panel tblwrap">
-    <table class="data" style="min-width:560px">
-      <thead><tr><th>Marca</th><th class="num">Comunidad</th><th class="num">Crecimiento</th><th class="num">Alcance</th><th class="num">Publicaciones</th><th class="num">Engagement</th></tr></thead>
-      <tbody>
-        <tr><td><span class="avatar">ES</span>eimec.es</td><td class="num">128.430</td><td class="num up">+2.140 (+1,7%)</td><td class="num">1,84 M</td><td class="num">64</td><td class="num">2,5%</td></tr>
-        <tr><td><span class="avatar">CL</span>eimec.clinic</td><td class="num">21.360</td><td class="num up">+410 (+2,0%)</td><td class="num">296.000</td><td class="num">22</td><td class="num">2,1%</td></tr>
-        <tr><td><span class="avatar">TK</span>EIMEC Talks</td><td class="num">4.820</td><td class="num up">+590 (+14,0%)</td><td class="num">88.000</td><td class="num">9</td><td class="num"><b class="er">5,2%</b></td></tr>
-        <tr><td><span class="avatar">ZL</span>Zainela Laborde</td><td class="num">9.140</td><td class="num up">+220 (+2,5%)</td><td class="num">64.000</td><td class="num">12</td><td class="num">3,3%</td></tr>
-        <tr><td><span class="avatar">GL</span>eimec.global</td><td class="num">2.030</td><td class="num up">+160 (+8,6%)</td><td class="num">31.000</td><td class="num">6</td><td class="num">2,9%</td></tr>
-        <tr class="total"><td>Grupo EIMEC</td><td class="num">165.780</td><td class="num up">+3.520 (+2,2%)</td><td class="num">2,32 M</td><td class="num">113</td><td class="num">2,7%</td></tr>
-      </tbody>
-    </table>
-    <p class="sub" style="margin:12px 0 0">EIMEC Talks es la cuenta con mayor velocidad de crecimiento relativo (+14%) y mejor engagement (5,2%): candidata a más inversión de contenido.</p>
+    <div id="brandTable"></div>
+    <p class="sub" style="margin:12px 0 0" id="brandNote"></p>
   </div>
 
   <footer>EIMEC · Informe Social Media · vista previa con datos de ejemplo · los datos e imágenes reales saldrán en vivo de Metricool</footer>
@@ -703,30 +302,732 @@
 </div><!-- /dashboard -->
 
 <script>
-  const PASSWORD = 'social-eimec-2026';
-  const AUTH_KEY = 'social_auth';
+'use strict';
+/* =====================================================================
+   EIMEC Informe Social Media — vista previa interactiva
+   Todos los datos son de EJEMPLO, generados de forma determinista.
+   Cuando se conecte la API de Metricool, estas funciones de generación
+   se sustituyen por fetch() al proxy /api/metricool.
+   ===================================================================== */
 
-  function checkPassword() {
-    const input = document.getElementById('passwordInput');
-    const err = document.getElementById('loginError');
-    if (input.value === PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, 'true');
-      showDashboard();
-    } else {
-      err.style.display = 'block';
-      input.value = '';
-      input.focus();
+// ---------------- utilidades ----------------
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};}
+function fmtInt(n){return Math.round(n).toLocaleString('es-ES');}
+function fmtBig(n){return n>=1e6 ? (n/1e6).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' M' : fmtInt(n);}
+function fmtPct(n,d){if(d===undefined)d=1;return n.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';}
+function fmtSigned(n){return (n<0?'−':'+')+fmtInt(Math.abs(n));}
+function fmtSignedPct(n,d){if(d===undefined)d=1;return (n<0?'▼ −':'▲ +')+Math.abs(n).toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';}
+function cls(n){return n<0?'down':'up';}
+var MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function fmtDay(d){return d.getDate()+' '+MESES[d.getMonth()];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+var DAYS=180;
+var TODAY=new Date(); TODAY.setHours(0,0,0,0);
+function dateOfIndex(i){var d=new Date(TODAY); d.setDate(d.getDate()-(DAYS-1-i)); return d;}
+function indexOfDate(d){var ms=(d-dateOfIndex(0))/86400000; return Math.round(ms);}
+
+// ---------------- metadatos de redes ----------------
+var NETMETA={
+  ig:{name:'Instagram',abbr:'IG',color:'var(--ig)',grad:'linear-gradient(150deg,#8AA6C9,#31456E)',formats:['Reel','Carrusel','Imagen']},
+  tt:{name:'TikTok',abbr:'TT',color:'var(--tt)',grad:'linear-gradient(150deg,#5E6B85,#1C2436)',formats:['Vídeo']},
+  yt:{name:'YouTube',abbr:'YT',color:'var(--yt)',grad:'linear-gradient(150deg,#C99A8A,#6E3A31)',formats:['Short','Vídeo']},
+  fb:{name:'Facebook',abbr:'FB',color:'var(--fb)',grad:'linear-gradient(150deg,#8FA8BE,#2E4A66)',formats:['Imagen','Vídeo']},
+  li:{name:'LinkedIn',abbr:'IN',color:'var(--li)',grad:'linear-gradient(150deg,#9DB8AE,#3E5E52)',formats:['Imagen','Carrusel']}
+};
+var FMTMULT={'Reel':2.6,'Vídeo':2.1,'Short':1.8,'Carrusel':1.15,'Imagen':0.6};
+var FMTER={'Reel':0.040,'Vídeo':0.035,'Short':0.033,'Carrusel':0.031,'Imagen':0.021};
+
+// ---------------- configuración de marcas ----------------
+var BRANDS={
+ 'eimec.es':{seed:11,community:128430,reachPerPost:52000,followsPerDay:52,posts90:38,storiesPer30:26,gbp:true,
+   nets:{ig:.53,tt:.19,yt:.095,fb:.155,li:.024},
+   handles:{ig:'@eimec.es',tt:'@eimec',yt:'EIMEC',fb:'EIMEC Formación',li:'EIMEC'},
+   avatar:'ES',
+   titles:['Resultado blefaroplastia — antes/después','Máster en Medicina Estética: abrimos plazas','Dr. Cano: 3 errores al elegir formación','Prácticas reales con pacientes — así se vive','Testimonio alumna: de médico general a estética','Nueva edición del Experto Universitario','Rinomodelación sin cirugía: caso práctico','Cómo es un día de clase en EIMEC','Ácido hialurónico: técnica y seguridad','Entrega de diplomas — promoción 2026','5 preguntas antes de empezar en estética','Toxina botulínica: zonas y dosis','Caso clínico: labios naturales','Visita nuestras instalaciones en Madrid','Becas y financiación: lo que debes saber']},
+ 'eimec.clinic':{seed:22,community:21360,reachPerPost:9500,followsPerDay:11,posts90:24,storiesPer30:12,gbp:false,
+   nets:{ig:.62,tt:.2,yt:.08,fb:.10},
+   handles:{ig:'@eimec.clinic',tt:'@eimec.clinic',yt:'EIMEC Clinic',fb:'EIMEC Clinic'},
+   avatar:'CL',
+   titles:['Antes/después: armonización facial','Tu primera consulta, paso a paso','Peeling químico: para quién sí','Resultados reales: mesoterapia','Preguntas frecuentes sobre rellenos','Cuidados post-tratamiento','Piel sana en verano: guía rápida','Caso real: ojeras','La importancia del diagnóstico facial','Promoción del mes en clínica']},
+ 'EIMEC Talks':{seed:33,community:4820,reachPerPost:6800,followsPerDay:16,posts90:15,storiesPer30:6,gbp:false,
+   nets:{ig:.55,tt:.25,yt:.12,fb:.08},
+   handles:{ig:'@eimectalks',tt:'@eimec.talks',yt:'EIMEC Talks',fb:'EIMEC Talks'},
+   avatar:'TK',
+   titles:['Episodio: el futuro de la medicina estética','Entrevista: de residente a referente','Clip: lo que nadie cuenta de la estética','Debate: ética y redes sociales','Episodio: emprender una clínica','Clip: errores de novato','Entrevista: mujeres líderes en estética','Episodio: tendencias 2026']},
+ 'Zainela Laborde':{seed:44,community:9140,reachPerPost:4200,followsPerDay:6,posts90:18,storiesPer30:14,gbp:false,
+   nets:{ig:.82,li:.18},
+   handles:{ig:'@zainelalaborde',li:'Zainela Laborde'},
+   avatar:'ZL',
+   titles:['Rutina de mañana de una doctora','Mi técnica favorita de labios','Congreso: lo que aprendí','Detrás de cámaras en consulta','Consejo para médicos que empiezan','Caso clínico comentado','Mi experiencia como docente','Q&A: vuestras preguntas']},
+ 'eimec.global':{seed:55,community:2030,reachPerPost:2600,followsPerDay:5,posts90:10,storiesPer30:4,gbp:false,
+   nets:{ig:.7,yt:.3},
+   handles:{ig:'@eimec',yt:'EIMEC Global'},
+   avatar:'GL',
+   titles:['Aesthetic medicine training in Madrid','Meet our international students','Why doctors choose EIMEC','Campus tour — English edition','Admissions open: international program','Student story: from Dubai to Madrid']}
+};
+var BRAND_KEYS=Object.keys(BRANDS);
+
+// ---------------- generación determinista de datos ----------------
+var CACHE={};
+function genBrand(key){
+  if(CACHE[key]) return CACHE[key];
+  var b=BRANDS[key], rng=mulberry32(b.seed);
+  var netKeys=Object.keys(b.nets);
+
+  // publicaciones sobre 180 días
+  var posts=[], count=Math.round(b.posts90*2);
+  for(var k=0;k<count;k++){
+    var day=Math.floor(rng()*DAYS);
+    // red ponderada
+    var r=rng(), acc=0, net=netKeys[0];
+    for(var ni=0;ni<netKeys.length;ni++){acc+=b.nets[netKeys[ni]]; if(r<=acc){net=netKeys[ni]; break;}}
+    var fmts=NETMETA[net].formats;
+    var fmt=fmts[Math.floor(rng()*fmts.length)];
+    var reach=b.reachPerPost*FMTMULT[fmt]*(0.45+rng()*1.6);
+    var er=FMTER[fmt]*(0.75+rng()*0.55);
+    var inter=reach*er;
+    var hours=[13,17,19,20,20,21];
+    posts.push({
+      day:day, net:net, fmt:fmt,
+      title:b.titles[k%b.titles.length],
+      hour:hours[Math.floor(rng()*hours.length)], min:Math.floor(rng()*60),
+      reach:reach, inter:inter, er:er*100,
+      saves:inter*(0.10+rng()*0.06), shares:inter*(0.07+rng()*0.06)
+    });
+  }
+  posts.sort(function(a,c){return a.day-c.day;});
+
+  // series diarias (baseline + aportación de posts)
+  var baseReach=(b.reachPerPost*b.posts90/90)*0.55;
+  var dReach=[], dInter=[], dFol=[], dFolNet={};
+  netKeys.forEach(function(n){dFolNet[n]=[];});
+  for(var i=0;i<DAYS;i++){
+    dReach.push(baseReach*(0.7+rng()*0.6));
+    dInter.push(dReach[i]*0.021*(0.8+rng()*0.4));
+    var f=b.followsPerDay*(0.65+rng()*0.7);
+    dFol.push(f);
+    netKeys.forEach(function(n){dFolNet[n].push(f*b.nets[n]);});
+  }
+  posts.forEach(function(p){
+    dReach[p.day]+=p.reach; dInter[p.day]+=p.inter;
+    var spike=p.reach*((p.fmt==='Reel'||p.fmt==='Vídeo'||p.fmt==='Short')?0.0011:0.0005);
+    p.folSpike=spike;
+    dFol[p.day]+=spike; dFolNet[p.net][p.day]+=spike;
+  });
+
+  // comunidad acumulada (hoy = b.community, hacia atrás restando altas)
+  var community=[]; community[DAYS-1]=b.community;
+  for(var j=DAYS-2;j>=0;j--) community[j]=community[j+1]-dFol[j+1];
+
+  CACHE[key]={cfg:b,posts:posts,dReach:dReach,dInter:dInter,dFol:dFol,dFolNet:dFolNet,community:community,netKeys:netKeys};
+  return CACHE[key];
+}
+
+function sum(arr,from,to){var s=0;for(var i=from;i<=to;i++)s+=arr[i];return s;}
+
+// estadísticas de un periodo [from,to] (índices)
+function periodStats(key,from,to){
+  var d=genBrand(key), days=to-from+1;
+  var st={from:from,to:to,days:days};
+  st.posts=d.posts.filter(function(p){return p.day>=from&&p.day<=to;});
+  st.reach=sum(d.dReach,from,to);
+  st.inter=sum(d.dInter,from,to);
+  st.folDelta=sum(d.dFol,from,to);
+  st.communityEnd=d.community[to];
+  st.stories=d.cfg.nets.ig?Math.round(d.cfg.storiesPer30*days/30):0;
+  st.storiesReach=st.stories*d.cfg.community*0.045;
+  st.storiesInter=st.storiesReach*0.011;
+  st.totalReach=st.reach+st.storiesReach;
+  st.totalInter=st.inter+st.storiesInter;
+  st.impressions=st.totalReach*1.65;
+  st.pubs=st.posts.length+st.stories;
+  st.er=st.totalReach>0?st.totalInter/st.totalReach*100:0;
+  st.interPerPost=st.posts.length?st.posts.reduce(function(a,p){return a+p.inter;},0)/st.posts.length:0;
+  st.folByNet={};
+  d.netKeys.forEach(function(n){st.folByNet[n]=sum(d.dFolNet[n],from,to);});
+  return st;
+}
+function prevWindow(from,to){var len=to-from+1; var pf=from-len, pt=from-1; if(pf<0){pf=0;pt=Math.max(0,len-1<from?from-1:0);} return [pf,pt];}
+
+// ---------------- estado ----------------
+var state={brand:'eimec.es', period:30, custom:null, gal:{net:'all',fmt:'all',sort:'inter'}};
+function currentWindow(){
+  if(state.period==='custom'&&state.custom) return state.custom;
+  var p=(state.period==='custom')?30:state.period;
+  return [DAYS-p,DAYS-1];
+}
+
+// ---------------- constructores de SVG ----------------
+function resample(arr,from,to,buckets){
+  var out=[], len=to-from+1, per=len/buckets;
+  for(var i=0;i<buckets;i++){
+    var a=from+Math.floor(i*per), c=Math.min(to,from+Math.floor((i+1)*per)-1);
+    if(c<a)c=a;
+    out.push({sum:sum(arr,a,c),from:a,to:c});
+  }
+  return out;
+}
+function kfmt(v){return v>=10000?(v/1000).toLocaleString('es-ES',{maximumFractionDigits:1})+'k':fmtInt(v);}
+
+function svgFollowers(key,from,to){
+  var d=genBrand(key), B=15;
+  var buckets=resample(d.dFol,from,to,B);
+  var cum=buckets.map(function(bk){return d.community[bk.to];});
+  var lo=Math.min.apply(null,cum), hi=Math.max.apply(null,cum);
+  if(hi===lo)hi=lo+1;
+  var pad=(hi-lo)*0.15; lo-=pad; hi+=pad;
+  var X=function(i){return 40+i*(616/(B-1));};
+  var Y=function(v){return 42+(hi-v)/(hi-lo)*151;};
+  var line=cum.map(function(v,i){return (i?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1);}).join(' ');
+  var area=line+' L656,205 L40,205 Z';
+  // rejilla: 4 ticks
+  var g='',lab='';
+  for(var t=0;t<4;t++){
+    var v=lo+(hi-lo)*(t+0.5)/4, y=Y(v);
+    g+='<line x1="40" y1="'+y.toFixed(1)+'" x2="660" y2="'+y.toFixed(1)+'"/>';
+    lab+='<text x="0" y="'+(y+4).toFixed(1)+'">'+kfmt(v)+'</text>';
+  }
+  // barras de altas netas
+  var maxB=Math.max.apply(null,buckets.map(function(b){return b.sum;}))||1;
+  var bars='', maxIdx=0;
+  buckets.forEach(function(bk,i){if(bk.sum>buckets[maxIdx].sum)maxIdx=i;});
+  buckets.forEach(function(bk,i){
+    var h=Math.max(3,bk.sum/maxB*60), x=X(i)-8;
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+(290-h).toFixed(1)+'" width="16" height="'+h.toFixed(1)+'" rx="2" fill="'+(i===maxIdx?'var(--teal)':'var(--teal-soft)')+'"/>';
+  });
+  // anotación del mejor tramo
+  var top=buckets[maxIdx], topPost=null;
+  genBrand(key).posts.forEach(function(p){if(p.day>=top.from&&p.day<=top.to&&(!topPost||p.reach>topPost.reach))topPost=p;});
+  var annX=Math.min(560,Math.max(45,X(maxIdx)-60));
+  var ann='<text x="'+annX+'" y="226" font-size="10.5" fill="var(--teal)" font-weight="700">+'+fmtInt(top.sum)+(topPost?' · '+esc(NETMETA[topPost.net].name+' '+topPost.fmt):'')+'</text>';
+  var d0=fmtDay(dateOfIndex(from)), d1=fmtDay(dateOfIndex(Math.floor((from+to)/2))), d2=fmtDay(dateOfIndex(to));
+  return '<svg viewBox="0 0 700 300" width="100%" role="img" aria-label="Comunidad por día">'
+    +'<g stroke="var(--line)" stroke-width="1">'+g+'</g>'
+    +'<g font-size="10.5" fill="var(--muted)">'+lab+'</g>'
+    +'<path d="'+area+'" fill="var(--teal)" opacity="0.13"/>'
+    +'<path d="'+line+'" fill="none" stroke="var(--teal)" stroke-width="3"/>'
+    +'<circle cx="656" cy="'+Y(cum[B-1]).toFixed(1)+'" r="4.5" fill="var(--teal)"/>'
+    +'<text x="590" y="'+(Y(cum[B-1])-10).toFixed(1)+'" font-size="11.5" fill="var(--ink)" font-weight="700">'+fmtInt(cum[B-1])+'</text>'
+    +'<g font-size="10.5" fill="var(--muted)"><text x="40" y="222">'+d0+'</text><text x="330" y="222">'+d1+'</text><text x="620" y="222">'+d2+'</text></g>'
+    +'<text x="40" y="250" font-size="10.5" fill="var(--muted)">altas netas por tramo</text>'
+    +bars+ann+'</svg>';
+}
+
+function svgWeekly(key){
+  var d=genBrand(key), weeks=[];
+  for(var w=7;w>=0;w--){
+    var to=DAYS-1-w*7, from=to-6;
+    weeks.push({from:from,to:to,sum:sum(d.dFol,from,to)});
+  }
+  var max=Math.max.apply(null,weeks.map(function(x){return x.sum;}))||1;
+  var cur=weeks.slice(4), prev=weeks.slice(0,4);
+  var avgCur=cur.reduce(function(a,x){return a+x.sum;},0)/4;
+  var avgPrev=prev.reduce(function(a,x){return a+x.sum;},0)/4;
+  var yAvg=200-avgCur/max*150;
+  var bars='',vals='',labs='';
+  weeks.forEach(function(wk,i){
+    var h=Math.max(4,wk.sum/max*150), x=30+i*76;
+    var fill=i<4?'fill="var(--muted)" opacity=".35"':'fill="var(--teal)"';
+    bars+='<rect x="'+x+'" y="'+(200-h).toFixed(1)+'" width="50" height="'+h.toFixed(1)+'" rx="4" '+fill+'/>';
+    vals+='<text x="'+(x+25)+'" y="'+(193-h).toFixed(1)+'">+'+fmtInt(wk.sum)+'</text>';
+    labs+='<text x="'+(x+25)+'" y="216">'+fmtDay(dateOfIndex(wk.from))+'</text>';
+  });
+  var svg='<svg viewBox="0 0 640 240" width="100%" role="img" aria-label="Nuevos seguidores por semana">'
+    +'<line x1="20" y1="200" x2="630" y2="200" stroke="var(--line)" stroke-width="1.5"/>'
+    +'<line x1="20" y1="'+yAvg.toFixed(1)+'" x2="630" y2="'+yAvg.toFixed(1)+'" stroke="var(--blue)" stroke-width="1.5" stroke-dasharray="6 5" opacity=".6"/>'
+    +bars
+    +'<g font-size="11.5" font-weight="700" fill="var(--ink)" text-anchor="middle">'+vals+'</g>'
+    +'<g font-size="10.5" fill="var(--muted)" text-anchor="middle">'+labs+'</g></svg>';
+  var deltaPct=avgPrev>0?(avgCur-avgPrev)/avgPrev*100:0;
+  var best=Math.max.apply(null,prev.map(function(x){return x.sum;}));
+  var nBetter=cur.filter(function(x){return x.sum>best;}).length;
+  var note='Media semanal (línea discontinua): <b class="'+cls(deltaPct)+'">+'+fmtInt(avgCur)+'</b> vs. <b>+'+fmtInt(avgPrev)+'</b> de las 4 semanas anteriores (<b class="'+cls(deltaPct)+'">'+fmtSignedPct(deltaPct,0)+'</b>).'
+    +(nBetter?' '+nBetter+' de las 4 semanas recientes superan la mejor semana del bloque anterior.':'');
+  return {svg:svg,note:note,avgCur:avgCur,avgPrev:avgPrev,weeks:weeks};
+}
+
+function svgGrowthByNet(key,from,to){
+  var st=periodStats(key,from,to), d=genBrand(key);
+  var rows=d.netKeys.map(function(n){return {n:n,v:st.folByNet[n]};}).sort(function(a,b){return b.v-a.v;});
+  var max=rows.length?rows[0].v:1; if(max<=0)max=1;
+  var H=rows.length*32+10, out='';
+  rows.forEach(function(r,i){
+    var y=30+i*32, w=Math.max(6,r.v/max*180);
+    out+='<text x="0" y="'+y+'" font-size="12" fill="var(--muted)">'+NETMETA[r.n].name+'</text>'
+       +'<rect x="86" y="'+(y-12)+'" width="'+w.toFixed(1)+'" height="16" rx="3" fill="'+NETMETA[r.n].color+'" opacity=".9"/>'
+       +'<text x="'+(90+w)+'" y="'+y+'" font-size="12" fill="var(--ink)" font-weight="700">+'+fmtInt(r.v)+'</text>';
+  });
+  var total=rows.reduce(function(a,r){return a+r.v;},0)||1;
+  var top=rows[0], second=rows[1];
+  var note=NETMETA[top.n].name+' aporta el '+fmtPct(top.v/total*100,0)+' del crecimiento'
+    +(second?'; '+NETMETA[second.n].name+' el '+fmtPct(second.v/total*100,0)+'.':'.');
+  return {svg:'<svg viewBox="0 0 360 '+(H+30)+'" width="100%" role="img" aria-label="Crecimiento por red">'+out+'</svg>',note:note};
+}
+
+function svgReach(key,from,to){
+  var d=genBrand(key), B=15;
+  var rb=resample(d.dReach,from,to,B), ib=resample(d.dInter,from,to,B);
+  var rv=rb.map(function(x){return x.sum;}), iv=ib.map(function(x){return x.sum;});
+  var rmax=Math.max.apply(null,rv)||1, imax=Math.max.apply(null,iv)||1;
+  var X=function(i){return i*(640/(B-1));};
+  var YR=function(v){return 30+(1-v/rmax)*140;};
+  var YI=function(v){return 200-(v/imax)*46;};
+  var rline=rv.map(function(v,i){return (i?'L':'M')+X(i).toFixed(1)+','+YR(v).toFixed(1);}).join(' ');
+  var iline=iv.map(function(v,i){return (i?'L':'M')+X(i).toFixed(1)+','+YI(v).toFixed(1);}).join(' ');
+  var maxIdx=0; rv.forEach(function(v,i){if(v>rv[maxIdx])maxIdx=i;});
+  var topPost=null;
+  d.posts.forEach(function(p){if(p.day>=rb[maxIdx].from&&p.day<=rb[maxIdx].to&&(!topPost||p.reach>topPost.reach))topPost=p;});
+  var annX=Math.min(500,Math.max(5,X(maxIdx)-50));
+  var ann=topPost?'<text x="'+annX+'" y="'+(YR(rv[maxIdx])-10).toFixed(1)+'" font-size="11" fill="var(--muted)">'+esc(NETMETA[topPost.net].name+' '+topPost.fmt)+'</text>':'';
+  return '<svg viewBox="0 0 640 220" width="100%" role="img" aria-label="Alcance e interacciones por día">'
+    +'<g stroke="var(--line)" stroke-width="1"><line x1="0" y1="55" x2="640" y2="55"/><line x1="0" y1="110" x2="640" y2="110"/><line x1="0" y1="165" x2="640" y2="165"/></g>'
+    +'<path d="'+rline+' L640,220 L0,220 Z" fill="var(--teal)" opacity="0.14"/>'
+    +'<path d="'+rline+'" fill="none" stroke="var(--teal)" stroke-width="2.5"/>'
+    +'<path d="'+iline+'" fill="none" stroke="var(--blue)" stroke-width="2" stroke-dasharray="5 4"/>'
+    +'<circle cx="'+X(maxIdx).toFixed(1)+'" cy="'+YR(rv[maxIdx]).toFixed(1)+'" r="4" fill="var(--teal)"/>'
+    +ann+'</svg>';
+}
+
+// ---------------- render de secciones ----------------
+function sparkline(vals,color){
+  var max=Math.max.apply(null,vals)||1, min=Math.min.apply(null,vals);
+  if(max===min)max=min+1;
+  var pts=vals.map(function(v,i){return (i?'L':'M')+(i*(140/(vals.length-1))).toFixed(1)+','+(24-((v-min)/(max-min))*20+1).toFixed(1);}).join(' ');
+  var lastY=(24-((vals[vals.length-1]-min)/(max-min))*20+1).toFixed(1);
+  return '<svg viewBox="0 0 140 26" width="100%" height="26"><path d="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2"/><circle cx="140" cy="'+lastY+'" r="2.6" fill="'+color+'"/></svg>';
+}
+function kpiCard(lbl,val,difHTML,spark,subL,subR){
+  return '<div class="kpi"><div class="k-lbl">'+lbl+'</div><div class="k-val">'+val+'</div>'
+    +'<div class="k-dif">'+difHTML+'</div>'+spark
+    +'<div class="k-sub"><span>'+subL+'</span><b>'+subR+'</b></div></div>';
+}
+
+function renderKPIs(st,pv,key){
+  var d=genBrand(key), w=currentWindow();
+  var fol10=resample(d.dFol,w[0],w[1],8).map(function(x){return x.sum;});
+  var cum=[], acc=st.communityEnd-st.folDelta;
+  fol10.forEach(function(v){acc+=v; cum.push(acc);});
+  var reach10=resample(d.dReach,w[0],w[1],8).map(function(x){return x.sum;});
+  var inter10=resample(d.dInter,w[0],w[1],8).map(function(x){return x.sum;});
+  var interTrendUp=inter10[inter10.length-1]>=inter10[0];
+
+  var dImp=pv.impressions>0?(st.impressions-pv.impressions)/pv.impressions*100:0;
+  var dReach=pv.totalReach>0?(st.totalReach-pv.totalReach)/pv.totalReach*100:0;
+  var dInter=pv.totalInter>0?(st.totalInter-pv.totalInter)/pv.totalInter*100:0;
+  var dEr=st.er-pv.er;
+  var dIpp=pv.interPerPost>0?(st.interPerPost-pv.interPerPost)/pv.interPerPost*100:0;
+  var folPct=st.communityEnd-st.folDelta>0?st.folDelta/(st.communityEnd-st.folDelta)*100:0;
+
+  var html='';
+  html+=kpiCard('Comunidad total',fmtInt(st.communityEnd),
+    '<span class="up">▲ +'+fmtInt(st.folDelta)+'</span> <span>(+'+folPct.toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</span>',
+    sparkline(cum,'var(--teal)'),'media/día','<span class="up">+'+fmtInt(st.folDelta/st.days)+'</span>');
+  html+=kpiCard('Alcance',fmtBig(st.totalReach),
+    '<span class="'+cls(dReach)+'">'+fmtSignedPct(dReach)+'</span> <span>('+fmtBig(pv.totalReach)+' ant.)</span>',
+    sparkline(reach10,'var(--teal)'),'media/día',fmtInt(st.totalReach/st.days));
+  html+=kpiCard('Impresiones',fmtBig(st.impressions),
+    '<span class="'+cls(dImp)+'">'+fmtSignedPct(dImp)+'</span> <span>('+fmtBig(pv.impressions)+' ant.)</span>',
+    sparkline(reach10.map(function(v){return v*1.65;}),'var(--teal)'),'frecuencia','1,7×');
+  html+=kpiCard('Interacciones',fmtInt(st.totalInter),
+    '<span class="'+cls(dInter)+'">'+fmtSignedPct(dInter)+'</span> <span>('+fmtInt(pv.totalInter)+' ant.)</span>',
+    sparkline(inter10,interTrendUp?'var(--teal)':'var(--bad)'),
+    'por publicación','<span class="'+cls(dIpp)+'">'+fmtInt(st.interPerPost)+' ('+(dIpp<0?'−':'+')+Math.abs(dIpp).toLocaleString('es-ES',{maximumFractionDigits:0})+'%)</span>');
+  html+=kpiCard('Engagement',fmtPct(st.er,2),
+    '<span class="'+cls(dEr)+'">'+(dEr<0?'▼ −':'▲ +')+Math.abs(dEr).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' pt</span> <span>('+fmtPct(pv.er,2)+' ant.)</span>',
+    sparkline(inter10.map(function(v,i){return reach10[i]>0?v/reach10[i]:0;}),'var(--teal)'),'benchmark sector*','1,9%');
+  var bars10=resample(new Array(DAYS).fill(0).map(function(_,i){return d.posts.filter(function(p){return p.day===i;}).length;}),w[0],w[1],7).map(function(x){return x.sum;});
+  var maxb=Math.max.apply(null,bars10)||1;
+  var barsSvg='<svg viewBox="0 0 140 26" width="100%" height="26"><g fill="var(--teal-soft)">'+bars10.map(function(v,i){var h=Math.max(2,v/maxb*22);return '<rect x="'+(4+i*20)+'" y="'+(26-h)+'" width="12" height="'+h+'"/>';}).join('')+'</g></svg>';
+  html+=kpiCard('Publicaciones',fmtInt(st.pubs),
+    '<span class="'+cls(st.pubs-pv.pubs)+'">'+(st.pubs-pv.pubs<0?'▼ ':'▲ ')+fmtSigned(st.pubs-pv.pubs)+'</span> <span>vs. '+fmtInt(pv.pubs)+'</span>',
+    barsSvg,'ritmo',(st.pubs/st.days).toLocaleString('es-ES',{maximumFractionDigits:1})+' / día');
+  document.getElementById('kpiRow').innerHTML=html;
+}
+
+function insightCard(tag,color,title,body){
+  return '<div class="ins" style="--ic:'+color+'"><span class="tag">'+tag+'</span><b>'+title+'</b><p>'+body+'</p></div>';
+}
+function renderInsights(st,pv,key,weekInfo){
+  var cards=[];
+  var feed=st.posts;
+  // 1 · formato líder por alcance
+  if(feed.length>=3){
+    var byFmt={};
+    feed.forEach(function(p){if(!byFmt[p.fmt])byFmt[p.fmt]={n:0,reach:0};byFmt[p.fmt].n++;byFmt[p.fmt].reach+=p.reach;});
+    var totReach=feed.reduce(function(a,p){return a+p.reach;},0);
+    var topF=null;
+    Object.keys(byFmt).forEach(function(f){if(!topF||byFmt[f].reach>byFmt[topF].reach)topF=f;});
+    var tf=byFmt[topF], share=tf.reach/totReach*100, cshare=tf.n/feed.length*100;
+    var avgTop=tf.reach/tf.n, restN=feed.length-tf.n;
+    var avgRest=restN>0?(totReach-tf.reach)/restN:0;
+    if(share>cshare+8){
+      cards.push(insightCard('Fortaleza','var(--good)',
+        'El formato '+topF+' concentra el '+fmtPct(share,0)+' del alcance con el '+fmtPct(cshare,0)+' de las publicaciones',
+        'Alcance medio por '+topF+': '+fmtInt(avgTop)+(avgRest>0?' vs. '+fmtInt(avgRest)+' del resto de formatos ('+(avgTop/Math.max(1,avgRest)).toLocaleString('es-ES',{maximumFractionDigits:1})+'×).':'.')));
     }
   }
-
-  function showDashboard() {
-    document.getElementById('loginContainer').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
+  // 2 · interacción por publicación
+  if(pv.interPerPost>0&&st.posts.length>0){
+    var dIpp=(st.interPerPost-pv.interPerPost)/pv.interPerPost*100;
+    if(dIpp<-3){
+      cards.push(insightCard('Alerta','var(--bad)',
+        'La interacción por publicación cae un '+Math.abs(dIpp).toLocaleString('es-ES',{maximumFractionDigits:0})+'%',
+        'Baja de '+fmtInt(pv.interPerPost)+' a '+fmtInt(st.interPerPost)+' interacciones por pieza. Publicar más no está compensando la pérdida de eficacia: revisar los posts con ER más bajo del periodo.'));
+    } else if(dIpp>3){
+      cards.push(insightCard('Fortaleza','var(--good)',
+        'La interacción por publicación sube un '+dIpp.toLocaleString('es-ES',{maximumFractionDigits:0})+'%',
+        'De '+fmtInt(pv.interPerPost)+' a '+fmtInt(st.interPerPost)+' interacciones por pieza: el contenido gana eficacia además de volumen.'));
+    }
   }
+  // 3 · red más eficiente (seguidores por publicación)
+  var d=genBrand(key);
+  var eff=d.netKeys.map(function(n){
+    var pn=feed.filter(function(p){return p.net===n;}).length;
+    return {n:n,posts:pn,fol:st.folByNet[n],rate:pn>0?st.folByNet[n]/pn:0};
+  }).filter(function(x){return x.posts>=1;}).sort(function(a,b){return b.rate-a.rate;});
+  if(eff.length>=2){
+    var best=eff[0], worst=eff[eff.length-1];
+    cards.push(insightCard('Oportunidad','var(--teal)',
+      NETMETA[best.n].name+' es la red más eficiente: ≈'+fmtInt(best.rate)+' seguidores por publicación',
+      'Frente a ≈'+fmtInt(worst.rate)+' de '+NETMETA[worst.n].name+'. Aumentar el ritmo en '+NETMETA[best.n].name+' es la palanca de crecimiento más barata del periodo.'));
+  }
+  // 4 · red más débil por ER
+  var erNet=d.netKeys.map(function(n){
+    var ps=feed.filter(function(p){return p.net===n;});
+    if(ps.length<2)return null;
+    var r=ps.reduce(function(a,p){return a+p.reach;},0), it=ps.reduce(function(a,p){return a+p.inter;},0);
+    return {n:n,posts:ps.length,er:r>0?it/r*100:0,fol:st.folByNet[n]};
+  }).filter(Boolean).sort(function(a,b){return a.er-b.er;});
+  if(erNet.length>=2){
+    var weak=erNet[0];
+    cards.push(insightCard('Alerta','var(--bad)',
+      NETMETA[weak.n].name+' es la red con peor retorno: ER '+fmtPct(weak.er)+' con '+weak.posts+' publicaciones',
+      'Sugerencia: reciclar ahí las piezas ganadoras de otras redes en lugar de crear contenido propio, y liberar ese tiempo hacia la red más eficiente.'));
+  }
+  // 5 · benchmark
+  var bm=1.9;
+  if(st.er>bm){
+    cards.push(insightCard('Fortaleza','var(--good)',
+      'Engagement '+fmtPct(st.er,2)+': un '+fmtPct((st.er-bm)/bm*100,0)+' por encima del benchmark del sector',
+      'La comunidad responde mejor que la media de salud/educación ('+fmtPct(bm)+'). El margen de mejora está en el alcance, no en la calidad del contenido.'));
+  } else {
+    cards.push(insightCard('Alerta','var(--bad)',
+      'Engagement '+fmtPct(st.er,2)+': por debajo del benchmark del sector ('+fmtPct(bm)+')',
+      'Revisar mix de formatos: aumentar el peso de los formatos con mejor ER del periodo y reducir el contenido institucional de bajo rendimiento.'));
+  }
+  // 6 · ritmo semanal
+  if(weekInfo&&weekInfo.avgPrev>0){
+    var dw=(weekInfo.avgCur-weekInfo.avgPrev)/weekInfo.avgPrev*100;
+    cards.push(insightCard(dw>=0?'Oportunidad':'Alerta',dw>=0?'var(--teal)':'var(--bad)',
+      'Ritmo de captación semanal: '+fmtSignedPct(dw,0).replace('▲ ','').replace('▼ ','')+' vs. el mes anterior',
+      'Media de +'+fmtInt(weekInfo.avgCur)+' seguidores/semana en las últimas 4 semanas frente a +'+fmtInt(weekInfo.avgPrev)+' en las 4 previas.'+(dw>=0?' Mantener la cadencia actual de publicación.':' Revisar qué cambió en el contenido o la frecuencia.')));
+  }
+  document.getElementById('insightRow').innerHTML=cards.slice(0,6).join('');
+}
 
-  if (sessionStorage.getItem(AUTH_KEY) === 'true') {
+var CAMICON={
+  photo:'<rect x="2.5" y="6" width="19" height="14" rx="2.5"/><circle cx="12" cy="13" r="4"/><path d="M8 6l1.5-2.5h5L16 6"/>',
+  play:'<polygon points="8,5 19,12 8,19"/>',
+  carousel:'<rect x="3" y="3" width="13" height="13" rx="2"/><rect x="8" y="8" width="13" height="13" rx="2"/>'
+};
+function iconFor(fmt){
+  if(fmt==='Reel'||fmt==='Vídeo'||fmt==='Short')return CAMICON.play;
+  if(fmt==='Carrusel')return CAMICON.carousel;
+  return CAMICON.photo;
+}
+
+function renderGalleryFilters(key){
+  var d=genBrand(key), g=state.gal, html='';
+  html+='<span class="lbl">Red</span>';
+  html+='<span class="chip'+(g.net==='all'?' on':'')+'" onclick="setGal(\'net\',\'all\')">Todas</span>';
+  d.netKeys.forEach(function(n){
+    html+='<span class="chip'+(g.net===n?' on':'')+'" onclick="setGal(\'net\',\''+n+'\')">'+NETMETA[n].name+'</span>';
+  });
+  html+='<span class="sep"></span><span class="lbl">Formato</span>';
+  var fmts=[]; d.netKeys.forEach(function(n){NETMETA[n].formats.forEach(function(f){if(fmts.indexOf(f)<0)fmts.push(f);});});
+  html+='<span class="chip'+(g.fmt==='all'?' on':'')+'" onclick="setGal(\'fmt\',\'all\')">Todos</span>';
+  fmts.forEach(function(f){
+    html+='<span class="chip'+(g.fmt===f?' on':'')+'" onclick="setGal(\'fmt\',\''+f+'\')">'+f+'</span>';
+  });
+  html+='<span class="sep"></span><span class="lbl">Ordenar</span>';
+  [['inter','Interacciones'],['reach','Alcance'],['er','Engagement'],['date','Fecha']].forEach(function(o){
+    html+='<span class="chip'+(g.sort===o[0]?' on':'')+'" onclick="setGal(\'sort\',\''+o[0]+'\')">'+o[1]+(g.sort===o[0]?' ▾':'')+'</span>';
+  });
+  document.getElementById('galFilters').innerHTML=html;
+}
+
+function renderGallery(st,key){
+  var g=state.gal;
+  var all=st.posts.slice();
+  var avgInter=all.length?all.reduce(function(a,p){return a+p.inter;},0)/all.length:0;
+  // ranking global por interacciones (independiente del filtro)
+  var byInter=all.slice().sort(function(a,b){return b.inter-a.inter;});
+  var rankMap=new Map(); byInter.forEach(function(p,i){rankMap.set(p,i+1);});
+
+  var list=all.filter(function(p){return (g.net==='all'||p.net===g.net)&&(g.fmt==='all'||p.fmt===g.fmt);});
+  var sorters={inter:function(a,b){return b.inter-a.inter;},reach:function(a,b){return b.reach-a.reach;},
+    er:function(a,b){return b.er-a.er;},date:function(a,b){return b.day-a.day;}};
+  list.sort(sorters[g.sort]);
+  var shown=list.slice(0,12);
+
+  var html=shown.map(function(p){
+    var nm=NETMETA[p.net];
+    var reachLbl=(p.net==='tt'||p.net==='yt')?'Visualizaciones':'Alcance';
+    var dt=dateOfIndex(p.day);
+    return '<div class="post" style="--nc:'+nm.color+'; --pg:'+nm.grad+'">'
+      +'<div class="ph"><svg class="cam" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4">'+iconFor(p.fmt)+'</svg>'
+      +'<span class="netp">'+nm.name+'</span><span class="fmt">'+p.fmt+'</span>'
+      +'<span class="rank">#'+rankMap.get(p)+'</span></div>'
+      +'<div class="pb"><div class="pt">'+esc(p.title)+'</div>'
+      +'<div class="pd">'+fmtDay(dt)+' · '+String(p.hour).padStart(2,'0')+':'+String(p.min).padStart(2,'0')+'</div>'
+      +'<div class="pm">'
+      +'<span>'+reachLbl+'</span><b>'+fmtInt(p.reach)+'</b>'
+      +'<span>Interacciones</span><b>'+fmtInt(p.inter)+'</b>'
+      +'<span>Guardados</span><b>'+fmtInt(p.saves)+'</b>'
+      +'<span>Compartidos</span><b>'+fmtInt(p.shares)+'</b>'
+      +'<span>Engagement</span><b class="er">'+fmtPct(p.er)+'</b>'
+      +'<span>vs. media cuenta</span><b class="'+(p.inter>=avgInter?'up':'down')+'">×'+(avgInter>0?(p.inter/avgInter).toLocaleString('es-ES',{maximumFractionDigits:1}):'—')+'</b>'
+      +'</div></div></div>';
+  }).join('');
+  if(!shown.length) html='<div class="empty">No hay publicaciones con este filtro en el periodo seleccionado.</div>';
+  document.getElementById('gallery').innerHTML=html;
+  document.getElementById('galleryNote').innerHTML='Mostrando <b>'+shown.length+'</b> de <b>'+list.length+'</b> publicaciones que cumplen el filtro ('+all.length+' en total en el periodo). En la versión con datos en vivo, cada tarjeta mostrará la <b>miniatura real</b> del post desde Metricool y enlazará a la publicación original.';
+}
+
+function renderFormatTable(st){
+  var feed=st.posts, byFmt={};
+  feed.forEach(function(p){
+    if(!byFmt[p.fmt])byFmt[p.fmt]={n:0,reach:0,inter:0};
+    byFmt[p.fmt].n++; byFmt[p.fmt].reach+=p.reach; byFmt[p.fmt].inter+=p.inter;
+  });
+  var rows=Object.keys(byFmt).map(function(f){var x=byFmt[f];return {f:f,n:x.n,reach:x.reach,inter:x.inter};});
+  if(st.stories>0)rows.push({f:'Story',n:st.stories,reach:st.storiesReach,inter:st.storiesInter});
+  var tot=rows.reduce(function(a,r){return a+r.reach;},0)||1;
+  var totN=rows.reduce(function(a,r){return a+r.n;},0);
+  rows.sort(function(a,b){return b.reach-a.reach;});
+  var maxShare=rows.length?rows[0].reach/tot:1;
+  var html='<table class="data" style="min-width:560px"><thead><tr><th>Formato</th><th class="num">Publicadas</th><th class="num">Alcance medio</th><th class="num">Interacc. media</th><th class="num">ER medio</th><th class="num">% del alcance total</th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var share=r.reach/tot*100, er=r.reach>0?r.inter/r.reach*100:0;
+    var w=Math.max(8,share/(maxShare*100)*76);
+    html+='<tr><td>'+r.f+'</td><td class="num">'+r.n+'</td><td class="num">'+fmtInt(r.reach/Math.max(1,r.n))+'</td>'
+      +'<td class="num">'+fmtInt(r.inter/Math.max(1,r.n))+'</td>'
+      +'<td class="num">'+(i===0?'<b class="er">'+fmtPct(er)+'</b>':fmtPct(er))+'</td>'
+      +'<td class="num"><span class="bar" style="width:'+w.toFixed(0)+'px"></span>'+fmtPct(share,0)+'</td></tr>';
+  });
+  html+='<tr class="total"><td>Total</td><td class="num">'+totN+'</td><td class="num">—</td><td class="num">—</td><td class="num">'+fmtPct(st.er,2)+'</td><td class="num">100%</td></tr>';
+  html+='</tbody></table>';
+  document.getElementById('fmtTable').innerHTML=html;
+}
+
+function renderHeat(key){
+  var b=BRANDS[key], rng=mulberry32(b.seed+7);
+  var hours=['9 h','13 h','17 h','20 h','22 h'], days=['L','M','X','J','V','S','D'];
+  var bias=[[0,1,0,1,0,-1,-1],[1,2,1,2,1,0,0],[1,1,2,1,2,1,0],[2,3,2,3,2,1,1],[1,2,1,2,1,0,0]];
+  var grid=[], best={v:-1,h:0,d:0};
+  for(var h=0;h<5;h++){grid.push([]);
+    for(var dd=0;dd<7;dd++){
+      var v=Math.max(0,Math.min(4,bias[h][dd]+Math.floor(rng()*2)));
+      grid[h].push(v);
+      if(v>best.v){best={v:v,h:h,d:dd};}
+    }
+  }
+  var html='<div class="heat"><span class="hh"></span>'+days.map(function(x){return '<span class="hd">'+x+'</span>';}).join('');
+  for(var i=0;i<5;i++){
+    html+='<span class="hh">'+hours[i]+'</span>';
+    for(var j=0;j<7;j++)html+='<span class="cell'+(grid[i][j]?' c'+grid[i][j]:'')+'"></span>';
+  }
+  html+='</div>';
+  document.getElementById('heatPanel').innerHTML=html;
+  var dayNames=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  document.getElementById('heatNote').innerHTML='Mejor franja: <b style="color:var(--teal)">'+dayNames[best.d]+', '+hours[best.h].replace(' h','')+'–'+(parseInt(hours[best.h])+1)+' h</b>. En la versión en vivo, este mapa sale del dato de audiencia activa de Metricool.';
+}
+
+function renderNetCards(st,key,from,to){
+  var d=genBrand(key), b=d.cfg, html='';
+  d.netKeys.forEach(function(n){
+    var nm=NETMETA[n], ps=st.posts.filter(function(p){return p.net===n;});
+    var reach=ps.reduce(function(a,p){return a+p.reach;},0)+st.reach*b.nets[n]*0.35;
+    var inter=ps.reduce(function(a,p){return a+p.inter;},0)+st.inter*b.nets[n]*0.35;
+    var er=reach>0?inter/reach*100:0;
+    var followers=st.communityEnd*b.nets[n];
+    var folLbl=n==='yt'?'Suscriptores':'Seguidores';
+    var reachLbl=(n==='tt'||n==='yt')?'Visualizaciones':'Alcance';
+    var pubsRow=n==='ig'&&st.stories>0
+      ?'<tr><td>Publicaciones / Stories</td><td>'+ps.length+' / '+st.stories+'</td></tr>'
+      :'<tr><td>Publicaciones</td><td>'+ps.length+'</td></tr>';
+    html+='<div class="net" style="--nc:'+nm.color+'">'
+      +'<div class="n-head"><div class="dot">'+nm.abbr+'</div><div><div class="n-name">'+nm.name+'</div><div class="n-handle">'+esc(b.handles[n]||'')+'</div></div></div>'
+      +'<table>'
+      +'<tr><td>'+folLbl+'</td><td>'+fmtInt(followers)+' <span class="n-dif up">+'+fmtInt(st.folByNet[n])+'</span></td></tr>'
+      +'<tr><td>'+reachLbl+'</td><td>'+fmtBig(reach)+'</td></tr>'
+      +'<tr><td>Interacciones</td><td>'+fmtInt(inter)+'</td></tr>'
+      +'<tr><td>Engagement</td><td>'+fmtPct(er)+'</td></tr>'
+      +pubsRow
+      +'</table></div>';
+  });
+  if(b.gbp){
+    var rngG=mulberry32(b.seed+99), f=st.days/30;
+    var visits=8900*f*(0.9+rngG()*0.2), searches=12400*f*(0.9+rngG()*0.2);
+    var clicks=640*f*(0.9+rngG()*0.2), calls=112*f*(0.9+rngG()*0.2), reviews=Math.round(41*f*(0.85+rngG()*0.3));
+    html+='<div class="net" style="--nc:var(--gbp)">'
+      +'<div class="n-head"><div class="dot">G</div><div><div class="n-name">Google Business</div><div class="n-handle">EIMEC · ficha</div></div></div>'
+      +'<table>'
+      +'<tr><td>Visitas a la ficha</td><td>'+fmtInt(visits)+'</td></tr>'
+      +'<tr><td>Búsquedas</td><td>'+fmtInt(searches)+'</td></tr>'
+      +'<tr><td>Clics a la web</td><td>'+fmtInt(clicks)+'</td></tr>'
+      +'<tr><td>Llamadas</td><td>'+fmtInt(calls)+'</td></tr>'
+      +'<tr><td>Reseñas nuevas · media</td><td>'+reviews+' · 4,8 ★</td></tr>'
+      +'</table></div>';
+  }
+  document.getElementById('netCards').innerHTML=html;
+}
+
+function renderBrandTable(from,to){
+  var rows=BRAND_KEYS.map(function(k){
+    var st=periodStats(k,from,to);
+    var base=st.communityEnd-st.folDelta;
+    return {k:k,st:st,pct:base>0?st.folDelta/base*100:0};
+  });
+  var tot={com:0,fol:0,reach:0,pubs:0,inter:0};
+  rows.forEach(function(r){tot.com+=r.st.communityEnd;tot.fol+=r.st.folDelta;tot.reach+=r.st.totalReach;tot.pubs+=r.st.pubs;tot.inter+=r.st.totalInter;});
+  var bestEr=rows.slice().sort(function(a,b){return b.st.er-a.st.er;})[0];
+  var bestGrowth=rows.slice().sort(function(a,b){return b.pct-a.pct;})[0];
+  var html='<table class="data" style="min-width:560px"><thead><tr><th>Marca</th><th class="num">Comunidad</th><th class="num">Crecimiento</th><th class="num">Alcance</th><th class="num">Publicaciones</th><th class="num">Engagement</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var erCell=(r.k===bestEr.k)?'<b class="er">'+fmtPct(r.st.er)+'</b>':fmtPct(r.st.er);
+    html+='<tr><td><span class="avatar">'+BRANDS[r.k].avatar+'</span>'+esc(r.k)+'</td>'
+      +'<td class="num">'+fmtInt(r.st.communityEnd)+'</td>'
+      +'<td class="num up">+'+fmtInt(r.st.folDelta)+' (+'+r.pct.toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</td>'
+      +'<td class="num">'+fmtBig(r.st.totalReach)+'</td>'
+      +'<td class="num">'+fmtInt(r.st.pubs)+'</td>'
+      +'<td class="num">'+erCell+'</td></tr>';
+  });
+  var totBase=tot.com-tot.fol;
+  html+='<tr class="total"><td>Grupo EIMEC</td><td class="num">'+fmtInt(tot.com)+'</td>'
+    +'<td class="num up">+'+fmtInt(tot.fol)+' (+'+(totBase>0?(tot.fol/totBase*100):0).toLocaleString('es-ES',{maximumFractionDigits:1})+'%)</td>'
+    +'<td class="num">'+fmtBig(tot.reach)+'</td><td class="num">'+fmtInt(tot.pubs)+'</td>'
+    +'<td class="num">'+fmtPct(tot.reach>0?tot.inter/tot.reach*100:0)+'</td></tr>';
+  html+='</tbody></table>';
+  document.getElementById('brandTable').innerHTML=html;
+  document.getElementById('brandNote').innerHTML='<b>'+esc(bestGrowth.k)+'</b> es la cuenta con mayor crecimiento relativo (+'+bestGrowth.pct.toLocaleString('es-ES',{maximumFractionDigits:1})+'%) y <b>'+esc(bestEr.k)+'</b> la de mejor engagement ('+fmtPct(bestEr.st.er)+'): candidatas a más inversión de contenido.';
+}
+
+// ---------------- render principal ----------------
+function renderAll(){
+  var key=state.brand, w=currentWindow(), from=w[0], to=w[1];
+  var st=periodStats(key,from,to);
+  var pw=prevWindow(from,to), pv=periodStats(key,pw[0],pw[1]);
+
+  // header
+  var tabs='';
+  BRAND_KEYS.forEach(function(k){
+    tabs+='<div class="tab'+(k===key?' active':'')+'" onclick="setBrand(\''+k.replace(/'/g,"\\'")+'\')">'+esc(k)+'</div>';
+  });
+  document.getElementById('brandTabs').innerHTML=tabs;
+  var now=new Date();
+  document.getElementById('updatedAt').textContent='Actualizado: '+fmtDay(now)+' '+now.getFullYear()+', '
+    +String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+' · Europe/Madrid';
+
+  // chips periodo
+  [['p7',7],['p30',30],['p90',90],['pcustom','custom']].forEach(function(x){
+    document.getElementById(x[0]).className='chip'+(state.period===x[1]?' on':'');
+  });
+  document.getElementById('customRange').className='customrange'+(state.period==='custom'?' visible':'');
+
+  document.getElementById('compareLabel').textContent='Comparando: '
+    +fmtDay(dateOfIndex(from))+' – '+fmtDay(dateOfIndex(to))+' vs. '
+    +fmtDay(dateOfIndex(pw[0]))+' – '+fmtDay(dateOfIndex(pw[1]));
+  document.getElementById('sec1sub').textContent='datos generales · todas las redes de '+key+' · cada KPI con variación, media diaria y tendencia';
+
+  renderKPIs(st,pv,key);
+  var wk=svgWeekly(key);
+  renderInsights(st,pv,key,wk);
+  renderGalleryFilters(key);
+  renderGallery(st,key);
+  renderFormatTable(st);
+  renderHeat(key);
+
+  document.getElementById('folSub').textContent='Del '+fmtDay(dateOfIndex(from))+' al '+fmtDay(dateOfIndex(to))+' · todas las redes de '+key+' · arriba la comunidad acumulada, abajo las altas netas por tramo';
+  document.getElementById('folChart').innerHTML=svgFollowers(key,from,to);
+  var best=0,worst=Infinity, d=genBrand(key);
+  for(var i=from;i<=to;i++){if(d.dFol[i]>best)best=d.dFol[i]; if(d.dFol[i]<worst)worst=d.dFol[i];}
+  document.getElementById('folLegend').innerHTML=
+    '<span><i style="background:var(--teal)"></i>Comunidad acumulada</span>'
+    +'<span><i style="background:var(--teal-soft)"></i>Altas netas por tramo</span>'
+    +'<span style="margin-left:auto">Total del periodo: <b class="up">+'+fmtInt(st.folDelta)+'</b> · mejor día: <b>+'+fmtInt(best)+'</b> · peor día: <b>+'+fmtInt(worst)+'</b></span>';
+
+  document.getElementById('weekChart').innerHTML=wk.svg;
+  document.getElementById('weekNote').innerHTML=wk.note;
+
+  var gr=svgGrowthByNet(key,from,to);
+  document.getElementById('growthChart').innerHTML=gr.svg;
+  document.getElementById('growthNote').innerHTML=gr.note;
+
+  document.getElementById('reachSub').textContent='Del '+fmtDay(dateOfIndex(from))+' al '+fmtDay(dateOfIndex(to))+' · suma de todas las redes · el punto marca el mejor tramo y su contenido';
+  document.getElementById('reachChart').innerHTML=svgReach(key,from,to);
+
+  renderNetCards(st,key,from,to);
+  renderBrandTable(from,to);
+}
+
+// ---------------- interacción ----------------
+function setBrand(k){state.brand=k; state.gal={net:'all',fmt:'all',sort:'inter'}; renderAll();}
+function setPeriod(p){
+  state.period=p;
+  if(p==='custom'){
+    var f=document.getElementById('dateFrom'), t=document.getElementById('dateTo');
+    var min=dateOfIndex(0), max=dateOfIndex(DAYS-1);
+    var iso=function(d){return d.toISOString().slice(0,10);};
+    f.min=iso(min); f.max=iso(max); t.min=iso(min); t.max=iso(max);
+    if(!f.value){var d30=new Date(TODAY); d30.setDate(d30.getDate()-29); f.value=iso(d30);}
+    if(!t.value){t.value=iso(max);}
+    document.getElementById('customRange').className='customrange visible';
+    [['p7',7],['p30',30],['p90',90],['pcustom','custom']].forEach(function(x){
+      document.getElementById(x[0]).className='chip'+(state.period===x[1]?' on':'');
+    });
+    return; // se renderiza al pulsar Aplicar
+  }
+  state.custom=null;
+  renderAll();
+}
+function applyCustom(){
+  var f=new Date(document.getElementById('dateFrom').value);
+  var t=new Date(document.getElementById('dateTo').value);
+  if(isNaN(f)||isNaN(t))return;
+  f.setHours(0,0,0,0); t.setHours(0,0,0,0);
+  var fi=Math.max(0,Math.min(DAYS-1,indexOfDate(f)));
+  var ti=Math.max(0,Math.min(DAYS-1,indexOfDate(t)));
+  if(ti<fi){var tmp=fi;fi=ti;ti=tmp;}
+  state.custom=[fi,ti];
+  renderAll();
+}
+function setGal(field,val){
+  state.gal[field]=val;
+  var w=currentWindow(), st=periodStats(state.brand,w[0],w[1]);
+  renderGalleryFilters(state.brand);
+  renderGallery(st,state.brand);
+}
+
+// ---------------- login ----------------
+var PASSWORD='social-eimec-2026', AUTH_KEY='social_auth';
+function checkPassword(){
+  var input=document.getElementById('passwordInput');
+  var err=document.getElementById('loginError');
+  if(input.value===PASSWORD){
+    sessionStorage.setItem(AUTH_KEY,'true');
     showDashboard();
+  } else {
+    err.style.display='block'; input.value=''; input.focus();
   }
+}
+function showDashboard(){
+  document.getElementById('loginContainer').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  renderAll();
+}
+if(sessionStorage.getItem(AUTH_KEY)==='true'){showDashboard();}
 </script>
 </body>
 </html>
