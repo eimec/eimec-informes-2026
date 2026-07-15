@@ -206,12 +206,15 @@
 
   <h2 class="sec"><span class="prio">1</span>Resumen ejecutivo <small id="sec1sub"></small></h2>
   <div class="kpis" id="kpiRow"></div>
-  <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Engagement por publicación: interacciones ÷ alcance de las publicaciones del periodo (metodología Metricool). Benchmark: mediana del sector salud/educación del estudio anual de Metricool.</p>
+  <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Engagement por publicación: interacciones ÷ alcance de las publicaciones del periodo (metodología Metricool). Benchmark: mediana del sector salud/educación del estudio anual de Metricool. Los periodos abarcan días completos (Europe/Madrid) y excluyen el día en curso, que Metricool completa al día siguiente.</p>
 
-  <h2 class="sec"><span class="prio">2</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos reales</small></h2>
+  <h2 class="sec"><span class="prio">2</span>Detalle por red <small>ficha completa de cada canal</small></h2>
+  <div class="nets" id="netCards"></div>
+
+  <h2 class="sec"><span class="prio">3</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos reales</small></h2>
   <div class="insights" id="insightRow"></div>
 
-  <h2 class="sec"><span class="prio">3</span>Publicaciones del periodo <small>imagen real de cada post · clic en la tarjeta abre la publicación original</small></h2>
+  <h2 class="sec"><span class="prio">4</span>Publicaciones del periodo <small>imagen real de cada post · clic en la tarjeta abre la publicación original</small></h2>
   <div class="panel">
     <div class="gal-filters" id="galFilters"></div>
     <div class="gallery" id="gallery"></div>
@@ -232,7 +235,7 @@
     </div>
   </div>
 
-  <h2 class="sec"><span class="prio">4</span>Seguidores — evolución <small>comunidad por día, altas netas y ritmo semanal</small></h2>
+  <h2 class="sec"><span class="prio">5</span>Seguidores — evolución <small>comunidad por día, altas netas y ritmo semanal</small></h2>
   <div class="panel">
     <h3>Comunidad total por día</h3>
     <p class="sub" id="folSub"></p>
@@ -254,7 +257,7 @@
     </div>
   </div>
 
-  <h2 class="sec"><span class="prio">5</span>Alcance e interacciones por día</h2>
+  <h2 class="sec"><span class="prio">6</span>Alcance e interacciones por día</h2>
   <div class="panel">
     <p class="sub" id="reachSub"></p>
     <div id="reachChart"></div>
@@ -263,9 +266,6 @@
       <span><i style="background:var(--blue)"></i>Interacciones (escala propia)</span>
     </div>
   </div>
-
-  <h2 class="sec"><span class="prio">6</span>Detalle por red <small>ficha completa de cada canal</small></h2>
-  <div class="nets" id="netCards"></div>
 
   <h2 class="sec"><span class="prio">7</span>Comparativa de marcas EIMEC <small>las 5 cuentas de Metricool, mismo periodo</small></h2>
   <div class="panel tblwrap">
@@ -304,6 +304,13 @@ var NETMETA={
   li:{name:'LinkedIn',abbr:'IN',color:'var(--li)',grad:'linear-gradient(150deg,#9DB8AE,#3E5E52)',folLbl:'Seguidores',reachLbl:'Impresiones'}
 };
 var FMT_ORDER=['Reel','Carrusel','Imagen','Vídeo','Short','Documento','Articulo','Artículo','Texto','Post'];
+var NET_ORDER=['ig','li','fb','tt','yt']; // orden de prioridad pedido por dirección
+function netsOrdered(B){
+  return brandNets(B).slice().sort(function(a,b){
+    var ia=NET_ORDER.indexOf(a), ib=NET_ORDER.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib);
+  });
+}
 var VIDEO_FMTS={'Reel':1,'Vídeo':1,'Short':1};
 
 var BRAND_ORDER=['eimec.es','eimec.clinic','EIMEC Talks','Zainela Laborde','eimec.global'];
@@ -677,7 +684,7 @@ function renderGalleryFilters(B){
   var g=state.gal, html='';
   html+='<span class="lbl">Red</span>';
   html+='<span class="chip'+(g.net==='all'?' on':'')+'" onclick="setGal(\'net\',\'all\')">Todas</span>';
-  brandNets(B).forEach(function(n){
+  netsOrdered(B).forEach(function(n){
     if(!B.nets[n].posts.length)return;
     html+='<span class="chip'+(g.net===n?' on':'')+'" onclick="setGal(\'net\',\''+n+'\')">'+NETMETA[n].name+'</span>';
   });
@@ -804,7 +811,7 @@ function renderHeat(B){
 
 function renderNetCards(B,st){
   var f=st.from, t=st.to, html='';
-  brandNets(B).forEach(function(n){
+  netsOrdered(B).forEach(function(n){
     var Nt=B.nets[n], nm=NETMETA[n];
     var ps=st.posts.filter(function(p){return p.net===n;});
     var reach=netReach(Nt,f,t), inter=netInter(Nt,f,t);
