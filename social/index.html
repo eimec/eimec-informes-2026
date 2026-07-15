@@ -208,13 +208,29 @@
   <div class="kpis" id="kpiRow"></div>
   <p style="font-size:11.5px; color:var(--muted); margin:8px 2px 0">* Engagement por publicación: interacciones ÷ alcance de las publicaciones del periodo (metodología Metricool). Benchmark: mediana del sector salud/educación del estudio anual de Metricool. Los periodos abarcan días completos (Europe/Madrid) y excluyen el día en curso, que Metricool completa al día siguiente.</p>
 
-  <h2 class="sec"><span class="prio">2</span>Detalle por red <small>ficha completa de cada canal</small></h2>
+  <h2 class="sec"><span class="prio">2</span>Seguidores — crecimiento <small>ritmo semanal y aportación de cada red</small></h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Nuevos seguidores por semana</h3>
+      <p class="sub">Últimas 8 semanas · en gris las 4 anteriores, en turquesa las 4 más recientes</p>
+      <div id="weekChart"></div>
+      <p class="sub" style="margin:10px 0 0" id="weekNote"></p>
+    </div>
+    <div class="panel">
+      <h3>Crecimiento por red</h3>
+      <p class="sub">Balance neto del periodo (altas − bajas)</p>
+      <div id="growthChart"></div>
+      <p class="sub" style="margin:8px 0 0" id="growthNote"></p>
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="prio">3</span>Detalle por red <small>ficha completa de cada canal</small></h2>
   <div class="nets" id="netCards"></div>
 
-  <h2 class="sec"><span class="prio">3</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos reales</small></h2>
+  <h2 class="sec"><span class="prio">4</span>Lectura analítica del periodo <small>generada automáticamente a partir de los datos reales</small></h2>
   <div class="insights" id="insightRow"></div>
 
-  <h2 class="sec"><span class="prio">4</span>Publicaciones del periodo <small>imagen real de cada post · clic en la tarjeta abre la publicación original</small></h2>
+  <h2 class="sec"><span class="prio">5</span>Publicaciones del periodo <small>imagen real de cada post · clic en la tarjeta abre la publicación original</small></h2>
   <div class="panel">
     <div class="gal-filters" id="galFilters"></div>
     <div class="gallery" id="gallery"></div>
@@ -235,30 +251,15 @@
     </div>
   </div>
 
-  <h2 class="sec"><span class="prio">5</span>Seguidores — evolución <small>comunidad por día, altas netas y ritmo semanal</small></h2>
+  <h2 class="sec"><span class="prio">6</span>Evolución diaria <small>comunidad, alcance e interacciones día a día</small></h2>
   <div class="panel">
     <h3>Comunidad total por día</h3>
     <p class="sub" id="folSub"></p>
     <div id="folChart"></div>
     <div class="legend" id="folLegend"></div>
   </div>
-  <div class="grid2" style="margin-top:14px">
-    <div class="panel">
-      <h3>Nuevos seguidores por semana</h3>
-      <p class="sub">Últimas 8 semanas · en gris las 4 anteriores, en turquesa las 4 más recientes</p>
-      <div id="weekChart"></div>
-      <p class="sub" style="margin:10px 0 0" id="weekNote"></p>
-    </div>
-    <div class="panel">
-      <h3>Crecimiento por red</h3>
-      <p class="sub">Balance neto del periodo (altas − bajas)</p>
-      <div id="growthChart"></div>
-      <p class="sub" style="margin:8px 0 0" id="growthNote"></p>
-    </div>
-  </div>
-
-  <h2 class="sec"><span class="prio">6</span>Alcance e interacciones por día</h2>
-  <div class="panel">
+  <div class="panel" style="margin-top:14px">
+    <h3>Alcance e interacciones por día</h3>
     <p class="sub" id="reachSub"></p>
     <div id="reachChart"></div>
     <div class="legend">
