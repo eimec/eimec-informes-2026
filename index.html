@@ -466,7 +466,7 @@
                 {k:'WON', label:'Ganado', val:w, color:'#009B9B'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
-            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades</div><div style="font-size:11px;color:var(--muted)">Acumulado · los que pasaron por cada fase</div></div><div class="funnel-steps">`;
+            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:460px;text-align:right;line-height:1.45">Cuántos <b>llegaron</b> a cada fase — quien está en F4 ya pasó antes por F1, F2 y F3.<br>El <b>%</b> de abajo = cuántos <b>avanzaron desde la fase anterior</b>.</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
                 const prev = i>0 ? stages[i-1].val : null;
@@ -476,27 +476,28 @@
                     <div class="fbar" style="background:linear-gradient(160deg,${s.color},${s.color}dd);height:${h}px">
                         <div class="fnum">${s.val}</div><div class="flabel">${s.k} · ${s.label}</div>
                     </div>
-                    <div class="fconv">${i===0 ? '<b>100%</b> · base' : '▸ <b>'+conv+'%</b> · '+share+'% del total'}</div>
+                    <div class="fconv" title="${s.val} de ${t} · el ${share}% del total del periodo">${i===0 ? '<b>100%</b> · punto de partida' : '▸ <b>'+conv+'%</b> avanzó desde '+stages[i-1].k}</div>
                 </div>`;
             });
             funnel += `</div></div>`;
 
             // KPI CARDS
             let html = funnel + `
-                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:6px 0 10px 2px">Tratos del periodo por fase actual · abiertos, sin acumular (F1-F4 = creados en el periodo · Won = cerrados en el periodo)</div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:6px 0 2px 2px">¿Dónde está cada trato ahora?</div>
+                <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.45">Aquí cada trato cuenta <b>una sola vez</b>, en la fase donde está hoy (esto <b>no</b> se acumula). Si sumas F1+F2+F3+F4+Won te da el total del embudo de arriba.<br>F1-F4 = creados en el periodo y aún abiertos · Won = cerrados en el periodo.</div>
                 <div class="cards-grid">
                     <div class="card card--f1"><div class="card-label">F1 · Solicitud</div><div class="card-value">${pf.f1}</div></div>
                     <div class="card card--f2"><div class="card-label">F2 · Cualificado</div><div class="card-value">${pf.f2}</div></div>
                     <div class="card card--f3"><div class="card-label">F3 · Propuesta</div><div class="card-value">${pf.f3}</div></div>
                     <div class="card card--f4"><div class="card-label">F4 · Facturación</div><div class="card-value">${pf.f4}</div></div>
-                    <div class="card card--trash"><div class="card-label">Descartados</div><div class="card-value">${p.trash}</div></div>
+                    <div class="card card--trash"><div class="card-label">Descartados</div><div class="card-value">${p.trash}</div><div class="card-foot">Caídos · NO cuentan en el embudo</div></div>
                     <div class="card card--won"><div class="card-label">Won · Cerrados</div><div class="card-value">${w}</div><div class="card-foot">Ganados en el periodo</div></div>
                 </div>
                 <div class="cards-grid metrics">
-                    <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">Leads que cualifican</div></div>
-                    <div class="card"><div class="card-label">Conversión F2 → Won</div><div class="card-value">${m2}%</div><div class="card-foot">Cualificados que cierran</div></div>
-                    <div class="card"><div class="card-label">Win Rate Global</div><div class="card-value">${m3}%</div><div class="card-foot">Won sobre total pipeline</div></div>
-                    <div class="card"><div class="card-label">Sin curso asignado</div><div class="card-value">${sc}</div><div class="card-foot">Won sin programa etiquetado</div></div>
+                    <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">De cada 100 solicitudes, cuántas cualifican</div></div>
+                    <div class="card"><div class="card-label">Conversión F2 → Won</div><div class="card-value">${m2}%</div><div class="card-foot">De cada 100 cualificados, cuántos compran</div></div>
+                    <div class="card"><div class="card-label">Tasa de cierre global</div><div class="card-value">${m3}%</div><div class="card-foot">De cada 100 tratos, cuántos acaban en venta</div></div>
+                    <div class="card"><div class="card-label">Ventas sin curso</div><div class="card-value">${sc}</div><div class="card-foot">Cierres a los que falta etiquetar el curso</div></div>
                 </div>
             `;
 
