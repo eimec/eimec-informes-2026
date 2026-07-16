@@ -436,6 +436,7 @@
                 extra._merged = true;   // evita doble conteo si se re-renderiza con el mismo objeto
             }
             const w = (data.won_deals||[]).filter(wd=>!pmWonSet.has(wd.id)).length;   // won del periodo, sin paciente modelo
+            const wonCreados = (extra && extra.totals && extra.totals.wonc) || 0;     // ganados de la cohorte creada en el periodo
             // F1-F4 del EMBUDO y de las tarjetas "estado actual": pipeline ABIERTO de ac-extra (no cuenta en su fase
             // a los ya ganados). Así cada trato se cuenta UNA vez (en su fase actual o en Won) y cuadra con las tablas
             // de país/campaña/vendedor. Fallback al proxy si ac-extra no está disponible.
@@ -492,7 +493,8 @@
                     <div class="card card--f3"><div class="card-label">F3 · Propuesta</div><div class="card-value">${pf.f3}</div></div>
                     <div class="card card--f4"><div class="card-label">F4 · Facturación</div><div class="card-value">${pf.f4}</div></div>
                     <div class="card card--trash"><div class="card-label">Descartados</div><div class="card-value">${p.trash}</div><div class="card-foot">Caídos · NO cuentan en el embudo</div></div>
-                    <div class="card card--won"><div class="card-label">Won · Cerrados</div><div class="card-value">${w}</div><div class="card-foot">Ganados en el periodo</div></div>
+                    <div class="card card--won"><div class="card-label">Ventas cerradas (Won)</div><div class="card-value">${w}</div><div class="card-foot">Se ganaron en estas fechas · el lead pudo entrar antes</div></div>
+                    <div class="card card--won"><div class="card-label">Ventas de leads nuevos</div><div class="card-value">${wonCreados}</div><div class="card-foot">De los leads que ENTRARON en estas fechas, los que ya se ganaron</div></div>
                 </div>
                 <div class="cards-grid metrics">
                     <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">De cada 100 solicitudes, cuántas cualifican</div></div>
