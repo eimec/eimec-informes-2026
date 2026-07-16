@@ -42,13 +42,26 @@ const ISO2 = {
   QA:'Qatar', MA:'Morocco', EG:'Egypt', NG:'Nigeria', ZA:'South Africa', IN:'India', PK:'Pakistan',
   PH:'Philippines', LY:'Libya', MT:'Malta', AU:'Australia', SE:'Sweden', NO:'Norway', DK:'Denmark', AT:'Austria'
 };
-const ALIAS = { 'US':'United States','USA':'United States','U.S.':'United States','España':'Spain','Espana':'Spain','México':'Mexico','Mejico':'Mexico','Reino Unido':'United Kingdom','UK':'United Kingdom' };
+// ⚠️ IMPORTANTE: esta función debe ser IDÉNTICA a la normPais() de index.html.
+// Si difieren, el mismo país se parte en dos filas (F1-F4 por un lado y el Won por otro) y el % Venta sale falso.
+// Las claves de ALIAS van en MAYÚSCULAS (la comparación es case-insensitive).
+const ALIAS = {
+  'US':'United States','USA':'United States','U.S.':'United States','U.S':'United States','EEUU':'United States',
+  'EE.UU.':'United States','EE.UU':'United States','ESTADOS UNIDOS':'United States','UNITED STATES OF AMERICA':'United States',
+  'UK':'United Kingdom','U.K.':'United Kingdom','REINO UNIDO':'United Kingdom','ENGLAND':'United Kingdom','GREAT BRITAIN':'United Kingdom',
+  'ESPAÑA':'Spain','ESPANA':'Spain',
+  'MÉXICO':'Mexico','MEJICO':'Mexico','MÉJICO':'Mexico',
+  'TÜRKIYE':'Turkey','TURKIYE':'Turkey'
+};
 function normPais(v) {
-  if (!v) return 'Sin país';
-  let k = String(v).trim();
-  if (k === '') return 'Sin país';
-  if (k.length === 2 && ISO2[k.toUpperCase()]) return ISO2[k.toUpperCase()];
-  if (ALIAS[k]) return ALIAS[k];
+  if (v === null || v === undefined) return 'Sin país';
+  const k = String(v).trim();
+  if (!k) return 'Sin país';
+  if (/^sin\s+pa[ií]s$/i.test(k)) return 'Sin país';
+  if (/^pa[ií]s$/i.test(k) || /^\d+$/.test(k)) return 'Sin país';   // basura del CRM: "País", "68"
+  const up = k.toUpperCase();
+  if (k.length === 2 && ISO2[up]) return ISO2[up];
+  if (ALIAS[up]) return ALIAS[up];
   return k;
 }
 

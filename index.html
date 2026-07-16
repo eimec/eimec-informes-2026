@@ -382,17 +382,36 @@
             return `${d}/${m}/${y}`;
         }
 
+        // ⚠️ IMPORTANTE: esta función debe ser IDÉNTICA a la normPais() de api/ac-extra.js.
+        // Si difieren, el mismo país se parte en dos filas (F1-F4 por un lado y el Won por otro) y el % Venta sale falso.
+        const ISO2 = {
+            ES:'Spain', MX:'Mexico', CL:'Chile', PE:'Peru', AR:'Argentina', CO:'Colombia', VE:'Venezuela', EC:'Ecuador',
+            BO:'Bolivia', UY:'Uruguay', PY:'Paraguay', CR:'Costa Rica', GT:'Guatemala', SV:'El Salvador', HN:'Honduras',
+            NI:'Nicaragua', PA:'Panama', DO:'Dominican Republic', CU:'Cuba', PR:'Puerto Rico', US:'United States',
+            CA:'Canada', BR:'Brazil', IT:'Italy', FR:'France', DE:'Germany', GB:'United Kingdom', UK:'United Kingdom',
+            PT:'Portugal', IE:'Ireland', CH:'Switzerland', NL:'Netherlands', BE:'Belgium', PL:'Poland', RO:'Romania',
+            GR:'Greece', UA:'Ukraine', RU:'Russia', TR:'Turkey', IL:'Israel', AE:'United Arab Emirates', SA:'Saudi Arabia',
+            QA:'Qatar', MA:'Morocco', EG:'Egypt', NG:'Nigeria', ZA:'South Africa', IN:'India', PK:'Pakistan',
+            PH:'Philippines', LY:'Libya', MT:'Malta', AU:'Australia', SE:'Sweden', NO:'Norway', DK:'Denmark', AT:'Austria'
+        };
+        const ALIAS_PAIS = {
+            'US':'United States','USA':'United States','U.S.':'United States','U.S':'United States','EEUU':'United States',
+            'EE.UU.':'United States','EE.UU':'United States','ESTADOS UNIDOS':'United States','UNITED STATES OF AMERICA':'United States',
+            'UK':'United Kingdom','U.K.':'United Kingdom','REINO UNIDO':'United Kingdom','ENGLAND':'United Kingdom','GREAT BRITAIN':'United Kingdom',
+            'ESPAÑA':'Spain','ESPANA':'Spain',
+            'MÉXICO':'Mexico','MEJICO':'Mexico','MÉJICO':'Mexico',
+            'TÜRKIYE':'Turkey','TURKIYE':'Turkey'
+        };
         function normPais(p){
-            if(!p) return 'Sin pais';
+            if (p === null || p === undefined) return 'Sin país';
             const k = String(p).trim();
-            const m = {
-                'US':'United States','USA':'United States','U.S.':'United States','U.S':'United States','EEUU':'United States','EE.UU.':'United States','Estados Unidos':'United States','United States of America':'United States',
-                'UK':'United Kingdom','U.K.':'United Kingdom','Reino Unido':'United Kingdom','England':'United Kingdom','Great Britain':'United Kingdom',
-                'España':'Spain','Espana':'Spain','ES':'Spain',
-                'México':'Mexico','Mejico':'Mexico','Méjico':'Mexico',
-                'Sin país':'Sin pais','':'Sin pais'
-            };
-            return m[k] || k;
+            if (!k) return 'Sin país';
+            if (/^sin\s+pa[ií]s$/i.test(k)) return 'Sin país';
+            if (/^pa[ií]s$/i.test(k) || /^\d+$/.test(k)) return 'Sin país';   // basura del CRM: "País", "68"
+            const up = k.toUpperCase();
+            if (k.length === 2 && ISO2[up]) return ISO2[up];
+            if (ALIAS_PAIS[up]) return ALIAS_PAIS[up];
+            return k;
         }
         function mergePipeline(pp){
             const out = {};
@@ -419,7 +438,7 @@
             // Cruzar los GANADOS del periodo (proxy won_deals = ganados por fecha de cierre, con país/curso)
             // con el vendedor (ac-extra won_owner). Así F1-F4 = creados en periodo y Won = ganados en periodo (cuadra con el funnel).
             if (extra && extra.ok && !extra._merged && Array.isArray(data.won_deals)) {
-                const paisKey = v => { let k = v ? String(v).trim() : ''; return (!k || k.toLowerCase()==='sin pais' || k.toLowerCase()==='sin país') ? 'Sin país' : normPais(k); };
+                const paisKey = normPais;   // una sola fuente de verdad: normPais ya resuelve vacíos, alias y basura
                 const addWon = (b,k)=>{ if(!k) k='Sin dato'; if(!b[k]) b[k]={f1:0,f2:0,f3:0,f4:0,won:0,total:0}; b[k].won++; b[k].total++; };
                 extra.by_owner=extra.by_owner||{}; extra.by_pais=extra.by_pais||{}; extra.by_curso=extra.by_curso||{}; extra.by_campaign=extra.by_campaign||{};
                 data.won_deals.forEach(wd=>{
@@ -450,7 +469,7 @@
             const m1 = reachedF1 > 0 ? Math.round(reachedF2 / reachedF1 * 100) : 0;   // F1→F2
             const m2 = reachedF2 > 0 ? Math.round(w / reachedF2 * 100) : 0;           // F2→Won
             const m3 = t > 0 ? Math.round(w / t * 100) : 0;                           // win rate global
-            const sc = data.won_deals.filter(x => !pmWonSet.has(x.id) && (!x.curso || x.curso === '')).length;
+            const sc = (data.won_deals||[]).filter(x => !pmWonSet.has(x.id) && (!x.curso || x.curso === '')).length;
 
             // meta
             if (data.period) {
@@ -539,7 +558,7 @@
                 const totalPaises = rows.length;
                 const top = rows.slice(0,15);
                 const maxTotal = Math.max(...top.map(r=>r.total),1);
-                const note = hasF1 ? `Top 15 de ${totalPaises} países · <b>Won cerrados</b> = ventas cerradas en estas fechas · <b>Won creados</b> = de los leads que entraron en estas fechas, cuántos ya se ganaron` : `Top 15 de ${totalPaises} países · Tratos F2→Won del periodo`;
+                const note = hasF1 ? `Top ${Math.min(15,totalPaises)} de ${totalPaises} países · <b>Won cerrados</b> = ventas cerradas en estas fechas · <b>Won creados</b> = de los leads que entraron en estas fechas, cuántos ya se ganaron` : `Top ${Math.min(15,totalPaises)} de ${totalPaises} países · Tratos F2→Won del periodo`;
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table">
                     <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos${hasF1?'':'<span style="font-weight:400;font-size:9px"> F2→Won</span>'}</th><th style="color:var(--slate)">F1</th><th style="color:var(--brand)">F2</th><th style="color:var(--brand-soft)">F3</th><th style="color:var(--gold)">F4</th><th style="color:var(--green)" title="Ventas CERRADAS en estas fechas (el lead pudo entrar antes)">Won cerrados</th><th style="color:var(--brand-soft)" title="De los tratos CREADOS en estas fechas, cuántos ya se han ganado (cohorte)">Won creados</th><th style="color:var(--green)" title="Won cerrados ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Fase 2 ÷ tratos totales del país">% en F2</th></tr></thead><tbody>`;
                 const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
@@ -676,7 +695,11 @@
             // ── Tabla EXTRA: Rendimiento por vendedor (ac-extra, del periodo, dato fiable) ──
             if (extra && extra.ok && extra.by_owner && Object.keys(extra.by_owner).length) {
                 html += renderOwnerTable(extra.by_owner);
-                if (extra.sin_pais) html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E"><strong>⚠️ Calidad de dato en el CRM:</strong> los tratos abiertos (F1-F4) recientes <b>no tienen País ni Curso</b> — esos campos solo están en los cerrados. Por eso el desglose por país/curso usa los <b>cierres</b>. Recomendado: exigir País y Curso en el formulario de entrada.</div>`;
+                // Aviso de calidad de dato con los números REALES del periodo (antes describía una arquitectura que ya no existe).
+                const dq = [];
+                if (extra.sin_pais) dq.push(`<b>${extra.sin_pais}</b> trato${extra.sin_pais!==1?'s':''} sin País${extra.pais_recuperados?` (otros <b>${extra.pais_recuperados}</b> los recuperamos por el prefijo del teléfono)`:''}`);
+                if (sc) dq.push(`<b>${sc}</b> venta${sc!==1?'s':''} sin Curso etiquetado`);
+                if (dq.length) html += `<div style="max-width:1440px;margin:0 auto 22px;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:12px;padding:14px 18px;font-size:12.5px;color:#7A5A1E"><strong>⚠️ Calidad de dato en el CRM:</strong> ${dq.join(' · ')}. Esos tratos no se pierden (salen como "Sin país"/"Sin curso"), pero desvirtúan el desglose. Recomendado: hacer <b>obligatorios País y Curso</b> en el formulario de entrada.</div>`;
             }
 
             // Matriz Curso x País — desde los CIERRES reales del periodo (won_deals) SIN paciente modelo → su TOTAL
