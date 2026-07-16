@@ -429,8 +429,9 @@
                     addWon(extra.by_curso, (wd.curso&&wd.curso.trim())?wd.curso.trim():'Sin curso');
                     addWon(extra.by_campaign, (extra.won_campaign&&extra.won_campaign[wd.id])||'Sin dato');
                 });
-                const T={f1:0,f2:0,f3:0,f4:0,won:0,total:0};
-                Object.values(extra.by_pais).forEach(b=>{T.f1+=b.f1;T.f2+=b.f2;T.f3+=b.f3;T.f4+=b.f4;T.won+=b.won;T.total+=b.total;});
+                // OJO: recalcular arrastrando TAMBIÉN wonc (ganados creados), o la fila TOTAL saldría a 0.
+                const T={f1:0,f2:0,f3:0,f4:0,won:0,total:0,wonc:0};
+                Object.values(extra.by_pais).forEach(b=>{T.f1+=b.f1;T.f2+=b.f2;T.f3+=b.f3;T.f4+=b.f4;T.won+=b.won;T.wonc+=(b.wonc||0);T.total+=b.total;});
                 extra.totals=T;
                 extra._merged = true;   // evita doble conteo si se re-renderiza con el mismo objeto
             }
