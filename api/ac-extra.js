@@ -102,7 +102,7 @@ export default async function handler(req, res) {
       if (us.length < 100) break;
     }
 
-    const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {};
+    const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {}, f2_by_date = {};
     const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
@@ -121,7 +121,12 @@ export default async function handler(req, res) {
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
-        if (d.cdate) { const day = String(d.cdate).slice(0, 10); created_by_date[day] = (created_by_date[day] || 0) + 1; }
+        if (d.cdate) {
+          const day = String(d.cdate).slice(0, 10);
+          created_by_date[day] = (created_by_date[day] || 0) + 1;
+          // F2 por día de CREACIÓN, desde la MISMA fuente que el resto (evita el desfase horario del proxy WP)
+          if (sk === 'f2') f2_by_date[day] = (f2_by_date[day] || 0) + 1;
+        }
       });
     };
 
@@ -192,9 +197,11 @@ export default async function handler(req, res) {
     // ordenar creados por día (cronológico)
     const cbd = {};
     Object.keys(created_by_date).sort().forEach(k => { cbd[k] = created_by_date[k]; });
+    const f2bd = {};
+    Object.keys(f2_by_date).sort().forEach(k => { f2bd[k] = f2_by_date[k]; });
 
     res.status(200).json({
-      ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, totals: tot,
+      ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, f2_by_date: f2bd, totals: tot,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',

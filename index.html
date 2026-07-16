@@ -507,16 +507,16 @@
             if (extra && extra.ok) html += renderPodium(extra);
             // Gráfico de TRATOS CREADOS por día (en el medio)
             if (extra && extra.ok && extra.created_by_date && Object.keys(extra.created_by_date).length) {
-                html += `<div class="section"><div class="section-title">Tratos creados por día</div><div class="chart-container" style="height:280px"><canvas id="createdByDateChart"></canvas></div></div>`;
+                html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Tratos creados por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Todas las oportunidades nuevas · por su <b>fecha de creación</b></span></div><div class="chart-container" style="height:280px"><canvas id="createdByDateChart"></canvas></div></div>`;
             }
 
             // Charts row
             html += `
                 <div class="grid-2" style="margin-bottom:22px">
-                    <div class="section"><div class="section-title">Distribución de cierres por curso</div><div class="chart-container"><canvas id="wonByCursoChart"></canvas></div></div>
-                    <div class="section"><div class="section-title">Evolución de cierres por día</div><div class="chart-container"><canvas id="wonByDateChart"></canvas></div></div>
+                    <div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Ventas por curso</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Ventas <b>cerradas en el periodo</b></span></div><div class="chart-container"><canvas id="wonByCursoChart"></canvas></div></div>
+                    <div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Ventas por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Por su <b>fecha de cierre</b> (el día que se ganó)</span></div><div class="chart-container"><canvas id="wonByDateChart"></canvas></div></div>
                 </div>
-                <div class="section"><div class="section-title">Leads cualificados (F2) por día</div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
+                <div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Leads cualificados (F2) por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Tratos que <b>hoy están en Fase 2</b>, colocados en su <b>día de creación</b> (no es el día en que cualificaron)</span></div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
             `;
 
             // Pipeline por País — tratos TOTALES (F1+F2+F3+F4+Won) por país, leyendo el campo País del TRATO (ac-extra), del periodo.
@@ -879,11 +879,13 @@
                     options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
-            if (data.f2_by_date && document.getElementById('f2ByDateChart')) {
+            // F2 por día: preferimos ac-extra (misma fuente que el resto y sin el desfase horario del proxy WP)
+            const f2bd = (extra && extra.f2_by_date && Object.keys(extra.f2_by_date).length) ? extra.f2_by_date : (data.f2_by_date || null);
+            if (f2bd && document.getElementById('f2ByDateChart')) {
                 if (charts.f2ByDate) charts.f2ByDate.destroy();
                 charts.f2ByDate = new Chart(document.getElementById('f2ByDateChart'), {
                     type:'bar',
-                    data:{ labels:Object.keys(data.f2_by_date), datasets:[{ label:'F2 cualificados', data:Object.values(data.f2_by_date), backgroundColor:'#1F2A4E', borderRadius:4, maxBarThickness:22 }] },
+                    data:{ labels:Object.keys(f2bd), datasets:[{ label:'F2 cualificados', data:Object.values(f2bd), backgroundColor:'#1F2A4E', borderRadius:4, maxBarThickness:22 }] },
                     options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
