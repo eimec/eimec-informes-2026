@@ -9,6 +9,7 @@ const AC_BASE = 'https://eimec.api-us1.com/api/3';
 const STAGES = { f1: 33, f2: 34, f3: 36, f4: 37 };
 const M_PAIS = '40';
 const M_CURSO = '3';
+const GROUP = '1';            // pipeline de VENTAS (validado: los tratos F1-F4 tienen group=1; el 4 es Pacientes Modelo)
 const M_PM_CAMPAIGN = '11';   // utm_campaign — SOLO para detectar "paciente modelo"
 // >>> INTERRUPTOR: campo del DESGLOSE de la tabla UTM. Cambiar solo esta línea para testear otra dimensión:
 // 11=utm_campaign · 15=utm_source · 16=utm_medium · 17=utm_term · 18=utm_content
@@ -190,8 +191,40 @@ export default async function handler(req, res) {
       for (let i = 0; i < offs.length; i += B) { await Promise.all(offs.slice(i, i + B).map(o => grab(o))); }
     }
 
-    let tot = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 };
-    Object.values(by_pais).forEach(b => { tot.f1+=b.f1; tot.f2+=b.f2; tot.f3+=b.f3; tot.f4+=b.f4; tot.won+=b.won; tot.total+=b.total; });
+    // GANADOS CREADOS EN EL PERIODO (cohorte): de los tratos que ENTRARON en estas fechas, cuántos ya se ganaron.
+    // Es distinto del Won por fecha de cierre. Filtramos por GRUPO (pipeline de ventas = 1) porque estos tratos
+    // pueden estar en cualquier etapa (F4, "Para Contactar"...), no solo en F1-F4. Fuera paciente modelo.
+    const addWonc = (b, k) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k].wonc = (b[k].wonc || 0) + 1; };
+    let won_creados = 0;
+    {
+      const grabWC = async (off) => {
+        const d = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', ...dateParams, limit: 100, offset: off });
+        const cf = {};
+        (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
+        (d.deals || []).forEach(x => {
+          if (String(x.group) !== GROUP) return;   // solo el pipeline de ventas
+          const c = cf[x.id] || {};
+          const ownerName = ownerMap[x.owner] || 'Sin asignar';
+          const pmCamp = c[M_PM_CAMPAIGN] && String(c[M_PM_CAMPAIGN]).trim();
+          if (isPM(pmCamp, ownerName)) return;     // fuera paciente modelo
+          won_creados++;
+          addWonc(by_owner, ownerName);
+          const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); addWonc(by_curso, cu ? cu : 'Sin curso');
+          addWonc(by_campaign, normUtm(c[M_UTM]) || 'Sin dato');
+          const pv = c[M_PAIS];
+          addWonc(by_pais, (pv && String(pv).trim()) ? normPais(pv) : 'Sin país');
+        });
+        return d;
+      };
+      const first = await grabWC(0);
+      const totalWC = (first.meta && first.meta.total) ? Math.min(parseInt(first.meta.total, 10), 30000) : 0;
+      const offs = []; for (let o = 100; o < totalWC; o += 100) offs.push(o);
+      const B = 10;
+      for (let i = 0; i < offs.length; i += B) { await Promise.all(offs.slice(i, i + B).map(o => grabWC(o))); }
+    }
+
+    let tot = { f1:0,f2:0,f3:0,f4:0,won:0,total:0,wonc:0 };
+    Object.values(by_pais).forEach(b => { tot.f1+=b.f1; tot.f2+=b.f2; tot.f3+=b.f3; tot.f4+=b.f4; tot.won+=b.won; tot.total+=b.total; tot.wonc+=(b.wonc||0); });
     const sinPaisFinal = by_pais['Sin país'] ? by_pais['Sin país'].total : 0;
 
     // ordenar creados por día (cronológico)
@@ -202,7 +235,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, f2_by_date: f2bd, totals: tot,
-      sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds,
+      sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
       period: { from: from || null, to: to || null }, ms: Date.now() - start
