@@ -361,15 +361,23 @@
             document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando TODO el periodo (embudo · país · curso · vendedor)… puede tardar unos segundos la primera vez.</div>';
             try {
                 // RENDER ATÓMICO: esperamos ambas fuentes y pintamos UNA sola vez → todo cuadra con el mismo rango
-                const [dataRes, extraRes] = await Promise.all([
+                // Además del rango filtrado, pedimos los cierres del AÑO en curso (para Objetivo vs Real,
+                // que compara mes natural y año natural, independiente del filtro).
+                const _hoy = new Date();
+                const _y0 = `${_hoy.getFullYear()}-01-01`;
+                const _hoyStr = _hoy.toISOString().split('T')[0];
+                const [dataRes, extraRes, ytdRes] = await Promise.all([
                     fetch(`/api/ac-data?${query}`),
-                    fetch(`/api/ac-extra?${query}`).catch(()=>null)
+                    fetch(`/api/ac-extra?${query}`).catch(()=>null),
+                    fetch(`/api/ac-data?from=${_y0}&to=${_hoyStr}`).catch(()=>null)
                 ]);
                 const data = await dataRes.json();
                 let extra = null;
                 try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
+                let ytd = null;
+                try { if (ytdRes) { const j = await ytdRes.json(); if (j && j.ok) ytd = j; } } catch(_) {}
                 if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta.</div>'; return; }
-                renderDashboard(data, extra);
+                renderDashboard(data, extra, ytd);
             } catch (error) {
                 console.error(error);
                 document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">Error de conexión con ActiveCampaign.</div>';
@@ -422,7 +430,7 @@
             });
             return out;
         }
-        function renderDashboard(data, extra) {
+        function renderDashboard(data, extra, ytd) {
             const p = data.pipeline;
             const paisPP = mergePipeline(data.pais_pipeline);
             // FIX doble-conteo: el proxy WP cuenta en cada fase los tratos de CUALQUIER estado (incluidos los ya
@@ -543,56 +551,63 @@
                         importe: (extra && extra.won_value && Number(extra.won_value[wd.id])) ? Number(extra.won_value[wd.id])/100 : 0
                     }))
                     .sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
-                // ── OBJETIVO vs REAL (nº de ventas cerradas) ──
-                // Objetivos definidos por dirección (jul-2026). "Cursos" = resto de cursos sin objetivo propio.
-                // Se prorratean a los días del filtro: mensual ÷ 30,44 días · anual ÷ 365,25 días.
+                // ── OBJETIVO vs REAL (nº de ventas cerradas) — INDEPENDIENTE del filtro de fechas ──
+                // Mensual = mes natural EN CURSO contra el objetivo completo del mes.
+                // Anual = lo que llevamos de AÑO contra el objetivo completo del año.
+                // La línea vertical marca "por dónde tocaría ir hoy". Datos: cierres del año (ytd), sin paciente modelo.
                 const OBJ_MENS = { 'Mef': 9, 'Personalizado': 5, 'Blefaroplastia': 2 };
                 const OBJ_ANUAL = { 'Mefo': 9, 'Posgrado': 18, 'Master': 15, 'Caame': 20 };
                 const OBJ_RESTO_MES = 7;   // "Cursos": todas las demás ventas (incluye las aún sin curso etiquetado)
                 let objetivoHtml = '';
-                {
-                    const _pf2 = new Date(((data.period&&data.period.from)||'') + 'T00:00:00');
-                    const _pt2 = new Date(((data.period&&data.period.to)||'') + 'T00:00:00');
-                    const dias = (!isNaN(_pf2) && !isNaN(_pt2)) ? Math.max(1, Math.round((_pt2-_pf2)/86400000)+1) : 30;
-                    const fMes = dias/30.44, fAno = dias/365.25;
-                    const cnt = {};
-                    ventas.forEach(v=>{ const k=(v.curso||'').toLowerCase(); cnt[k]=(cnt[k]||0)+1; });
+                if (ytd && Array.isArray(ytd.won_deals)) {
+                    const hoy = new Date();
+                    const mes0 = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`;
+                    const wonY = ytd.won_deals.filter(wd=>!pmWonSet.has(wd.id));
+                    const cursoDe = wd => ((wd.curso||'').trim()||'Sin curso').toLowerCase();
+                    const cntA = {}, cntM = {};
+                    wonY.forEach(wd=>{ const k=cursoDe(wd); cntA[k]=(cntA[k]||0)+1; if (String(wd.date||'')>=mes0) cntM[k]=(cntM[k]||0)+1; });
                     const nombrados = new Set([...Object.keys(OBJ_MENS),...Object.keys(OBJ_ANUAL)].map(s=>s.toLowerCase()));
-                    const restoReal = ventas.filter(v=>!nombrados.has((v.curso||'').toLowerCase())).length;
-                    const fila = (nombre, obj, base, real, nota) => {
-                        const objP = obj * (base==='mes'?fMes:fAno);
-                        const pct = objP>0 ? Math.round(real/objP*100) : 0;
-                        const col = pct>=100 ? '#0E9F6E' : (pct>=70 ? '#D89614' : '#C0392B');
-                        const emoji = pct>=100 ? '🟢' : (pct>=70 ? '🟡' : '🔴');
-                        return `<div style="margin-bottom:13px">
+                    const restoMes = wonY.filter(wd=>String(wd.date||'')>=mes0 && !nombrados.has(cursoDe(wd))).length;
+                    const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                    const diasMes = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0).getDate();
+                    const fracMes = hoy.getDate()/diasMes;
+                    const fracAno = ((hoy - new Date(hoy.getFullYear(),0,1))/86400000 + 1)/365.25;
+                    const fila = (nombre, obj, real, frac, nota) => {
+                        const pct = obj>0 ? Math.round(real/obj*100) : 0;
+                        const esperado = obj*frac;
+                        const ratio = esperado>0 ? real/esperado : 1;
+                        const col = ratio>=1 ? '#0E9F6E' : (ratio>=0.7 ? '#D89614' : '#C0392B');
+                        const emoji = ratio>=1 ? '🟢' : (ratio>=0.7 ? '🟡' : '🔴');
+                        return `<div style="margin-bottom:15px">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
                                 <span style="font-weight:700;font-size:13px;color:var(--ink)">${emoji} ${nombre}${nota?` <span style="font-weight:500;font-size:10px;color:var(--muted)">${nota}</span>`:''}</span>
-                                <span style="font-size:12px;color:var(--muted)"><b style="color:${col};font-size:15px">${real}</b> de ${objP<10?objP.toFixed(1):Math.round(objP)} · <b style="color:${col}">${pct}%</b></span>
+                                <span style="font-size:12px;color:var(--muted)"><b style="color:${col};font-size:16px">${real}</b> de ${obj} · <b style="color:${col}">${pct}%</b></span>
                             </div>
-                            <div style="height:10px;background:#EDF0F4;border-radius:6px;overflow:hidden">
+                            <div style="position:relative;height:11px;background:#EDF0F4;border-radius:6px">
                                 <div style="height:100%;width:${Math.min(100,pct)}%;background:linear-gradient(90deg,${col}B3,${col});border-radius:6px"></div>
+                                <div title="Por dónde tocaría ir hoy" style="position:absolute;top:-3px;left:${Math.min(100,Math.round(frac*100))}%;width:2px;height:17px;background:var(--brand);opacity:.5"></div>
                             </div>
-                            <div style="font-size:10px;color:var(--muted);margin-top:2px">objetivo: ${obj} venta${obj!==1?'s':''}/${base==='mes'?'mes':'año'}</div>
+                            <div style="font-size:10px;color:var(--muted);margin-top:3px">a día de hoy tocaría llevar ~${esperado<10?esperado.toFixed(1):Math.round(esperado)}</div>
                         </div>`;
                     };
-                    const colMens = Object.entries(OBJ_MENS).map(([k,o])=>fila(k,o,'mes',cnt[k.toLowerCase()]||0,'')).join('')
-                        + fila('Cursos (resto)', OBJ_RESTO_MES, 'mes', restoReal, 'demás cursos');
-                    const colAnual = Object.entries(OBJ_ANUAL).map(([k,o])=>fila(k,o,'año',cnt[k.toLowerCase()]||0,'')).join('');
-                    const objTotM = (Object.values(OBJ_MENS).reduce((a,b)=>a+b,0)+OBJ_RESTO_MES)*fMes;
-                    const objTotA = Object.values(OBJ_ANUAL).reduce((a,b)=>a+b,0)*fAno;
-                    const realM = Object.keys(OBJ_MENS).reduce((s,k)=>s+(cnt[k.toLowerCase()]||0),0)+restoReal;
-                    const realA = Object.keys(OBJ_ANUAL).reduce((s,k)=>s+(cnt[k.toLowerCase()]||0),0);
-                    const chip = (real,obj) => { const p=obj>0?Math.round(real/obj*100):0; const c=p>=100?'#0E9F6E':(p>=70?'#D89614':'#C0392B'); return `<span style="background:${c}1A;color:${c};border:1px solid ${c}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800">${real} de ${obj<10?obj.toFixed(1):Math.round(obj)} · ${p}%</span>`; };
+                    const colMens = Object.entries(OBJ_MENS).map(([k,o])=>fila(k,o,cntM[k.toLowerCase()]||0,fracMes,'')).join('')
+                        + fila('Cursos (resto)', OBJ_RESTO_MES, restoMes, fracMes, 'demás cursos');
+                    const colAnual = Object.entries(OBJ_ANUAL).map(([k,o])=>fila(k,o,cntA[k.toLowerCase()]||0,fracAno,'')).join('');
+                    const objM = Object.values(OBJ_MENS).reduce((a,b)=>a+b,0)+OBJ_RESTO_MES;
+                    const objA = Object.values(OBJ_ANUAL).reduce((a,b)=>a+b,0);
+                    const realM = Object.keys(OBJ_MENS).reduce((s,k)=>s+(cntM[k.toLowerCase()]||0),0)+restoMes;
+                    const realA = Object.keys(OBJ_ANUAL).reduce((s,k)=>s+(cntA[k.toLowerCase()]||0),0);
+                    const chip = (real,obj,frac) => { const esp=obj*frac; const rr=esp>0?real/esp:1; const c=rr>=1?'#0E9F6E':(rr>=0.7?'#D89614':'#C0392B'); return `<span style="background:${c}1A;color:${c};border:1px solid ${c}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800">${real} de ${obj}</span>`; };
                     objetivoHtml = `
-                        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:4px 0 2px 2px">🎯 Objetivo vs Real · ventas cerradas</div>
-                        <div style="font-size:11px;color:var(--muted);margin:0 0 12px 2px">Objetivos prorrateados a los <b>${dias} días</b> del filtro (mensuales ÷30 días · anuales ÷365) · 🟢 ≥100% · 🟡 70-99% · 🔴 &lt;70%</div>
+                        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:4px 0 2px 2px">🎯 Objetivo vs Real · nº de ventas</div>
+                        <div style="font-size:11px;color:var(--muted);margin:0 0 12px 2px">Este cuadro <b>no depende del filtro de fechas</b>: compara el <b>mes en curso</b> y el <b>año ${hoy.getFullYear()}</b> contra su objetivo completo. La <b style="color:var(--brand)">línea azul</b> marca por dónde tocaría ir hoy (día ${hoy.getDate()} de ${diasMes}).</div>
                         <div class="grid-2" style="margin-bottom:18px">
                             <div style="background:#FAFBFC;border:1px solid #EDF0F4;border-radius:12px;padding:16px 18px">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVOS MENSUALES</span>${chip(realM,objTotM)}</div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVO DEL MES · ${MESES[hoy.getMonth()].toUpperCase()}</span>${chip(realM,objM,fracMes)}</div>
                                 ${colMens}
                             </div>
                             <div style="background:#FAFBFC;border:1px solid #EDF0F4;border-radius:12px;padding:16px 18px">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVOS ANUALES</span>${chip(realA,objTotA)}</div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVO DEL AÑO · ${hoy.getFullYear()}</span>${chip(realA,objA,fracAno)}</div>
                                 ${colAnual}
                             </div>
                         </div>`;
@@ -652,6 +667,9 @@
                         html += `</tbody></table></div>`;
                     }
                     html += `</div>`;
+                } else if (objetivoHtml) {
+                    // Sin ventas en el rango filtrado, pero los objetivos (mes/año en curso) se muestran igual
+                    html += `<div class="section"><div class="section-title">💰 Ventas cerradas en el periodo</div><div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Sin ventas cerradas en las fechas del filtro.</div>${objetivoHtml}</div>`;
                 }
             }
             // Podio de países por ventas (F1)
