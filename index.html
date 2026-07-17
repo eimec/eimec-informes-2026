@@ -575,8 +575,11 @@
                     const cursoDe = wd => ((wd.curso||'').trim()||'Sin curso').toLowerCase();
                     const cntA = {}, cntM = {};
                     wonY.forEach(wd=>{ const k=cursoDe(wd); cntA[k]=(cntA[k]||0)+1; if (String(wd.date||'')>=mes0) cntM[k]=(cntM[k]||0)+1; });
-                    const nombrados = new Set([...Object.keys(OBJ_MENS),...Object.keys(OBJ_ANUAL)].map(s=>s.toLowerCase()));
-                    const restoMes = wonY.filter(wd=>String(wd.date||'')>=mes0 && !nombrados.has(cursoDe(wd))).length;
+                    // "Cursos" = TODAS las ventas del mes menos las 3 con objetivo mensual propio (Mef, Personalizado,
+                    // Blefaroplastia). Así los 4 conceptos mensuales SUMAN el total de ventas del mes (cuadra con la
+                    // tarjeta "Ventas cerradas"). Las de objetivo anual (Posgrado, Caame...) cuentan aquí TAMBIÉN.
+                    const soloMens = new Set(Object.keys(OBJ_MENS).map(s=>s.toLowerCase()));
+                    const restoMes = wonY.filter(wd=>String(wd.date||'')>=mes0 && !soloMens.has(cursoDe(wd))).length;
                     const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
                     const diasMes = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0).getDate();
                     const fracMes = hoy.getDate()/diasMes;
@@ -600,7 +603,7 @@
                         </div>`;
                     };
                     const colMens = Object.entries(OBJ_MENS).map(([k,o])=>fila(k,o,cntM[k.toLowerCase()]||0,fracMes,'')).join('')
-                        + fila('Cursos (resto)', OBJ_RESTO_MES, restoMes, fracMes, 'demás cursos');
+                        + fila('Cursos', OBJ_RESTO_MES, restoMes, fracMes, 'todas las demás ventas del mes');
                     const colAnual = Object.entries(OBJ_ANUAL).map(([k,o])=>fila(k,o,cntA[k.toLowerCase()]||0,fracAno,'')).join('');
                     const objM = Object.values(OBJ_MENS).reduce((a,b)=>a+b,0)+OBJ_RESTO_MES;
                     const objA = Object.values(OBJ_ANUAL).reduce((a,b)=>a+b,0);
