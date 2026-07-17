@@ -574,24 +574,29 @@
                         <div class="grid-2" style="margin-bottom:18px">
                             <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">💼 De dónde viene el dinero · por vendedor</div>${breakdown('vendedor','Vendedor')}</div>
                             <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">🎓 De dónde viene el dinero · por curso</div>${breakdown('curso','Curso')}</div>
-                        </div>
-                        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">Detalle · venta a venta</div>
+                        </div>`;
+                    // Detalle venta a venta — OCULTO a petición del usuario. Reactivar con SHOW_VENTA_DETALLE = true.
+                    const SHOW_VENTA_DETALLE = false;
+                    if (SHOW_VENTA_DETALLE) {
+                        html += `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">Detalle · venta a venta</div>
                         <div class="table-wrap"><table class="table">
                         <thead><tr><th>Fecha de cierre</th><th>Venta</th><th>Curso</th><th>País</th><th>Vendedor</th><th style="color:var(--green)">Importe</th></tr></thead><tbody>`;
-                    top.forEach(v=>{
-                        html += `<tr>
-                            <td class="cell-strong">${fmtDate(v.fecha)}</td>
-                            <td>${v.titulo||'—'}</td>
-                            <td>${v.curso}</td>
-                            <td>${v.pais}</td>
-                            <td>${v.vendedor}</td>
-                            <td class="num" style="font-weight:700;color:${v.importe?'var(--green)':'#D6D1DA'}">${v.importe?eur(v.importe):'—'}</td></tr>`;
-                    });
-                    html += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
-                        <td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${ventas.length} ventas</td>
-                        <td></td><td></td><td></td><td></td>
-                        <td class="num" style="font-weight:800;color:var(--green)">${eur(totalE)}</td></tr>`;
-                    html += `</tbody></table></div></div>`;
+                        top.forEach(v=>{
+                            html += `<tr>
+                                <td class="cell-strong">${fmtDate(v.fecha)}</td>
+                                <td>${v.titulo||'—'}</td>
+                                <td>${v.curso}</td>
+                                <td>${v.pais}</td>
+                                <td>${v.vendedor}</td>
+                                <td class="num" style="font-weight:700;color:${v.importe?'var(--green)':'#D6D1DA'}">${v.importe?eur(v.importe):'—'}</td></tr>`;
+                        });
+                        html += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                            <td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${ventas.length} ventas</td>
+                            <td></td><td></td><td></td><td></td>
+                            <td class="num" style="font-weight:800;color:var(--green)">${eur(totalE)}</td></tr>`;
+                        html += `</tbody></table></div>`;
+                    }
+                    html += `</div>`;
                 }
             }
             // Podio de países por ventas (F1)
