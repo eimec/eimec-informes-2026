@@ -359,28 +359,37 @@
             const query = new URLSearchParams(params).toString();
             document.getElementById('metaLine').innerHTML = 'Calculando…';
             document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando TODO el periodo (embudo · país · curso · vendedor)… puede tardar unos segundos la primera vez.</div>';
-            try {
-                // RENDER ATÓMICO: esperamos ambas fuentes y pintamos UNA sola vez → todo cuadra con el mismo rango
-                // Además del rango filtrado, pedimos los cierres del AÑO en curso (para Objetivo vs Real,
-                // que compara mes natural y año natural, independiente del filtro).
-                const _hoy = new Date();
-                const _y0 = `${_hoy.getFullYear()}-01-01`;
-                const _hoyStr = _hoy.toISOString().split('T')[0];
-                const [dataRes, extraRes, ytdRes] = await Promise.all([
-                    fetch(`/api/ac-data?${query}`),
-                    fetch(`/api/ac-extra?${query}`).catch(()=>null),
-                    fetch(`/api/ac-data?from=${_y0}&to=${_hoyStr}`).catch(()=>null)
-                ]);
-                const data = await dataRes.json();
-                let extra = null;
-                try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
-                let ytd = null;
-                try { if (ytdRes) { const j = await ytdRes.json(); if (j && j.ok) ytd = j; } } catch(_) {}
-                if (!data.ok) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos. Reintenta.</div>'; return; }
-                renderDashboard(data, extra, ytd);
-            } catch (error) {
-                console.error(error);
-                document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">Error de conexión con ActiveCampaign.</div>';
+            // RENDER ATÓMICO con REINTENTO: si una fuente falla (hipo del servidor), esperamos 3s y
+            // reintentamos una vez ANTES de mostrar error — evita sustos por fallos transitorios.
+            for (let intento = 1; intento <= 2; intento++) {
+                try {
+                    // Además del rango filtrado, pedimos los cierres del AÑO en curso (para Objetivo vs Real,
+                    // que compara mes natural y año natural, independiente del filtro).
+                    const _hoy = new Date();
+                    const _y0 = `${_hoy.getFullYear()}-01-01`;
+                    const _hoyStr = _hoy.toISOString().split('T')[0];
+                    const [dataRes, extraRes, ytdRes] = await Promise.all([
+                        fetch(`/api/ac-data?${query}`),
+                        fetch(`/api/ac-extra?${query}`).catch(()=>null),
+                        fetch(`/api/ac-data?from=${_y0}&to=${_hoyStr}`).catch(()=>null)
+                    ]);
+                    const data = await dataRes.json();
+                    let extra = null;
+                    try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
+                    let ytd = null;
+                    try { if (ytdRes) { const j = await ytdRes.json(); if (j && j.ok) ytd = j; } } catch(_) {}
+                    if (!data.ok) throw new Error('respuesta sin ok');
+                    renderDashboard(data, extra, ytd);
+                    return;
+                } catch (error) {
+                    console.error(`intento ${intento} fallido:`, error);
+                    if (intento === 2) {
+                        document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudieron cargar los datos de ActiveCampaign.<br><span style="font-size:12px;color:var(--muted)">Suele ser un corte puntual — recarga la página en unos segundos.</span></div>';
+                    } else {
+                        document.getElementById('dashboardContent').innerHTML = '<div class="loading">Un momento — reintentando la conexión…</div>';
+                        await new Promise(r => setTimeout(r, 3000));
+                    }
+                }
             }
         }
 
