@@ -543,6 +543,60 @@
                         importe: (extra && extra.won_value && Number(extra.won_value[wd.id])) ? Number(extra.won_value[wd.id])/100 : 0
                     }))
                     .sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
+                // ── OBJETIVO vs REAL (nº de ventas cerradas) ──
+                // Objetivos definidos por dirección (jul-2026). "Cursos" = resto de cursos sin objetivo propio.
+                // Se prorratean a los días del filtro: mensual ÷ 30,44 días · anual ÷ 365,25 días.
+                const OBJ_MENS = { 'Mef': 9, 'Personalizado': 5, 'Blefaroplastia': 2 };
+                const OBJ_ANUAL = { 'Mefo': 9, 'Posgrado': 18, 'Master': 15, 'Caame': 20 };
+                const OBJ_RESTO_MES = 7;   // "Cursos": todas las demás ventas (incluye las aún sin curso etiquetado)
+                let objetivoHtml = '';
+                {
+                    const _pf2 = new Date(((data.period&&data.period.from)||'') + 'T00:00:00');
+                    const _pt2 = new Date(((data.period&&data.period.to)||'') + 'T00:00:00');
+                    const dias = (!isNaN(_pf2) && !isNaN(_pt2)) ? Math.max(1, Math.round((_pt2-_pf2)/86400000)+1) : 30;
+                    const fMes = dias/30.44, fAno = dias/365.25;
+                    const cnt = {};
+                    ventas.forEach(v=>{ const k=(v.curso||'').toLowerCase(); cnt[k]=(cnt[k]||0)+1; });
+                    const nombrados = new Set([...Object.keys(OBJ_MENS),...Object.keys(OBJ_ANUAL)].map(s=>s.toLowerCase()));
+                    const restoReal = ventas.filter(v=>!nombrados.has((v.curso||'').toLowerCase())).length;
+                    const fila = (nombre, obj, base, real, nota) => {
+                        const objP = obj * (base==='mes'?fMes:fAno);
+                        const pct = objP>0 ? Math.round(real/objP*100) : 0;
+                        const col = pct>=100 ? '#0E9F6E' : (pct>=70 ? '#D89614' : '#C0392B');
+                        const emoji = pct>=100 ? '🟢' : (pct>=70 ? '🟡' : '🔴');
+                        return `<div style="margin-bottom:13px">
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+                                <span style="font-weight:700;font-size:13px;color:var(--ink)">${emoji} ${nombre}${nota?` <span style="font-weight:500;font-size:10px;color:var(--muted)">${nota}</span>`:''}</span>
+                                <span style="font-size:12px;color:var(--muted)"><b style="color:${col};font-size:15px">${real}</b> de ${objP<10?objP.toFixed(1):Math.round(objP)} · <b style="color:${col}">${pct}%</b></span>
+                            </div>
+                            <div style="height:10px;background:#EDF0F4;border-radius:6px;overflow:hidden">
+                                <div style="height:100%;width:${Math.min(100,pct)}%;background:linear-gradient(90deg,${col}B3,${col});border-radius:6px"></div>
+                            </div>
+                            <div style="font-size:10px;color:var(--muted);margin-top:2px">objetivo: ${obj} venta${obj!==1?'s':''}/${base==='mes'?'mes':'año'}</div>
+                        </div>`;
+                    };
+                    const colMens = Object.entries(OBJ_MENS).map(([k,o])=>fila(k,o,'mes',cnt[k.toLowerCase()]||0,'')).join('')
+                        + fila('Cursos (resto)', OBJ_RESTO_MES, 'mes', restoReal, 'demás cursos');
+                    const colAnual = Object.entries(OBJ_ANUAL).map(([k,o])=>fila(k,o,'año',cnt[k.toLowerCase()]||0,'')).join('');
+                    const objTotM = (Object.values(OBJ_MENS).reduce((a,b)=>a+b,0)+OBJ_RESTO_MES)*fMes;
+                    const objTotA = Object.values(OBJ_ANUAL).reduce((a,b)=>a+b,0)*fAno;
+                    const realM = Object.keys(OBJ_MENS).reduce((s,k)=>s+(cnt[k.toLowerCase()]||0),0)+restoReal;
+                    const realA = Object.keys(OBJ_ANUAL).reduce((s,k)=>s+(cnt[k.toLowerCase()]||0),0);
+                    const chip = (real,obj) => { const p=obj>0?Math.round(real/obj*100):0; const c=p>=100?'#0E9F6E':(p>=70?'#D89614':'#C0392B'); return `<span style="background:${c}1A;color:${c};border:1px solid ${c}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800">${real} de ${obj<10?obj.toFixed(1):Math.round(obj)} · ${p}%</span>`; };
+                    objetivoHtml = `
+                        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:4px 0 2px 2px">🎯 Objetivo vs Real · ventas cerradas</div>
+                        <div style="font-size:11px;color:var(--muted);margin:0 0 12px 2px">Objetivos prorrateados a los <b>${dias} días</b> del filtro (mensuales ÷30 días · anuales ÷365) · 🟢 ≥100% · 🟡 70-99% · 🔴 &lt;70%</div>
+                        <div class="grid-2" style="margin-bottom:18px">
+                            <div style="background:#FAFBFC;border:1px solid #EDF0F4;border-radius:12px;padding:16px 18px">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVOS MENSUALES</span>${chip(realM,objTotM)}</div>
+                                ${colMens}
+                            </div>
+                            <div style="background:#FAFBFC;border:1px solid #EDF0F4;border-radius:12px;padding:16px 18px">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVOS ANUALES</span>${chip(realA,objTotA)}</div>
+                                ${colAnual}
+                            </div>
+                        </div>`;
+                }
                 if (ventas.length) {
                     const totalE = ventas.reduce((s,v)=>s+v.importe,0);
                     const conImp = ventas.filter(v=>v.importe>0).length;
@@ -571,6 +625,7 @@
                             <div class="card card--won"><div class="card-label">Ticket medio</div><div class="card-value">${eur(ticket)}</div><div class="card-foot">Importe total ÷ ${conImp} venta${conImp!==1?'s':''} con importe</div></div>
                             ${sinImp?`<div class="card card--trash"><div class="card-label">Sin importe</div><div class="card-value">${sinImp}</div><div class="card-foot">Ventas sin importe puesto en el CRM · no suman al total</div></div>`:''}
                         </div>
+                        ${objetivoHtml}
                         <div class="grid-2" style="margin-bottom:18px">
                             <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">💼 De dónde viene el dinero · por vendedor</div>${breakdown('vendedor','Vendedor')}</div>
                             <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">🎓 De dónde viene el dinero · por curso</div>${breakdown('curso','Curso')}</div>
