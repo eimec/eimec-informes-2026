@@ -496,15 +496,17 @@
             if (data.generated) document.getElementById('genStamp').textContent = '· ' + fmtDate(data.generated) + ' ' + (data.generated.split(' ')[1]||'');
 
             // FUNNEL
+            // Etiquetas en PASADO (hitos logrados): "cualificaron" = lo consiguieron en algún momento,
+            // aunque hoy ya estén más adelante. Así no se confunde con la barra de abajo ("dónde están HOY").
             const stages = [
-                {k:'F1', label:'Solicitud', val:reachedF1, color:'#8A94A6'},
-                {k:'F2', label:'Cualificado', val:reachedF2, color:'#1F2A4E'},
-                {k:'F3', label:'Propuesta', val:reachedF3, color:'#2E5082'},
-                {k:'F4', label:'Facturación', val:reachedF4, color:'#448497'},
-                {k:'VENTA', label:'Cerrada', val:w, color:'#009B9B'}
+                {k:'F1', label:'Entraron', val:reachedF1, color:'#8A94A6'},
+                {k:'F2', label:'Cualificaron', val:reachedF2, color:'#1F2A4E'},
+                {k:'F3', label:'Recibieron propuesta', val:reachedF3, color:'#2E5082'},
+                {k:'F4', label:'Llegaron a facturación', val:reachedF4, color:'#448497'},
+                {k:'VENTA', label:'Compraron', val:w, color:'#009B9B'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
-            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:490px;text-align:right;line-height:1.5"><b style="color:var(--brand)">Para ver dónde se te cae la gente.</b> Cuántos <b>llegaron</b> a cada fase: quien está en F4 ya pasó antes por F1, F2 y F3, así que <b>cuenta en todas</b>.<br>El <b>%</b> de abajo = cuántos <b>avanzaron desde la fase anterior</b>.</div></div><div class="funnel-steps">`;
+            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:490px;text-align:right;line-height:1.5"><b style="color:var(--brand)">Cuántos CONSIGUIERON cada paso</b> (aunque hoy ya estén más adelante).<br>Se lee de corrido: entraron ${reachedF1} → cualificaron ${reachedF2} → compraron ${w}.<br>El <b>%</b> = de los del paso anterior, cuántos dieron el siguiente.</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
                 const prev = i>0 ? stages[i-1].val : null;
@@ -537,7 +539,7 @@
                 + `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:3px;background:#C0392B;display:inline-block"></span><b>${p.trash}</b> Descartados · van aparte, fuera del embudo</span>`;
             let html = funnel + `
                 <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 2px 2px">¿Y dónde están HOY esos ${t}?</div>
-                <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Los mismos ${t} leads del embudo, repartidos según su situación actual — aquí cada lead ocupa <b>un solo trozo</b> de la barra.</div>
+                <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Los mismos ${t} leads, repartidos según su situación actual — cada lead ocupa <b>un solo trozo</b> de la barra.<br>Ejemplo: arriba dice que <b>cualificaron ${reachedF2}</b>; hoy en F2 quedan <b>${pf.f2}</b> — los otros <b>${reachedF2-pf.f2}</b> ya avanzaron de fase o compraron.</div>
                 <div style="display:flex;height:36px;border-radius:9px;overflow:hidden;margin:0 0 8px;box-shadow:0 1px 4px rgba(31,42,78,.12)">${barra}</div>
                 <div style="margin:0 0 18px 2px;line-height:2">${leyenda}</div>
                 <div class="cards-grid metrics">
