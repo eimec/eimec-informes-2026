@@ -508,7 +508,7 @@
                 {k:'VENTA', label:'Compraron', val:w, color:'#009B9B'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
-            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:490px;text-align:right;line-height:1.5"><b style="color:var(--brand)">Cuántos CONSIGUIERON cada paso</b> (aunque hoy ya estén más adelante).<br>Se lee de corrido: entraron ${reachedF1} → cualificaron ${reachedF2} → compraron ${w}.<br>El <b>%</b> = de los del paso anterior, cuántos dieron el siguiente.</div></div><div class="funnel-steps">`;
+            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:490px;text-align:right;line-height:1.5"><b style="color:var(--brand)">Cuántos CONSIGUIERON cada paso</b> (aunque hoy ya estén más adelante).<br>Se lee de corrido: entraron ${reachedF1} → cualificaron ${reachedF2} → compraron ${w}.<br>El <b>%</b> = de los del paso anterior, cuántos dieron el siguiente. <b>VENTA</b> = cerradas en estas fechas (el lead pudo entrar antes) — el dato de administración.</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
                 const prev = i>0 ? stages[i-1].val : null;
