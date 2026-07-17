@@ -549,6 +549,21 @@
                     const sinImp = ventas.length - conImp;
                     const ticket = conImp ? totalE/conImp : 0;
                     const top = ventas.slice(0,60);
+                    // Desglose del dinero: por quién lo vendió y por qué curso. Ordenado por importe (no por nº de ventas).
+                    const breakdown = (campo, etiqueta) => {
+                        const g = {};
+                        ventas.forEach(v => { const k = v[campo] || '—'; if(!g[k]) g[k]={n:0,imp:0}; g[k].n++; g[k].imp+=v.importe; });
+                        const rows = Object.entries(g).map(([k,x])=>({k,...x})).sort((a,b)=> b.imp-a.imp || b.n-a.n);
+                        const maxI = Math.max(...rows.map(r=>r.imp), 1);
+                        let h = `<div class="table-wrap"><table class="table"><thead><tr><th>${etiqueta}</th><th>Ventas</th><th style="color:var(--green)">Importe</th><th>% del dinero</th></tr></thead><tbody>`;
+                        rows.forEach(r=>{
+                            const pct = totalE>0 ? Math.round(r.imp/totalE*100) : 0;
+                            const heat = (0.08 + 0.42*(r.imp/maxI)).toFixed(2);
+                            h += `<tr><td class="cell-strong">${r.k}</td><td class="num">${r.n}</td><td class="cell-total" style="background:rgba(0,155,155,${heat});font-weight:700">${r.imp?eur(r.imp):'—'}</td><td class="num" style="font-weight:700">${pct}%</td></tr>`;
+                        });
+                        h += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)"><td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td><td class="num" style="font-weight:800">${ventas.length}</td><td class="num" style="font-weight:800;color:var(--green)">${eur(totalE)}</td><td class="num" style="font-weight:800">100%</td></tr>`;
+                        return h + `</tbody></table></div>`;
+                    };
                     html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>💰 Ventas cerradas en el periodo</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Lo que se movió a Ganado en estas fechas · da igual cuándo entró el lead${ventas.length>60?` · mostrando las 60 más recientes de ${ventas.length}`:''}</span></div>
                         <div class="cards-grid" style="margin-bottom:14px">
                             <div class="card card--won"><div class="card-label">Ventas cerradas</div><div class="card-value">${ventas.length}</div><div class="card-foot">Tratos ganados en estas fechas</div></div>
@@ -556,6 +571,11 @@
                             <div class="card card--won"><div class="card-label">Ticket medio</div><div class="card-value">${eur(ticket)}</div><div class="card-foot">Importe total ÷ ${conImp} venta${conImp!==1?'s':''} con importe</div></div>
                             ${sinImp?`<div class="card card--trash"><div class="card-label">Sin importe</div><div class="card-value">${sinImp}</div><div class="card-foot">Ventas sin importe puesto en el CRM · no suman al total</div></div>`:''}
                         </div>
+                        <div class="grid-2" style="margin-bottom:18px">
+                            <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">💼 De dónde viene el dinero · por vendedor</div>${breakdown('vendedor','Vendedor')}</div>
+                            <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">🎓 De dónde viene el dinero · por curso</div>${breakdown('curso','Curso')}</div>
+                        </div>
+                        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">Detalle · venta a venta</div>
                         <div class="table-wrap"><table class="table">
                         <thead><tr><th>Fecha de cierre</th><th>Venta</th><th>Curso</th><th>País</th><th>Vendedor</th><th style="color:var(--green)">Importe</th></tr></thead><tbody>`;
                     top.forEach(v=>{
