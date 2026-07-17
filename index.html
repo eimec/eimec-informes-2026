@@ -519,18 +519,27 @@
             });
             funnel += `</div></div>`;
 
-            // KPI CARDS
+            // REPARTO ACTUAL: una sola barra que divide los t leads del periodo según dónde están HOY.
+            // Visualmente distinta del embudo para que no parezcan dos versiones del mismo gráfico.
+            const _seg = [
+                { n:'F1 · Sin cualificar', v: pf.f1, c:'#8A94A6' },
+                { n:'F2 · Cualificados', v: pf.f2, c:'#1F2A4E' },
+                { n:'F3 · Con propuesta', v: pf.f3, c:'#2E5082' },
+                { n:'F4 · En facturación', v: pf.f4, c:'#448497' },
+                { n:'Vendidos', v: w, c:'#009B9B' }
+            ];
+            const barra = _seg.filter(s=>s.v>0).map(s=>{
+                const pct = t>0 ? s.v/t*100 : 0;
+                const showNum = pct >= 5;
+                return `<div title="${s.n}: ${s.v} leads (${Math.round(pct)}%)" style="flex:${s.v} 0 ${s.v>0?'26px':'0'};background:linear-gradient(160deg,${s.c},${s.c}dd);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px">${showNum?s.v:''}</div>`;
+            }).join('');
+            const leyenda = _seg.map(s=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:12px;color:var(--ink)"><span style="width:10px;height:10px;border-radius:3px;background:${s.c};display:inline-block"></span><b>${s.v}</b> ${s.n}</span>`).join('')
+                + `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:3px;background:#C0392B;display:inline-block"></span><b>${p.trash}</b> Descartados · van aparte, fuera del embudo</span>`;
             let html = funnel + `
-                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 2px 2px">Los mismos ${t} leads · ¿dónde está cada uno AHORA?</div>
-                <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Arriba cada lead se cuenta en <b>todas</b> las fases por las que pasó. <b>Aquí cada lead se cuenta UNA sola vez</b>, en la fase donde está hoy. Por eso los números son más pequeños.<br>Compruébalo sumando: <b style="color:var(--brand)">${pf.f1} + ${pf.f2} + ${pf.f3} + ${pf.f4} + ${w} = ${t}</b> — el total del embudo de arriba.</div>
-                <div class="cards-grid">
-                    <div class="card card--f1"><div class="card-label">F1 · Solicitud</div><div class="card-value">${pf.f1}</div><div class="card-foot">Entraron y aún nadie los ha cualificado</div></div>
-                    <div class="card card--f2"><div class="card-label">F2 · Cualificado</div><div class="card-value">${pf.f2}</div><div class="card-foot">Interés real · pendientes de propuesta</div></div>
-                    <div class="card card--f3"><div class="card-label">F3 · Propuesta</div><div class="card-value">${pf.f3}</div><div class="card-foot">Con propuesta enviada, sin cerrar</div></div>
-                    <div class="card card--f4"><div class="card-label">F4 · Facturación</div><div class="card-value">${pf.f4}</div><div class="card-foot">A punto de cerrar</div></div>
-                    <div class="card card--won"><div class="card-label">Ventas cerradas</div><div class="card-value">${w}</div><div class="card-foot">Se ganaron en estas fechas · el lead pudo entrar antes</div></div>
-                    <div class="card card--trash"><div class="card-label">Descartados</div><div class="card-value">${p.trash}</div><div class="card-foot">Caídos · van aparte, NO suman en el embudo</div></div>
-                </div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 2px 2px">¿Y dónde están HOY esos ${t}?</div>
+                <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Los mismos ${t} leads del embudo, repartidos según su situación actual — aquí cada lead ocupa <b>un solo trozo</b> de la barra.</div>
+                <div style="display:flex;height:36px;border-radius:9px;overflow:hidden;margin:0 0 8px;box-shadow:0 1px 4px rgba(31,42,78,.12)">${barra}</div>
+                <div style="margin:0 0 18px 2px;line-height:2">${leyenda}</div>
                 <div class="cards-grid metrics">
                     <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">De cada 100 solicitudes, cuántas cualifican</div></div>
                     <div class="card"><div class="card-label">Conversión F2 → Venta</div><div class="card-value">${m2}%</div><div class="card-foot">De cada 100 cualificados, cuántos compran</div></div>
@@ -684,7 +693,9 @@
                 }
             }
             // Podio de países por ventas (F1)
-            if (extra && extra.ok) html += renderPodium(extra);
+            // Podio de países — OCULTO a petición del usuario. Reactivar con SHOW_PODIO = true.
+            const SHOW_PODIO = false;
+            if (SHOW_PODIO && extra && extra.ok) html += renderPodium(extra);
             // Gráfico de TRATOS CREADOS por día (en el medio)
             if (extra && extra.ok && extra.created_by_date && Object.keys(extra.created_by_date).length) {
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Tratos creados por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Todas las oportunidades nuevas · por su <b>fecha de creación</b></span></div><div class="chart-container" style="height:280px"><canvas id="createdByDateChart"></canvas></div></div>`;
