@@ -374,15 +374,28 @@
                         fetch(`/api/ac-data?${query}`),
                         fetch(`/api/ac-extra?${query}`).catch(()=>null),
                         fetch(`/api/ac-data?from=${_y0}&to=${_hoyStr}`).catch(()=>null),
-                        fetch(`/api/ac-moves?${query}`).catch(()=>null)
+                        fetch(`/data/moves-daily.json?v=${Date.now()}`).catch(()=>null)
                     ]);
                     const data = await dataRes.json();
                     let extra = null;
                     try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
                     let ytd = null;
                     try { if (ytdRes) { const j = await ytdRes.json(); if (j && j.ok) ytd = j; } } catch(_) {}
+                    // Movimientos de fase precalculados (fichero estático que actualiza una rutina diaria).
+                    // Se suman aquí para el rango del filtro; si el fichero no cubre el rango -> partial (fallback cohorte).
                     let moves = null;
-                    try { if (movesRes) { const m = await movesRes.json(); if (m && m.ok) moves = m; } } catch(_) {}
+                    try {
+                        if (movesRes && movesRes.ok) {
+                            const mj = await movesRes.json();
+                            if (mj && mj.days) {
+                                const sum = { f2: 0, f3: 0, f4: 0 };
+                                Object.entries(mj.days).forEach(([d, v]) => {
+                                    if (d >= params.from && d <= params.to) { sum.f2 += v.f2||0; sum.f3 += v.f3||0; sum.f4 += v.f4||0; }
+                                });
+                                moves = { ok: true, partial: !(mj.oldest && mj.oldest <= params.from), moves: sum, hasta: mj.newest };
+                            }
+                        }
+                    } catch(_) {}
                     if (!data.ok) throw new Error('respuesta sin ok');
                     renderDashboard(data, extra, ytd, moves);
                     return;
@@ -527,7 +540,7 @@
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
             let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:500px;text-align:right;line-height:1.5">${useMoves
-                ? `<b style="color:var(--brand)">Lo que se MOVIÓ en estas fechas</b>, entrara cuando entrara el lead:<br><b>${reachedF1}</b> entraron nuevos · <b>${reachedF2}</b> pasaron a cualificado · <b>${reachedF3}</b> a propuesta · <b>${reachedF4}</b> a facturación · <b>${w}</b> se cerraron.<br>Es la actividad del periodo — el mismo criterio que usa administración.`
+                ? `<b style="color:var(--brand)">Lo que se MOVIÓ en estas fechas</b>, entrara cuando entrara el lead:<br><b>${reachedF1}</b> entraron nuevos · <b>${reachedF2}</b> pasaron a cualificado · <b>${reachedF3}</b> a propuesta · <b>${reachedF4}</b> a facturación · <b>${w}</b> se cerraron.<br>Es la actividad del periodo — el mismo criterio que usa administración.${moves&&moves.hasta?` <span style="opacity:.75">(movimientos registrados hasta ${fmtDate(moves.hasta)})</span>`:''}`
                 : `<b style="color:var(--brand)">Cuántos CONSIGUIERON cada paso</b> (aunque hoy ya estén más adelante).<br>Se lee de corrido: entraron ${reachedF1} → cualificaron ${reachedF2} → compraron ${w}.<br><b>VENTA</b> = cerradas en estas fechas (el lead pudo entrar antes).`}</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
