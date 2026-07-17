@@ -524,7 +524,10 @@
             `;
 
             // 6 insights + recomendaciones (país/curso desde won del proxy; vendedor desde ac-extra)
-            if (extra && extra.ok) html += renderInsights(extra, data);
+            // "Lo más destacado del periodo" — OCULTO de momento (se pondrá otra cosa en su sitio).
+            // Para volver a mostrarlo: poner SHOW_INSIGHTS = true. La función renderInsights() sigue intacta.
+            const SHOW_INSIGHTS = false;
+            if (SHOW_INSIGHTS && extra && extra.ok) html += renderInsights(extra, data);
             // Podio de países por ventas (F1)
             if (extra && extra.ok) html += renderPodium(extra);
             // Gráfico de TRATOS CREADOS por día (en el medio)
