@@ -272,6 +272,7 @@
             <div class="meta-line" id="metaLine">Cargando periodo…</div>
             <div class="filters">
                 <div class="seg">
+                    <button class="filter-btn" data-range="mes" onclick="setDateRange('mes')" title="Del día 1 del mes hasta hoy — cuadra con el CRM filtrando 'fecha de ganado' del mes">Este mes</button>
                     <button class="filter-btn" data-range="7d" onclick="setDateRange('7d')">7 días</button>
                     <button class="filter-btn active" data-range="30d" onclick="setDateRange('30d')">30 días</button>
                     <button class="filter-btn" data-range="90d" onclick="setDateRange('90d')">90 días</button>
@@ -328,6 +329,7 @@
             const today = new Date();
             let from = new Date();
             switch(range) {
+                case 'mes': from = new Date(today.getFullYear(), today.getMonth(), 1); break;   // del 1 del mes a hoy
                 case '7d': from.setDate(today.getDate() - 7); break;
                 case '30d': from.setDate(today.getDate() - 30); break;
                 case '90d': from.setDate(today.getDate() - 90); break;
