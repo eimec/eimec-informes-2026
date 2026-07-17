@@ -2,6 +2,8 @@
 // Proxy al endpoint de WordPress que YA está conectado a ActiveCampaign y verificado.
 // Se llama SERVER-SIDE (sin CORS, sin protección de página) y se reenvía el JSON tal cual.
 
+export const config = { maxDuration: 60 };
+
 const WP_PROXY = 'https://www.eimec.com/wp-json/eimec/v1/ac';
 const WP_KEY = 'eimec2026dash';
 
