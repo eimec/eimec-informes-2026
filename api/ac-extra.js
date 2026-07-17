@@ -181,6 +181,8 @@ export default async function handler(req, res) {
     // (= ganados EN el periodo por fecha de cierre) para que el Won cuadre con el funnel (14).
     const won_owner = {};
     const won_campaign = {};
+    const won_value = {};  // id -> importe en CÉNTIMOS (AC guarda deal.value en céntimos)
+    const won_title = {};  // id -> título del trato
     const pmWonIds = [];   // ids de ganados que son "paciente modelo" → el front los excluye
     {
       const grab = async (off) => {
@@ -193,6 +195,9 @@ export default async function handler(req, res) {
           const pmCamp = cf[x.id] && cf[x.id][M_PM_CAMPAIGN] && String(cf[x.id][M_PM_CAMPAIGN]).trim();
           const utm = normUtm(cf[x.id] && cf[x.id][M_UTM]);
           won_campaign[x.id] = utm || 'Sin dato';
+          // Importe (AC lo guarda en CÉNTIMOS) y título, para el listado de ventas de administración
+          won_value[x.id] = x.value ? Number(x.value) : 0;
+          won_title[x.id] = x.title || '';
           if (isPM(pmCamp, ownerName)) pmWonIds.push(x.id);
         });
         return d;
@@ -248,7 +253,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, f2_by_date: f2bd, totals: tot,
-      sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados,
+      sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
       period: { from: from || null, to: to || null }, ms: Date.now() - start
