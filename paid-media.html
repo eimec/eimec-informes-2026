@@ -622,8 +622,12 @@
                         ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
                         ${tratosCell}
                         ${cplC !== null ? num(eur2(cplC), 'font-weight:600') : D}
-                        ${k.ventas ? num(nf0(k.ventas), 'font-weight:700;color:var(--green)') : `<td class="cell-zero">0</td>`}
-                        ${asis !== null ? num(nf0(asis), 'font-weight:600;color:var(--brand-soft)') : D}
+                        ${usaConv
+                            ? `<td class="num" style="font-weight:700;color:${k.ventas ? 'var(--green)' : '#B9B2C0'}" title="Ventas del CRM con utm de ${k.nombre} entre el ${fmtDate(params.from)} y el ${fmtDate(params.to)}. OJO: cifra INFRACONTADA para este canal — el formulario web pierde el utm, así que hay ventas de ${k.nombre} escondidas en 'sin origen'. Se corregirá al arreglar el formulario.">${nf0(k.ventas)}<span style="color:var(--brand-soft)">*</span></td>`
+                            : (k.ventas ? num(nf0(k.ventas), 'font-weight:700;color:var(--green)') : `<td class="cell-zero">0</td>`)}
+                        ${usaConv && asis !== null
+                            ? `<td class="num" style="font-weight:600;color:var(--brand-soft)" title="Asistidas por ${k.nombre} según el utm del CRM — también infracontadas para este canal hasta arreglar el formulario web.">${nf0(asis)}<span style="color:var(--brand-soft)">*</span></td>`
+                            : (asis !== null ? num(nf0(asis), 'font-weight:600;color:var(--brand-soft)') : D)}
                         ${cpaC !== null ? num(eur2(cpaC), 'font-weight:600') : D}
                         ${cpaAsis !== null ? num(eur2(cpaAsis)) : D}
                         ${zz2(k.f1)}${zz2(k.f2)}${zz2(k.f3)}${zz2(k.f4)}
