@@ -562,11 +562,14 @@
             }).join('');
             const leyenda = _seg.map(s=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:12px;color:var(--ink)"><span style="width:10px;height:10px;border-radius:3px;background:${s.c};display:inline-block"></span><b>${s.v}</b> ${s.n}</span>`).join('')
                 + `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:3px;background:#C0392B;display:inline-block"></span><b>${p.trash}</b> Descartados · van aparte, fuera del embudo</span>`;
-            let html = funnel + `
+            // Barra "¿dónde están HOY?" — OCULTA a petición del usuario. Reactivar con SHOW_REPARTO = true.
+            const SHOW_REPARTO = false;
+            const repartoHtml = SHOW_REPARTO ? `
                 <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 2px 2px">¿Y dónde están HOY esos ${t}?</div>
                 <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Los ${t} leads que <b>entraron en el periodo</b>, repartidos según su situación actual — cada lead ocupa <b>un solo trozo</b> de la barra.</div>
                 <div style="display:flex;height:36px;border-radius:9px;overflow:hidden;margin:0 0 8px;box-shadow:0 1px 4px rgba(31,42,78,.12)">${barra}</div>
-                <div style="margin:0 0 18px 2px;line-height:2">${leyenda}</div>
+                <div style="margin:0 0 18px 2px;line-height:2">${leyenda}</div>` : '';
+            let html = funnel + repartoHtml + `
                 <div class="cards-grid metrics">
                     <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">De cada 100 solicitudes, cuántas cualifican</div></div>
                     <div class="card"><div class="card-label">Conversión F2 → Venta</div><div class="card-value">${m2}%</div><div class="card-foot">De cada 100 cualificados, cuántos compran</div></div>
