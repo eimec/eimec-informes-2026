@@ -363,8 +363,10 @@
                 .normalize('NFD').replace(/[̀-ͯ]/g, '')
                 .replace(/[^a-z0-9]+/g, '');
         }
-        const RE_META = /meta|facebook|fb|instagram/;
-        const RE_GOOGLE = /google|adwords/;
+        // Regla dictada por dirección (22-jul): el utm_source del CRM CONTIENE "meta" → Meta,
+        // CONTIENE "google" → Google. Nada más (instagram/social/fb NO cuentan como Meta Ads).
+        const RE_META = /meta/;
+        const RE_GOOGLE = /google/;
         function canalDe(origen) {
             const nk = normKey(origen);
             if (!nk) return null;

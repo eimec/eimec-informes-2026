@@ -15,9 +15,10 @@ import { normKey } from './_ads-common.js';
 
 const AC_BASE = 'https://eimec.api-us1.com/api/3';
 const M_UTM = '15';   // custom field: utm_source
-// MISMO criterio de canal que el resto del informe (normKey + regex amplia)
-const RE_META = /meta|facebook|fb|instagram/;
-const RE_GOOGLE = /google|adwords/;
+// MISMO criterio de canal que el front (regla de dirección, 22-jul): utm_source que CONTIENE
+// "meta" → Meta, que CONTIENE "google" → Google. Nada más.
+const RE_META = /meta/;
+const RE_GOOGLE = /google/;
 function canalDe(v) {
   const nk = normKey(v);
   if (!nk) return null;

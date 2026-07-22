@@ -100,7 +100,9 @@ export async function googleSpend(from, to, opts = {}) {
     let by_country = null;
     if (opts.byCountry) {
       try {
-        const qPais = `SELECT segments.geo_target_country, metrics.cost_micros
+        // geographic_view NO admite segments.geo_target_country: el país sale de su propio campo
+        // geographic_view.country_criterion_id (verificado contra la cuenta real).
+        const qPais = `SELECT geographic_view.country_criterion_id, metrics.cost_micros
                        FROM geographic_view
                        WHERE segments.date BETWEEN '${desde}' AND '${hasta}' AND metrics.cost_micros > 0`;
         const rp = await fetch(`https://googleads.googleapis.com/${V}/customers/${CUST}/googleAds:searchStream`, {
@@ -112,9 +114,8 @@ export async function googleSpend(from, to, opts = {}) {
         let sumPais = 0;
         (Array.isArray(jp) ? jp : [jp]).forEach(b => (b.results || []).forEach(row => {
           const spend = Number(row.metrics && row.metrics.costMicros || 0) / 1e6;
-          // resource name tipo "geoTargetConstants/2724" → criterion ID → nombre de país
-          const res = (row.segments && row.segments.geoTargetCountry) || '';
-          const id = String(res).split('/').pop();
+          // criterion ID ("2724") → nombre de país
+          const id = String((row.geographicView && row.geographicView.countryCriterionId) || '');
           const nombre = GEO_ID_PAIS[id] || 'Otros países';   // sin mapear → bucket, nunca se pierde
           by_country[nombre] = Math.round(((by_country[nombre] || 0) + spend) * 100) / 100;
           sumPais += spend;
