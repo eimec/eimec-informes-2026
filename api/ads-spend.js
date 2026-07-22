@@ -31,6 +31,7 @@ function resolverCanal(nombre, api, manual, from, to) {
     if (api.currency) out.currency = api.currency;
     if (api.impressions !== undefined) out.impressions = Number(api.impressions) || 0;   // para el cuadro por canal
     if (api.clicks !== undefined) out.clicks = Number(api.clicks) || 0;
+    if (api.conversions !== undefined) out.conversions = Number(api.conversions) || 0;   // conversiones de la plataforma (Google)
     if (api.sin_pm) out.sin_pm = true;                        // Meta: sin campañas de paciente modelo
     if (api.parcial) out.parcial = true;                      // respuesta incompleta del canal → no cachear
     return out;

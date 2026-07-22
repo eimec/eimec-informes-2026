@@ -60,7 +60,7 @@ export async function googleSpend(from, to, opts = {}) {
 
   try {
     const token = await accessToken(CID, CSEC, REF);
-    const query = `SELECT campaign.name, metrics.cost_micros, metrics.impressions, metrics.clicks, customer.currency_code${opts.byDay ? ', segments.date' : ''}
+    const query = `SELECT campaign.name, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, customer.currency_code${opts.byDay ? ', segments.date' : ''}
                    FROM campaign
                    WHERE segments.date BETWEEN '${desde}' AND '${hasta}' AND metrics.cost_micros > 0`;
     const headers = { Authorization: 'Bearer ' + token, 'developer-token': DEV, 'Content-Type': 'application/json' };
@@ -83,13 +83,14 @@ export async function googleSpend(from, to, opts = {}) {
 
     const by_campaign = {};
     const by_day = opts.byDay ? {} : null;
-    let total = 0, currency = null, impressions = 0, clicks = 0;
+    let total = 0, currency = null, impressions = 0, clicks = 0, conversions = 0;
     const batches = Array.isArray(j) ? j : [j];
     batches.forEach(b => (b.results || []).forEach(row => {
       const spend = Number(row.metrics && row.metrics.costMicros || 0) / 1e6;
       total += spend;
       impressions += Number(row.metrics && row.metrics.impressions || 0);
       clicks += Number(row.metrics && row.metrics.clicks || 0);
+      conversions += Number(row.metrics && row.metrics.conversions || 0);
       currency = currency || (row.customer && row.customer.currencyCode);
       const k = (row.campaign && row.campaign.name) || 'Sin campaña';
       by_campaign[k] = (by_campaign[k] || 0) + spend;
@@ -131,6 +132,7 @@ export async function googleSpend(from, to, opts = {}) {
       ok: true, platform: 'google', currency,
       by_campaign, total: Math.round(total * 100) / 100,
       impressions, clicks,
+      conversions: Math.round(conversions),   // conversiones que reporta Google (formulario enviado)
       ...(by_day ? { by_day } : {}),
       ...(by_country ? { by_country } : {}),
       period: { from: desde, to: hasta }, ms: Date.now() - start

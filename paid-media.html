@@ -600,17 +600,26 @@
                     const inv = a ? (Number(a.total) || 0) : null;
                     const impr = a && a.impressions !== undefined ? Number(a.impressions) : null;
                     const clk = a && a.clicks !== undefined ? Number(a.clicks) : null;
-                    const cplC = (inv !== null && k.tratos > 0) ? inv / k.tratos : null;
+                    // PROVISIONAL (hasta arreglar la captura de utm en el formulario web): si la plataforma
+                    // reporta MÁS conversiones que tratos con utm en el CRM (caso Google: los utm se pierden
+                    // en la web), usamos sus conversiones como "Tratos" — marcado con * y tooltip honesto.
+                    const conv = a && a.conversions !== undefined ? Number(a.conversions) : null;
+                    const usaConv = conv !== null && conv > k.tratos;
+                    const tratosCanal = usaConv ? conv : k.tratos;
+                    const cplC = (inv !== null && tratosCanal > 0) ? inv / tratosCanal : null;
                     const cpaC = (inv !== null && k.ventas > 0) ? inv / k.ventas : null;
                     const denomAsis = (asis !== null) ? (k.ventas + asis) : null;
                     const cpaAsis = (inv !== null && denomAsis !== null && denomAsis > 0) ? inv / denomAsis : null;
                     const ctr = (impr !== null && impr > 0 && clk !== null) ? (clk / impr * 100) : null;
                     const clk2venta = (clk !== null && clk > 0) ? (k.ventas / clk * 100) : null;
                     const zz2 = v => v ? num(nf0(v)) : `<td class="cell-zero">·</td>`;
+                    const tratosCell = usaConv
+                        ? `<td class="num" style="font-weight:700" title="PROVISIONAL: conversiones únicas según ${k.nombre} (formularios enviados que la plataforma atribuye a sus anuncios). El CRM solo tiene ${k.tratos} tratos con utm de este canal porque el formulario web aún no guarda el origen — al arreglarlo, esta cifra volverá a salir del CRM.">${nf0(tratosCanal)}<span style="color:var(--brand-soft)">*</span></td>`
+                        : num(nf0(tratosCanal), 'font-weight:700');
                     return `<tr>
                         <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente)</span>'}</td>
                         ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
-                        ${num(nf0(k.tratos), 'font-weight:700')}
+                        ${tratosCell}
                         ${cplC !== null ? num(eur2(cplC), 'font-weight:600') : D}
                         ${k.ventas ? num(nf0(k.ventas), 'font-weight:700;color:var(--green)') : `<td class="cell-zero">0</td>`}
                         ${asis !== null ? num(nf0(asis), 'font-weight:600;color:var(--brand-soft)') : D}
@@ -627,7 +636,9 @@
                 // Fila TOTAL (Meta + Google)
                 const tm = C.meta, tg = C.google, am = adsDe('meta'), ag = adsDe('google');
                 const invT = (am || ag) ? ((am ? Number(am.total) || 0 : 0) + (ag ? Number(ag.total) || 0 : 0)) : null;
-                const tratosT = tm.tratos + tg.tratos, ventasT = tm.ventas + tg.ventas;
+                // El TOTAL usa las mismas cifras que las filas (con el provisional de conversiones si aplica)
+                const dispTratos = (k, a) => { const c = a && a.conversions !== undefined ? Number(a.conversions) : null; return (c !== null && c > k.tratos) ? c : k.tratos; };
+                const tratosT = dispTratos(tm, am) + dispTratos(tg, ag), ventasT = tm.ventas + tg.ventas;
                 const asisT = asisOk ? (asisDe('meta') + asisDe('google')) : null;
                 const imprT = (am && am.impressions !== undefined) || (ag && ag.impressions !== undefined)
                     ? ((am ? Number(am.impressions) || 0 : 0) + (ag ? Number(ag.impressions) || 0 : 0)) : null;
@@ -675,7 +686,7 @@
                         <th title="Clics ÷ impresiones: qué % de las veces que se vio el anuncio se hizo clic.">CTR</th>
                         <th style="color:var(--green)" title="Ventas del periodo ÷ clics: qué % de los clics acabó en venta.">Clic→venta</th>
                     </tr></thead><tbody>${fila('meta')}${fila('google')}${filaTotal}</tbody></table></div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados".</div></div>`;
+                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados". <b>*</b> = cifra provisional tomada de las conversiones de la propia plataforma, porque el formulario web aún no guarda el origen del anuncio en el CRM (arreglo en curso).</div></div>`;
             }
 
             // ── CUADRO POR PAÍS — réplica del "Pipeline por país" del informe de ventas + Inversión y CPL ──
