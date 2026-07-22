@@ -18,10 +18,9 @@ async function accessToken(id, secret, refresh) {
   return j.access_token;
 }
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
-
+// Lógica reutilizable: la usa el handler de abajo Y el orquestador api/ads-spend.js.
+// Devuelve SIEMPRE un objeto ({ ok:true, ... } o { ok:false, error }), nunca lanza.
+export async function googleSpend(from, to) {
   const DEV = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
   const CID = process.env.GOOGLE_CLIENT_ID;
   const CSEC = process.env.GOOGLE_CLIENT_SECRET;
@@ -35,9 +34,8 @@ export default async function handler(req, res) {
   if (!CSEC) need.push('GOOGLE_CLIENT_SECRET');
   if (!REF) need.push('GOOGLE_ADS_REFRESH_TOKEN');
   if (!CUST) need.push('GOOGLE_ADS_CUSTOMER_ID');
-  if (need.length) { res.status(200).json({ ok: false, error: 'faltan_credenciales', need }); return; }
+  if (need.length) return { ok: false, error: 'faltan_credenciales', need };
 
-  const { from, to } = req.query;
   const today = new Date();
   const desde = from || `${today.getFullYear()}-01-01`;
   const hasta = to || today.toISOString().slice(0, 10);
@@ -67,12 +65,19 @@ export default async function handler(req, res) {
       by_campaign[k] = (by_campaign[k] || 0) + spend;
     }));
 
-    res.status(200).json({
+    return {
       ok: true, platform: 'google', currency,
       by_campaign, total: Math.round(total * 100) / 100,
       period: { from: desde, to: hasta }, ms: Date.now() - start
-    });
+    };
   } catch (e) {
-    res.status(200).json({ ok: false, platform: 'google', error: e.message });
+    return { ok: false, platform: 'google', error: e.message };
   }
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+  const { from, to } = req.query;
+  res.status(200).json(await googleSpend(from, to));
 }

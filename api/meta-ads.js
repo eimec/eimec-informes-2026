@@ -49,17 +49,15 @@ async function insights(base, act, token, timeRange, breakdowns) {
   return rows;
 }
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');   // el gasto pasado no cambia
-
+// Lógica reutilizable: la usa el handler de abajo Y el orquestador api/ads-spend.js.
+// Devuelve SIEMPRE un objeto ({ ok:true, ... } o { ok:false, error }), nunca lanza.
+export async function metaSpend(from, to) {
   const TOKEN = process.env.META_ACCESS_TOKEN;
   let ACT = process.env.META_AD_ACCOUNT_ID;
   const V = process.env.META_API_VERSION || 'v25.0';
-  if (!TOKEN || !ACT) { res.status(200).json({ ok: false, error: 'faltan_credenciales', need: ['META_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID'] }); return; }
+  if (!TOKEN || !ACT) return { ok: false, error: 'faltan_credenciales', need: ['META_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID'] };
   if (!/^act_/.test(ACT)) ACT = 'act_' + ACT;   // acepta el id con o sin prefijo act_
 
-  const { from, to } = req.query;
   const today = new Date();
   const timeRange = { since: from || `${today.getFullYear()}-01-01`, until: to || today.toISOString().slice(0, 10) };
   const base = `https://graph.facebook.com/${V}`;
@@ -87,12 +85,19 @@ export default async function handler(req, res) {
       by_country[k] = (by_country[k] || 0) + s;
     });
 
-    res.status(200).json({
+    return {
       ok: true, platform: 'meta', currency: null,
       by_country, by_campaign, total: Math.round(total * 100) / 100,
       period: { from: timeRange.since, to: timeRange.until }, ms: Date.now() - start
-    });
+    };
   } catch (e) {
-    res.status(200).json({ ok: false, platform: 'meta', error: e.message });
+    return { ok: false, platform: 'meta', error: e.message };
   }
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');   // el gasto pasado no cambia
+  const { from, to } = req.query;
+  res.status(200).json(await metaSpend(from, to));
 }

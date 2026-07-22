@@ -1,7 +1,22 @@
 {
+  "rewrites": [
+    { "source": "/paid-media", "destination": "/paid-media.html" }
+  ],
   "headers": [
     {
       "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/paid-media",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/paid-media.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, no-cache, max-age=0, must-revalidate" }
       ]
