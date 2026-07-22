@@ -65,10 +65,20 @@ export async function googleSpend(from, to, opts = {}) {
                    WHERE segments.date BETWEEN '${desde}' AND '${hasta}' AND metrics.cost_micros > 0`;
     const headers = { Authorization: 'Bearer ' + token, 'developer-token': DEV, 'Content-Type': 'application/json' };
     if (LOGIN) headers['login-customer-id'] = LOGIN;
-    const r = await fetch(`https://googleads.googleapis.com/${V}/customers/${CUST}/googleAds:searchStream`, {
+    let r = await fetch(`https://googleads.googleapis.com/${V}/customers/${CUST}/googleAds:searchStream`, {
       method: 'POST', headers, body: JSON.stringify({ query })
     });
-    const j = await r.json();
+    let j = await r.json();
+    // AUTO-CORRECCIÓN: si la cuenta es de acceso DIRECTO (no cuelga del MCC), Google devuelve
+    // USER_PERMISSION_DENIED cuando se manda login-customer-id. Reintentamos SIN ese header
+    // (verificado en esta cuenta: 5157672395 es acceso directo de info@eimec.com).
+    if (!r.ok && LOGIN && JSON.stringify(j).includes('USER_PERMISSION_DENIED')) {
+      delete headers['login-customer-id'];
+      r = await fetch(`https://googleads.googleapis.com/${V}/customers/${CUST}/googleAds:searchStream`, {
+        method: 'POST', headers, body: JSON.stringify({ query })
+      });
+      j = await r.json();
+    }
     if (!r.ok) throw new Error('ads: ' + JSON.stringify(j).slice(0, 200));
 
     const by_campaign = {};
