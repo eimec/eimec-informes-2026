@@ -6,7 +6,8 @@ export const config = { maxDuration: 30 };
 const AC_BASE = 'https://eimec.api-us1.com/api/3';
 
 async function count(key, stage) {
-  const qs = new URLSearchParams({ 'filters[stage]': stage, 'filters[status]': 0, limit: 1 }).toString();
+  // filters[group]=1 es redundante (las etapas 33/34/36/37 ya son solo de formación) pero lo dejamos EXPLÍCITO.
+  const qs = new URLSearchParams({ 'filters[stage]': stage, 'filters[status]': 0, 'filters[group]': 1, limit: 1 }).toString();
   try {
     const r = await fetch(`${AC_BASE}/deals?${qs}`, { headers: { Accept: 'application/json', 'Api-Token': key } });
     if (!r.ok) return null;
