@@ -488,8 +488,9 @@
             // ── MÉTRICAS DERIVADAS (división por 0 → sin dato) ──
             const cpl = (inversion !== null && tratosTot !== null && tratosTot > 0) ? inversion / tratosTot : null;
             const cpa = (inversion !== null && ventas !== null && ventas > 0) ? inversion / ventas : null;
+            // ROI como lo quiere dirección: ingresos ÷ inversión, en número normal (ej. 34,8)
             const roi = (inversion !== null && inversion > 0 && facturacion !== null)
-                ? (facturacion - inversion) / inversion * 100 : null;
+                ? facturacion / inversion : null;
 
             // ── AVISOS de honestidad ──
             let avisos = '';
@@ -538,9 +539,9 @@
                     facturacion !== null ? 'importe de esas ventas' : 'sin importe disponible en el CRM',
                     'Suma de los importes de todas las ventas cerradas en el periodo.') +
                 card('card--euro', 'ROI',
-                    roi !== null ? val((roi >= 0 ? '+' : '') + Math.round(roi).toLocaleString('es-ES') + ' %') : SD,
-                    roi !== null ? 'retorno sobre la inversión' : 'necesita inversión y facturación',
-                    'Retorno de la inversión: (facturación − inversión) ÷ inversión. +100 % significa que cada euro invertido devolvió dos.');
+                    roi !== null ? val(roi.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })) : SD,
+                    roi !== null ? 'ingresos ÷ inversión' : 'necesita inversión y facturación',
+                    'Ingresos dividido entre la inversión publicitaria: por cada euro invertido en anuncios, cuántos euros entraron en ventas en el periodo.');
 
             // ── GRÁFICO DIARIO: TODOS los tratos creados (barras) + coste por trato (línea, eje derecho) ──
             const hayDetalleDiario = !!(extra && extra.all_by_date);
