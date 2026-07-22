@@ -577,12 +577,17 @@
                     const ch = canalDe(lbl); if (!ch || !C[ch]) return;
                     C[ch].f1 += c.f1 || 0; C[ch].f2 += c.f2 || 0; C[ch].f3 += c.f3 || 0; C[ch].f4 += c.f4 || 0;
                 });
-                // Ventas del periodo por canal: won_deals (cierres del periodo, sin PM) × won_campaign {id → utm}
+                // Ventas del periodo por canal: won_deals (cierres del periodo, sin PM) × won_campaign {id → utm}.
+                // RESPALDO (mientras el formulario web pierda los utm): si el trato ganado NO tiene canal por utm
+                // pero la encuesta "¿Cómo has conocido EIMEC?" (won_conocio) dice google/meta, se atribuye por encuesta.
+                C.meta.ventasEncuesta = 0; C.google.ventasEncuesta = 0;
                 if (data && Array.isArray(data.won_deals) && extra.won_campaign) {
                     data.won_deals.forEach(wd => {
                         if (pmSet.has(wd.id)) return;
-                        const ch = canalDe(extra.won_campaign[wd.id]);
-                        if (ch && C[ch]) C[ch].ventas++;
+                        let ch = canalDe(extra.won_campaign[wd.id]);
+                        if (ch && C[ch]) { C[ch].ventas++; return; }
+                        const enc = canalDe((extra.won_conocio || {})[wd.id]);
+                        if (enc && C[enc]) { C[enc].ventas++; C[enc].ventasEncuesta++; }
                     });
                 }
                 // Tratos del canal = abiertos creados en el periodo (F1-F4) + cerrados del periodo (mismo criterio que el cuadro país)
@@ -622,8 +627,8 @@
                         ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
                         ${tratosCell}
                         ${cplC !== null ? num(eur2(cplC), 'font-weight:600') : D}
-                        ${usaConv
-                            ? `<td class="num" style="font-weight:700;color:${k.ventas ? 'var(--green)' : '#B9B2C0'}" title="Ventas del CRM con utm de ${k.nombre} entre el ${fmtDate(params.from)} y el ${fmtDate(params.to)}. OJO: cifra INFRACONTADA para este canal — el formulario web pierde el utm, así que hay ventas de ${k.nombre} escondidas en 'sin origen'. Se corregirá al arreglar el formulario.">${nf0(k.ventas)}<span style="color:var(--brand-soft)">*</span></td>`
+                        ${(usaConv || k.ventasEncuesta > 0)
+                            ? `<td class="num" style="font-weight:700;color:${k.ventas ? 'var(--green)' : '#B9B2C0'}" title="Ventas del periodo atribuidas a ${k.nombre} (${fmtDate(params.from)} — ${fmtDate(params.to)}): ${nf0(k.ventas - k.ventasEncuesta)} por utm + ${nf0(k.ventasEncuesta)} por la encuesta '¿Cómo has conocido EIMEC?' (respaldo mientras el formulario web pierde el utm). Aun así puede quedar alguna venta sin atribuir.">${nf0(k.ventas)}<span style="color:var(--brand-soft)">*</span></td>`
                             : (k.ventas ? num(nf0(k.ventas), 'font-weight:700;color:var(--green)') : `<td class="cell-zero">0</td>`)}
                         ${usaConv && asis !== null
                             ? `<td class="num" style="font-weight:600;color:var(--brand-soft)" title="Asistidas por ${k.nombre} según el utm del CRM — también infracontadas para este canal hasta arreglar el formulario web.">${nf0(asis)}<span style="color:var(--brand-soft)">*</span></td>`
@@ -691,7 +696,7 @@
                         <th title="Clics ÷ impresiones: qué % de las veces que se vio el anuncio se hizo clic.">CTR</th>
                         <th style="color:var(--green)" title="Ventas del periodo ÷ clics: qué % de los clics acabó en venta.">Clic→venta</th>
                     </tr></thead><tbody>${fila('meta')}${fila('google')}${filaTotal}</tbody></table></div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados". <b>*</b> = cifra provisional tomada de las conversiones de la propia plataforma, porque el formulario web aún no guarda el origen del anuncio en el CRM (arreglo en curso).</div></div>`;
+                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados". <b>*</b> = cifra provisional mientras el formulario web no guarda el origen del anuncio en el CRM (arreglo en curso): los tratos salen de las conversiones de la propia plataforma y las ventas suman la atribución por la encuesta "¿Cómo has conocido EIMEC?".</div></div>`;
             }
 
             // ── CUADRO POR PAÍS — réplica del "Pipeline por país" del informe de ventas + Inversión y CPL ──

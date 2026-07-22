@@ -195,6 +195,7 @@ export default async function handler(req, res) {
     const won_campaign = {};
     const won_value = {};  // id -> importe en CÉNTIMOS (AC guarda deal.value en céntimos)
     const won_title = {};  // id -> título del trato
+    const won_conocio = {};   // id -> "¿Cómo has conocido EIMEC?" (cf9): atribución de respaldo cuando falta el utm
     const pmWonIds = [];   // ids de ganados que son "paciente modelo" → el front los excluye
     {
       const grab = async (off) => {
@@ -207,6 +208,8 @@ export default async function handler(req, res) {
           const pmCamp = cf[x.id] && cf[x.id][M_PM_CAMPAIGN] && String(cf[x.id][M_PM_CAMPAIGN]).trim();
           const utm = normUtm(cf[x.id] && cf[x.id][M_UTM]);
           won_campaign[x.id] = utm || 'Sin dato';
+          const conocio = cf[x.id] && cf[x.id]['9'] && String(cf[x.id]['9']).trim();
+          if (conocio) won_conocio[x.id] = conocio;
           // Importe (AC lo guarda en CÉNTIMOS) y título, para el listado de ventas de administración
           won_value[x.id] = x.value ? Number(x.value) : 0;
           won_title[x.id] = x.title || '';
@@ -273,7 +276,7 @@ export default async function handler(req, res) {
     Object.keys(all_by_date).sort().forEach(k => { abd[k] = all_by_date[k]; });
 
     res.status(200).json({
-      ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
+      ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
