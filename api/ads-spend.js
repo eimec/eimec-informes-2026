@@ -27,6 +27,7 @@ function resolverCanal(nombre, api, manual, from, to) {
     const out = { total: Math.round((Number(api.total) || 0) * 100) / 100, source: 'api' };
     if (api.by_campaign) out.by_campaign = api.by_campaign;   // desglose para futuras tablas
     if (api.by_country) out.by_country = api.by_country;
+    if (api.by_day) out.by_day = api.by_day;                  // gasto por día (gráfico diario)
     if (api.currency) out.currency = api.currency;
     return out;
   }
@@ -47,7 +48,11 @@ export default async function handler(req, res) {
 
   try {
     // metaSpend/googleSpend nunca lanzan (devuelven {ok:false} en error), pero allSettled por cinturón y tirantes.
-    const [metaR, googleR] = await Promise.allSettled([metaSpend(desde, hasta), googleSpend(desde, hasta)]);
+    // byDay: pedimos también el gasto POR DÍA (para la línea de CPL diario del gráfico de Paid Media).
+    const [metaR, googleR] = await Promise.allSettled([
+      metaSpend(desde, hasta, { byDay: true }),
+      googleSpend(desde, hasta, { byDay: true })
+    ]);
     const manual = leerGastoManual();
     const meta = resolverCanal('meta',
       metaR.status === 'fulfilled' ? metaR.value : { ok: false, error: String(metaR.reason || 'error') },
@@ -59,13 +64,21 @@ export default async function handler(req, res) {
     const total = Math.round((meta.total + google.total) * 100) / 100;
     const partial = meta.source === 'none' || google.source === 'none';   // falta al menos un canal
 
-    res.status(200).json({ ok: true, total, by_channel: { meta, google }, partial, period: { from: desde, to: hasta } });
+    // Gasto POR DÍA combinado (solo de los canales con API viva; el gasto manual es mensual y no entra aquí).
+    const by_day = {};
+    [meta, google].forEach(c => {
+      if (c.by_day) Object.entries(c.by_day).forEach(([dia, v]) => {
+        by_day[dia] = Math.round(((by_day[dia] || 0) + (Number(v) || 0)) * 100) / 100;
+      });
+    });
+
+    res.status(200).json({ ok: true, total, by_channel: { meta, google }, by_day, partial, period: { from: desde, to: hasta } });
   } catch (e) {
     // Degradación total: el informe muestra "sin datos de inversión" pero NO se rompe.
     res.status(200).json({
       ok: true, total: 0,
       by_channel: { meta: { total: 0, source: 'none' }, google: { total: 0, source: 'none' } },
-      partial: true, error: e.message, period: { from: desde, to: hasta }
+      by_day: {}, partial: true, error: e.message, period: { from: desde, to: hasta }
     });
   }
 }

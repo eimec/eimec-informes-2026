@@ -5,6 +5,8 @@
 
 export const config = { maxDuration: 60 };
 
+import { normKey } from './_ads-common.js';   // clave normalizada (minúsculas, sin acentos ni símbolos)
+
 const AC_BASE = 'https://eimec.api-us1.com/api/3';
 const STAGES = { f1: 33, f2: 34, f3: 36, f4: 37 };
 const M_PAIS = '40';
@@ -31,6 +33,11 @@ function normUtm(v){
   const key = s.toLowerCase().replace(/[\s_\-]+/g, '');
   return UTM_ALIAS[key] || s;
 }
+
+// Origen PUBLICITARIO (Meta/Google) — MISMO criterio que paid-media.html (normKey + regex amplia),
+// para que el gráfico "Tratos y coste por día" cuadre con la tarjeta "Tratos generados".
+const PAID_RE = /meta|facebook|fb|instagram|google|adwords/;
+const isPaid = v => { const nk = normKey(v); return !!nk && PAID_RE.test(nk); };
 
 const ISO2 = {
   ES:'Spain', MX:'Mexico', CL:'Chile', PE:'Peru', AR:'Argentina', CO:'Colombia', VE:'Venezuela', EC:'Ecuador',
@@ -116,7 +123,7 @@ export default async function handler(req, res) {
       if (us.length < 100) break;
     }
 
-    const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {}, f2_by_date = {};
+    const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {}, f2_by_date = {}, paid_by_date = {};
     const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
@@ -132,6 +139,8 @@ export default async function handler(req, res) {
         add(by_owner, ownerName, sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
         const utm = normUtm(c[M_UTM]); add(by_campaign, utm || 'Sin dato', sk);
+        // Tratos con origen publicitario, por día de CREACIÓN (para el gráfico diario de Paid Media)
+        if (d.cdate && isPaid(utm)) { const pd = String(d.cdate).slice(0, 10); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
@@ -228,7 +237,11 @@ export default async function handler(req, res) {
           won_creados++;
           addWonc(by_owner, ownerName);
           const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); addWonc(by_curso, cu ? cu : 'Sin curso');
-          addWonc(by_campaign, normUtm(c[M_UTM]) || 'Sin dato');
+          const utmWC = normUtm(c[M_UTM]);
+          addWonc(by_campaign, utmWC || 'Sin dato');
+          // También cuentan en el gráfico diario: son tratos CREADOS en el periodo (ya ganados),
+          // igual que la tarjeta "Tratos generados" (total + wonc). Sin esto, gráfico y tarjeta no cuadran.
+          if (x.cdate && isPaid(utmWC)) { const pd = String(x.cdate).slice(0, 10); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
           const pv = c[M_PAIS];
           addWonc(by_pais, (pv && String(pv).trim()) ? normPais(pv) : 'Sin país');
         });
@@ -250,9 +263,11 @@ export default async function handler(req, res) {
     Object.keys(created_by_date).sort().forEach(k => { cbd[k] = created_by_date[k]; });
     const f2bd = {};
     Object.keys(f2_by_date).sort().forEach(k => { f2bd[k] = f2_by_date[k]; });
+    const pbd = {};
+    Object.keys(paid_by_date).sort().forEach(k => { pbd[k] = paid_by_date[k]; });
 
     res.status(200).json({
-      ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, f2_by_date: f2bd, totals: tot,
+      ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, totals: tot,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',

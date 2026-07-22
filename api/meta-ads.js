@@ -28,7 +28,8 @@ async function graph(base, path, params) {
 }
 
 // Sigue la paginación (paging.next) sumando todas las filas 'data'
-async function insights(base, act, token, timeRange, breakdowns) {
+// timeIncrement=1 → una fila por campaña y DÍA (date_start), para el gasto diario de Paid Media.
+async function insights(base, act, token, timeRange, breakdowns, timeIncrement) {
   const rows = [];
   let after = null;
   for (let guard = 0; guard < 50; guard++) {
@@ -40,6 +41,7 @@ async function insights(base, act, token, timeRange, breakdowns) {
       access_token: token
     };
     if (breakdowns) params.breakdowns = breakdowns;
+    if (timeIncrement) params.time_increment = timeIncrement;
     if (after) params.after = after;
     const j = await graph(base, `${act}/insights`, params);
     (j.data || []).forEach(x => rows.push(x));
@@ -51,7 +53,8 @@ async function insights(base, act, token, timeRange, breakdowns) {
 
 // Lógica reutilizable: la usa el handler de abajo Y el orquestador api/ads-spend.js.
 // Devuelve SIEMPRE un objeto ({ ok:true, ... } o { ok:false, error }), nunca lanza.
-export async function metaSpend(from, to) {
+// opts.byDay=true añade by_day {YYYY-MM-DD: gasto} (petición extra con time_increment=1).
+export async function metaSpend(from, to, opts = {}) {
   const TOKEN = process.env.META_ACCESS_TOKEN;
   let ACT = process.env.META_AD_ACCOUNT_ID;
   const V = process.env.META_API_VERSION || 'v25.0';
@@ -64,10 +67,11 @@ export async function metaSpend(from, to) {
   const start = Date.now();
 
   try {
-    // 1) gasto por CAMPAÑA (sin breakdown)  2) gasto por PAÍS (breakdown=country)
-    const [byCampRows, byCountryRows] = await Promise.all([
+    // 1) gasto por CAMPAÑA (sin breakdown)  2) gasto por PAÍS (breakdown=country)  3) opcional: por DÍA
+    const [byCampRows, byCountryRows, byDayRows] = await Promise.all([
       insights(base, ACT, TOKEN, timeRange, null),
-      insights(base, ACT, TOKEN, timeRange, 'country')
+      insights(base, ACT, TOKEN, timeRange, 'country'),
+      opts.byDay ? insights(base, ACT, TOKEN, timeRange, null, 1) : Promise.resolve(null)
     ]);
 
     const by_campaign = {};
@@ -84,10 +88,19 @@ export async function metaSpend(from, to) {
       const k = pais(x.country);
       by_country[k] = (by_country[k] || 0) + s;
     });
+    let by_day = null;
+    if (byDayRows) {
+      by_day = {};
+      byDayRows.forEach(x => {
+        const s = parseFloat(x.spend || 0) || 0;
+        if (x.date_start) by_day[x.date_start] = Math.round(((by_day[x.date_start] || 0) + s) * 100) / 100;
+      });
+    }
 
     return {
       ok: true, platform: 'meta', currency: null,
       by_country, by_campaign, total: Math.round(total * 100) / 100,
+      ...(by_day ? { by_day } : {}),
       period: { from: timeRange.since, to: timeRange.until }, ms: Date.now() - start
     };
   } catch (e) {

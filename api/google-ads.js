@@ -20,7 +20,8 @@ async function accessToken(id, secret, refresh) {
 
 // Lógica reutilizable: la usa el handler de abajo Y el orquestador api/ads-spend.js.
 // Devuelve SIEMPRE un objeto ({ ok:true, ... } o { ok:false, error }), nunca lanza.
-export async function googleSpend(from, to) {
+// opts.byDay=true añade by_day {YYYY-MM-DD: gasto} (segments.date en el GAQL; los totales no cambian).
+export async function googleSpend(from, to, opts = {}) {
   const DEV = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
   const CID = process.env.GOOGLE_CLIENT_ID;
   const CSEC = process.env.GOOGLE_CLIENT_SECRET;
@@ -43,7 +44,7 @@ export async function googleSpend(from, to) {
 
   try {
     const token = await accessToken(CID, CSEC, REF);
-    const query = `SELECT campaign.name, metrics.cost_micros, metrics.impressions, metrics.clicks, customer.currency_code
+    const query = `SELECT campaign.name, metrics.cost_micros, metrics.impressions, metrics.clicks, customer.currency_code${opts.byDay ? ', segments.date' : ''}
                    FROM campaign
                    WHERE segments.date BETWEEN '${desde}' AND '${hasta}' AND metrics.cost_micros > 0`;
     const headers = { Authorization: 'Bearer ' + token, 'developer-token': DEV, 'Content-Type': 'application/json' };
@@ -55,6 +56,7 @@ export async function googleSpend(from, to) {
     if (!r.ok) throw new Error('ads: ' + JSON.stringify(j).slice(0, 200));
 
     const by_campaign = {};
+    const by_day = opts.byDay ? {} : null;
     let total = 0, currency = null;
     const batches = Array.isArray(j) ? j : [j];
     batches.forEach(b => (b.results || []).forEach(row => {
@@ -63,11 +65,13 @@ export async function googleSpend(from, to) {
       currency = currency || (row.customer && row.customer.currencyCode);
       const k = (row.campaign && row.campaign.name) || 'Sin campaña';
       by_campaign[k] = (by_campaign[k] || 0) + spend;
+      if (by_day) { const dia = row.segments && row.segments.date; if (dia) by_day[dia] = Math.round(((by_day[dia] || 0) + spend) * 100) / 100; }
     }));
 
     return {
       ok: true, platform: 'google', currency,
       by_campaign, total: Math.round(total * 100) / 100,
+      ...(by_day ? { by_day } : {}),
       period: { from: desde, to: hasta }, ms: Date.now() - start
     };
   } catch (e) {

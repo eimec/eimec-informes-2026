@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Mismas variables y componentes que index.html — mismo look ejecutivo. */
         :root {
@@ -176,12 +177,17 @@
             padding: 13px 16px; margin-bottom: 18px; font-size: 13px; color: #7A5A1E; line-height: 1.55;
         }
         .aviso b { color: #5E4310; }
-        .proximamente {
-            text-align: center; padding: 52px 24px;
-            border: 1.5px dashed var(--line); border-radius: var(--radius); background: var(--card);
+        .section-title {
+            font-size: 12px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 1.2px;
+            margin-bottom: 8px; padding-left: 12px; position: relative;
         }
-        .proximamente .titulo { font-size: 15px; font-weight: 700; color: var(--brand); margin-bottom: 7px; }
-        .proximamente .detalle { font-size: 13px; color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.6; }
+        .section-title::before { content:""; position:absolute; left:0; top:1px; bottom:1px; width:4px; border-radius:3px; background: var(--brand); }
+        .section-sub { font-size: 12px; color: var(--muted); margin: 0 0 16px 12px; line-height: 1.55; max-width: 760px; }
+        .chart-container { position: relative; height: 300px; }
+        .chart-note {
+            font-size: 12px; color: var(--muted); margin-top: 14px; text-align: center;
+            background: var(--brand-tint); border-radius: 8px; padding: 10px 14px; line-height: 1.5;
+        }
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
 
         .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
@@ -260,6 +266,7 @@
         // GATE: MISMA contraseña y MISMA clave de sesión que index.html → una sola sesión para todo el informe.
         const PASSWORD = 'eimec2026';
         let currentRange = null;   // { from: Date, to: Date } — estado global del filtro
+        let charts = {};           // instancias Chart.js (se destruyen antes de re-crear)
 
         function checkPassword() {
             const input = document.getElementById('passwordInput');
@@ -460,13 +467,98 @@
                     roi !== null ? 'retorno sobre la inversión' : 'necesita inversión y facturación',
                     'Retorno de la inversión: (facturación − inversión) ÷ inversión. +100 % significa que cada euro invertido devolvió dos.');
 
+            // ── GRÁFICO DIARIO: tratos por publicidad (barras) + coste por trato (línea, eje derecho) ──
+            const hayDetalleDiario = !!(extra && extra.paid_by_date);
+            const spendDia = (ads && ads.by_day) ? ads.by_day : {};
+            const haySpendDia = Object.keys(spendDia).length > 0;
+            let chartHtml;
+            if (hayDetalleDiario) {
+                chartHtml = `<div class="section">
+                    <div class="section-title">Tratos y coste por día</div>
+                    <div class="section-sub">Tratos con origen publicitario (Meta y Google, según el origen utm registrado en el CRM), colocados en su día de creación.${haySpendDia ? ' La línea muestra lo que costó conseguir cada trato ese día (gasto del día ÷ tratos del día).' : ''}</div>
+                    <div class="chart-container"><canvas id="paidByDayChart"></canvas></div>
+                    ${haySpendDia ? '' : '<div class="chart-note">El coste por trato por día aparecerá al conectar Meta/Google Ads (en curso).</div>'}
+                </div>`;
+            } else {
+                chartHtml = `<div class="section">
+                    <div class="section-title">Tratos y coste por día</div>
+                    <div class="chart-note">No se pudo cargar el detalle diario de tratos del CRM en este momento — recarga en unos segundos.</div>
+                </div>`;
+            }
+
             document.getElementById('dashboardContent').innerHTML =
                 avisos +
                 `<div class="cards-grid">${cards}</div>` +
-                `<div class="proximamente">
-                    <div class="titulo">Próximamente: desglose por canal y campaña</div>
-                    <div class="detalle">Aquí verás cuánto invierte y cuánto devuelve cada canal (Meta, Google) y cada campaña: tratos, ventas, coste por trato y coste por venta, uno a uno.</div>
-                </div>`;
+                chartHtml;
+
+            if (hayDetalleDiario) renderPaidChart(extra.paid_by_date, spendDia, params);
+        }
+
+        // Días 'YYYY-MM-DD' del rango, inclusive (fechas locales, sin sorpresas de zona horaria).
+        function diasEntre(fromStr, toStr) {
+            const pad = n => String(n).padStart(2, '0');
+            const out = [];
+            const [fy, fm, fd] = fromStr.split('-').map(Number);
+            const [ty, tm, td] = toStr.split('-').map(Number);
+            let d = new Date(fy, fm - 1, fd);
+            const end = new Date(ty, tm - 1, td);
+            for (let guard = 0; guard < 400 && d <= end; guard++) {
+                out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+                d.setDate(d.getDate() + 1);
+            }
+            return out;
+        }
+
+        function renderPaidChart(paidByDate, spendDia, params) {
+            const el = document.getElementById('paidByDayChart');
+            if (!el || typeof Chart === 'undefined') return;
+            const dias = diasEntre(params.from, params.to);
+            const labels = dias.map(d => { const [y, m, dd] = d.split('-'); return `${dd}/${m}`; });
+            const tratos = dias.map(d => paidByDate[d] || 0);
+            const haySpendDia = Object.keys(spendDia).length > 0;
+            // CPL del día = gasto del día ÷ tratos del día. Sin tratos o sin gasto ese día → sin punto (no se inventa).
+            const cpl = dias.map(d => {
+                const t = paidByDate[d] || 0;
+                const g = Number(spendDia[d]);
+                return (t > 0 && g > 0) ? Math.round(g / t * 100) / 100 : null;
+            });
+
+            const datasets = [{
+                type: 'bar', label: 'Tratos por publicidad', data: tratos,
+                backgroundColor: '#1F2A4E', borderRadius: 4, maxBarThickness: 22, yAxisID: 'y', order: 2
+            }];
+            if (haySpendDia) {
+                datasets.push({
+                    type: 'line', label: 'Coste por trato (€)', data: cpl,
+                    borderColor: '#448497', backgroundColor: '#448497', tension: .35,
+                    pointRadius: 3, pointBackgroundColor: '#448497', borderWidth: 2.5,
+                    spanGaps: false, yAxisID: 'y1', order: 1
+                });
+            }
+
+            if (charts.paidByDay) charts.paidByDay.destroy();
+            charts.paidByDay = new Chart(el, {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: haySpendDia, labels: { font: { family: 'Montserrat', size: 12 }, color: '#667085', usePointStyle: true, boxWidth: 8, padding: 14 } },
+                        tooltip: { callbacks: { label: ctx => ctx.dataset.yAxisID === 'y1'
+                            ? ' Coste por trato: ' + eur2(ctx.parsed.y)
+                            : ' Tratos por publicidad: ' + nf0(ctx.parsed.y) } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9A93A2', maxRotation: 45, autoSkip: true, maxTicksLimit: 31 } },
+                        y: { beginAtZero: true, grid: { color: '#F0EDF1' }, ticks: { font: { family: 'Montserrat', size: 11 }, color: '#9A93A2', precision: 0 },
+                             title: { display: true, text: 'Tratos', font: { family: 'Montserrat', size: 11 }, color: '#667085' } },
+                        ...(haySpendDia ? { y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false },
+                             ticks: { font: { family: 'Montserrat', size: 11 }, color: '#448497', callback: v => Number(v).toLocaleString('es-ES') + ' €' },
+                             title: { display: true, text: 'Coste por trato', font: { family: 'Montserrat', size: 11 }, color: '#448497' } } } : {})
+                    }
+                }
+            });
         }
 
         if (sessionStorage.getItem('authenticated') === 'true') { showDashboard(); loadData(); }
