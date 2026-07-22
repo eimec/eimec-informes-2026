@@ -370,11 +370,12 @@
                     const _hoy = new Date();
                     const _y0 = `${_hoy.getFullYear()}-01-01`;
                     const _hoyStr = _hoy.toISOString().split('T')[0];
-                    const [dataRes, extraRes, ytdRes, movesRes] = await Promise.all([
+                    const [dataRes, extraRes, ytdRes, movesRes, stockRes] = await Promise.all([
                         fetch(`/api/ac-data?${query}`),
                         fetch(`/api/ac-extra?${query}`).catch(()=>null),
                         fetch(`/api/ac-data?from=${_y0}&to=${_hoyStr}`).catch(()=>null),
-                        fetch(`/data/moves-daily.json?v=${Date.now()}`).catch(()=>null)
+                        fetch(`/data/moves-daily.json?v=${Date.now()}`).catch(()=>null),
+                        fetch(`/api/ac-stock`).catch(()=>null)   // stock total del pipeline (no depende del filtro)
                     ]);
                     const data = await dataRes.json();
                     let extra = null;
@@ -396,8 +397,10 @@
                             }
                         }
                     } catch(_) {}
+                    let stock = null;
+                    try { if (stockRes) { const s = await stockRes.json(); if (s && s.ok) stock = s; } } catch(_) {}
                     if (!data.ok) throw new Error('respuesta sin ok');
-                    renderDashboard(data, extra, ytd, moves);
+                    renderDashboard(data, extra, ytd, moves, stock);
                     return;
                 } catch (error) {
                     console.error(`intento ${intento} fallido:`, error);
@@ -457,7 +460,7 @@
             });
             return out;
         }
-        function renderDashboard(data, extra, ytd, moves) {
+        function renderDashboard(data, extra, ytd, moves, stock) {
             const p = data.pipeline;
             const paisPP = mergePipeline(data.pais_pipeline);
             // FIX doble-conteo: el proxy WP cuenta en cada fase los tratos de CUALQUIER estado (incluidos los ya
@@ -496,20 +499,15 @@
             // de país/campaña/vendedor. Fallback al proxy si ac-extra no está disponible.
             const pf = _openF || { f1: p.f1, f2: p.f2, f3: p.f3, f4: p.f4 };
             const t = pf.f1 + pf.f2 + pf.f3 + pf.f4 + w;   // total oportunidades del periodo (abiertos + ganados)
-            // EMBUDO. Dos modos:
-            //  · MOVIMIENTOS (preferido, lo que pide dirección): F2-F4 = tratos que PASARON a esa fase
-            //    DENTRO del periodo, da igual cuándo se creó el lead (motor ac-moves, registro de actividad).
-            //  · COHORTE (fallback en rangos largos o si ac-moves no cubre): acumulado de los creados en el periodo.
-            const reachedF1 = pf.f1 + pf.f2 + pf.f3 + pf.f4 + w;   // entraron (creados en el periodo) + cerrados
-            const useMoves = !!(moves && moves.ok && !moves.partial && moves.moves);
-            let reachedF2, reachedF3, reachedF4;
-            if (useMoves) {
-                reachedF2 = moves.moves.f2; reachedF3 = moves.moves.f3; reachedF4 = moves.moves.f4;
-            } else {
-                reachedF2 = pf.f2 + pf.f3 + pf.f4 + w;
-                reachedF3 = pf.f3 + pf.f4 + w;
-                reachedF4 = pf.f4 + w;
-            }
+            // EMBUDO HÍBRIDO (pedido por dirección):
+            //  · F1 y F2 = CREADOS en el periodo del filtro (cohorte de los leads que entraron).
+            //  · F3 y F4 = tratos que se MOVIERON a esa fase en el periodo (motor ac-moves, registro de actividad).
+            //  · Venta = cerrados en el periodo.
+            const hasMoves = !!(moves && moves.ok && !moves.partial && moves.moves);
+            const reachedF1 = pf.f1 + pf.f2 + pf.f3 + pf.f4 + w;   // F1 = creados en el periodo (base)
+            const reachedF2 = pf.f2 + pf.f3 + pf.f4 + w;           // F2 = creados que cualificaron (cohorte)
+            const reachedF3 = hasMoves ? moves.moves.f3 : (pf.f3 + pf.f4 + w);   // F3 = movidos a F3 en el periodo
+            const reachedF4 = hasMoves ? moves.moves.f4 : (pf.f4 + w);           // F4 = movidos a F4 en el periodo
             const m1 = reachedF1 > 0 ? Math.round(reachedF2 / reachedF1 * 100) : 0;   // F1→F2
             const m2 = reachedF2 > 0 ? Math.round(w / reachedF2 * 100) : 0;           // F2→Won
             const m3 = t > 0 ? Math.round(w / t * 100) : 0;                           // win rate global
@@ -525,23 +523,15 @@
             // FUNNEL
             // Etiquetas en PASADO (acciones del periodo). En modo movimientos: "pasaron a cualificado" =
             // se movieron a esa fase en estas fechas, da igual cuándo entró el lead.
-            const stages = useMoves ? [
+            const stages = [
                 {k:'F1', label:'Entraron', val:reachedF1, color:'#8A94A6'},
-                {k:'F2', label:'Pasaron a cualificado', val:reachedF2, color:'#1F2A4E'},
+                {k:'F2', label:'Cualificaron', val:reachedF2, color:'#1F2A4E'},
                 {k:'F3', label:'Pasaron a propuesta', val:reachedF3, color:'#2E5082'},
                 {k:'F4', label:'Pasaron a facturación', val:reachedF4, color:'#448497'},
                 {k:'VENTA', label:'Compraron', val:w, color:'#009B9B'}
-            ] : [
-                {k:'F1', label:'Entraron', val:reachedF1, color:'#8A94A6'},
-                {k:'F2', label:'Cualificaron', val:reachedF2, color:'#1F2A4E'},
-                {k:'F3', label:'Recibieron propuesta', val:reachedF3, color:'#2E5082'},
-                {k:'F4', label:'Llegaron a facturación', val:reachedF4, color:'#448497'},
-                {k:'VENTA', label:'Compraron', val:w, color:'#009B9B'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
-            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:500px;text-align:right;line-height:1.5">${useMoves
-                ? `<b style="color:var(--brand)">Lo que se MOVIÓ en estas fechas</b>, entrara cuando entrara el lead:<br><b>${reachedF1}</b> entraron nuevos · <b>${reachedF2}</b> pasaron a cualificado · <b>${reachedF3}</b> a propuesta · <b>${reachedF4}</b> a facturación · <b>${w}</b> se cerraron.<br>Es la actividad del periodo — el mismo criterio que usa administración.${moves&&moves.hasta?` <span style="opacity:.75">(movimientos registrados hasta ${fmtDate(moves.hasta)})</span>`:''}`
-                : `<b style="color:var(--brand)">Cuántos CONSIGUIERON cada paso</b> (aunque hoy ya estén más adelante).<br>Se lee de corrido: entraron ${reachedF1} → cualificaron ${reachedF2} → compraron ${w}.<br><b>VENTA</b> = cerradas en estas fechas (el lead pudo entrar antes).`}</div></div><div class="funnel-steps">`;
+            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:520px;text-align:right;line-height:1.55"><b style="color:var(--brand)">F1 y F2 = leads CREADOS en el periodo</b> (entraron y cualificaron).<br><b style="color:var(--brand)">F3 y F4 = tratos que se MOVIERON a esa fase</b> en el periodo (entrara cuando entrara el lead).<br><b>Venta</b> = cerradas en estas fechas.${hasMoves&&moves.hasta?` <span style="opacity:.7">· movimientos hasta ${fmtDate(moves.hasta)}</span>`:''}</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
                 const prev = i>0 ? stages[i-1].val : null;
@@ -551,7 +541,7 @@
                     <div class="fbar" style="background:linear-gradient(160deg,${s.color},${s.color}dd);height:${h}px">
                         <div class="fnum">${s.val}</div><div class="flabel">${s.k} · ${s.label}</div>
                     </div>
-                    <div class="fconv" title="${s.val} de ${t} · el ${share}% del total del periodo">${i===0 ? '<b>100%</b> · punto de partida' : '▸ <b>'+conv+'%</b> '+(useMoves?'respecto al paso anterior':'avanzó desde '+stages[i-1].k)}</div>
+                    <div class="fconv" title="${s.val} de ${t} · el ${share}% del total del periodo">${i===0 ? '<b>100%</b> · punto de partida' : '▸ <b>'+conv+'%</b> respecto al paso anterior'}</div>
                 </div>`;
             });
             funnel += `</div></div>`;
@@ -574,7 +564,7 @@
                 + `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:3px;background:#C0392B;display:inline-block"></span><b>${p.trash}</b> Descartados · van aparte, fuera del embudo</span>`;
             let html = funnel + `
                 <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 2px 2px">¿Y dónde están HOY esos ${t}?</div>
-                <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Los ${t} leads que <b>entraron en el periodo</b>, repartidos según su situación actual — cada lead ocupa <b>un solo trozo</b> de la barra.${useMoves?'':`<br>Ejemplo: arriba dice que <b>cualificaron ${reachedF2}</b>; hoy en F2 quedan <b>${pf.f2}</b> — los otros <b>${reachedF2-pf.f2}</b> ya avanzaron de fase o compraron.`}</div>
+                <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Los ${t} leads que <b>entraron en el periodo</b>, repartidos según su situación actual — cada lead ocupa <b>un solo trozo</b> de la barra.</div>
                 <div style="display:flex;height:36px;border-radius:9px;overflow:hidden;margin:0 0 8px;box-shadow:0 1px 4px rgba(31,42,78,.12)">${barra}</div>
                 <div style="margin:0 0 18px 2px;line-height:2">${leyenda}</div>
                 <div class="cards-grid metrics">
@@ -585,6 +575,22 @@
                     <div class="card"><div class="card-label">Ventas sin curso</div><div class="card-value">${sc}</div><div class="card-foot">Cierres a los que falta etiquetar el curso</div></div>
                 </div>
             `;
+
+            // STOCK TOTAL del pipeline (acumulado histórico, sin filtro de fechas) — cuadro "similar" bajo el embudo.
+            if (stock && stock.ok && stock.stock) {
+                const st = stock.stock;
+                const nf0 = n => (n||0).toLocaleString('es-ES');
+                const seg = [
+                    {k:'F1', label:'Solicitud', v:st.f1, c:'#8A94A6'},
+                    {k:'F2', label:'Cualificado', v:st.f2, c:'#1F2A4E'},
+                    {k:'F3', label:'Propuesta', v:st.f3, c:'#2E5082'},
+                    {k:'F4', label:'Facturación', v:st.f4, c:'#448497'}
+                ];
+                html += `<div class="funnel" style="margin:6px 0 4px"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">📦 Stock total del pipeline · ${nf0(stock.total)} tratos abiertos</div><div style="font-size:11.5px;color:var(--muted);max-width:520px;text-align:right;line-height:1.55">Todo lo <b>acumulado en el CRM ahora mismo</b> en cada fase — histórico completo, <b>SIN filtro de fechas</b>. Es el "saldo" vivo del pipeline (no la actividad del periodo de arriba).</div></div>
+                    <div class="cards-grid" style="padding:2px 4px 6px">
+                    ${seg.map(x=>`<div class="card" style="border-top:3px solid ${x.c}"><div class="card-label">${x.k} · ${x.label}</div><div class="card-value">${nf0(x.v)}</div><div class="card-foot">abiertos en esta fase</div></div>`).join('')}
+                    </div></div>`;
+            }
 
             // 6 insights + recomendaciones (país/curso desde won del proxy; vendedor desde ac-extra)
             // "Lo más destacado del periodo" — OCULTO de momento. Para volver a mostrarlo: SHOW_INSIGHTS = true.
