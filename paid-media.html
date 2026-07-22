@@ -213,6 +213,10 @@
         .cell-total { font-weight: 800; color: var(--brand-dark); text-align: center; }
         .table td.num { text-align: center; }
         .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:var(--brand-tint); color:var(--brand); font-size:10px; font-weight:700; margin-right:8px; }
+        /* Variante compacta: para tablas con muchas columnas (Rendimiento por canal), que entren sin scroll */
+        .table--compact { font-size: 12px; }
+        .table--compact th { padding: 9px 7px; font-size: 10px; letter-spacing: .3px; }
+        .table--compact td { padding: 9px 7px; }
 
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
 
@@ -602,7 +606,7 @@
                     const clk2venta = (clk !== null && clk > 0) ? (k.ventas / clk * 100) : null;
                     const zz2 = v => v ? num(nf0(v)) : `<td class="cell-zero">·</td>`;
                     return `<tr>
-                        <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente de conectar)</span>'}</td>
+                        <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente)</span>'}</td>
                         ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
                         ${num(nf0(k.tratos), 'font-weight:700')}
                         ${cplC !== null ? num(eur2(cplC), 'font-weight:600') : D}
@@ -650,24 +654,24 @@
                 </tr>`;
 
                 const notaAsis = asisOk ? '' : ' · Ventas asistidas: no disponibles en este momento';
-                canalHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por canal</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Tratos y ventas por origen utm del CRM · Inversión sin campañas de paciente modelo${notaAsis}</span></div><div class="table-wrap"><table class="table">
+                canalHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por canal</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Tratos y ventas por origen utm del CRM · Inversión sin campañas de paciente modelo${notaAsis}</span></div><div class="table-wrap"><table class="table table--compact">
                     <thead><tr>
                         <th>Canal</th>
                         <th style="color:var(--brand)" title="Gasto publicitario del canal en el periodo. Meta: sin campañas de paciente modelo (solo formación).">Inversión</th>
                         <th style="color:var(--brand)" title="Leads del periodo que entraron por este canal (según el origen utm que graba el CRM): los que siguen abiertos más los ya ganados.">Tratos</th>
                         <th title="Inversión ÷ tratos del canal: lo que costó de media cada lead de este canal.">CPL</th>
-                        <th style="color:var(--green)" title="Ventas cerradas en estas fechas cuyo trato entró por este canal.">Ventas del periodo</th>
-                        <th style="color:var(--brand-soft)" title="Ventas cerradas en estas fechas en las que este canal PARTICIPÓ sin ser el origen directo: la persona tiene otro trato que entró por este canal.">Ventas asistidas</th>
-                        <th title="Inversión ÷ ventas del periodo del canal: coste de cada venta atribuida directamente.">CPA final</th>
-                        <th title="Inversión ÷ (ventas del periodo + asistidas): coste por venta contando también las que el canal ayudó a cerrar.">CPA asistido</th>
+                        <th style="color:var(--green)" title="Ventas cerradas en estas fechas cuyo trato entró por este canal.">Ventas</th>
+                        <th style="color:var(--brand-soft)" title="Ventas cerradas en estas fechas en las que este canal PARTICIPÓ sin ser el origen directo: la persona tiene otro trato que entró por este canal.">Asistidas</th>
+                        <th title="Inversión ÷ ventas del periodo del canal: coste de cada venta atribuida directamente.">CPA</th>
+                        <th title="Inversión ÷ (ventas del periodo + asistidas): coste por venta contando también las que el canal ayudó a cerrar.">CPA asist.</th>
                         <th style="color:var(--slate)" title="Fase 1 · Solicitud">F1</th>
                         <th style="color:var(--brand)" title="Fase 2 · Cualificado">F2</th>
                         <th style="color:var(--brand-soft)" title="Fase 3 · Propuesta">F3</th>
                         <th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th>
-                        <th title="Veces que se mostraron los anuncios del canal en el periodo.">Impresiones</th>
+                        <th title="Veces que se mostraron los anuncios del canal en el periodo.">Impres.</th>
                         <th title="Clics en los anuncios del canal en el periodo.">Clics</th>
                         <th title="Clics ÷ impresiones: qué % de las veces que se vio el anuncio se hizo clic.">CTR</th>
-                        <th style="color:var(--green)" title="Ventas del periodo ÷ clics: qué % de los clics acabó en venta.">% clic→venta</th>
+                        <th style="color:var(--green)" title="Ventas del periodo ÷ clics: qué % de los clics acabó en venta.">Clic→venta</th>
                     </tr></thead><tbody>${fila('meta')}${fila('google')}${filaTotal}</tbody></table></div>
                     <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados".</div></div>`;
             }
