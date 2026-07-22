@@ -194,6 +194,26 @@
         }
         .proximamente .titulo { font-size: 14px; font-weight: 700; color: var(--brand); margin-bottom: 6px; }
         .proximamente .detalle { font-size: 12.5px; color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.6; }
+
+        /* ---------- TABLAS (idéntico a index.html) ---------- */
+        .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+        .table { width: 100%; font-size: 13px; border-collapse: collapse; min-width: 480px; }
+        .table th {
+            text-align: left; padding: 11px 14px; background: var(--brand-tint); color: var(--brand-dark);
+            font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; position: sticky; top: 0;
+        }
+        .table td { padding: 11px 14px; border-top: 1px solid var(--line); white-space: nowrap; color: var(--ink); }
+        .table tbody tr:nth-child(even) { background: #FBFAFB; }
+        .table tbody tr:hover { background: var(--brand-tint); }
+        .table td:first-child, .table th:first-child { position: sticky; left: 0; background: inherit; }
+        .table thead th:first-child { background: var(--brand-tint); }
+        .cell-strong { font-weight: 700; }
+        .cell-win { color: var(--green); font-weight: 700; }
+        .cell-zero { color: #D6D1DA; text-align: center; }
+        .cell-total { font-weight: 800; color: var(--brand-dark); text-align: center; }
+        .table td.num { text-align: center; }
+        .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:var(--brand-tint); color:var(--brand); font-size:10px; font-weight:700; margin-right:8px; }
+
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
 
         .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
@@ -332,6 +352,38 @@
         // El desglose por canal (Meta/Google) llegará en la sección de abajo, usando
         // paid_by_date y by_campaign de ac-extra + by_channel de ads-spend.
 
+        // ⚠️ IMPORTANTE: esta función debe ser IDÉNTICA a la normPais() de index.html y api/ac-extra.js.
+        // Si difieren, el mismo país se parte en dos filas y el CPL por país sale falso.
+        const ISO2 = {
+            ES:'Spain', MX:'Mexico', CL:'Chile', PE:'Peru', AR:'Argentina', CO:'Colombia', VE:'Venezuela', EC:'Ecuador',
+            BO:'Bolivia', UY:'Uruguay', PY:'Paraguay', CR:'Costa Rica', GT:'Guatemala', SV:'El Salvador', HN:'Honduras',
+            NI:'Nicaragua', PA:'Panama', DO:'Dominican Republic', CU:'Cuba', PR:'Puerto Rico', US:'United States',
+            CA:'Canada', BR:'Brazil', IT:'Italy', FR:'France', DE:'Germany', GB:'United Kingdom', UK:'United Kingdom',
+            PT:'Portugal', IE:'Ireland', CH:'Switzerland', NL:'Netherlands', BE:'Belgium', PL:'Poland', RO:'Romania',
+            GR:'Greece', UA:'Ukraine', RU:'Russia', TR:'Turkey', IL:'Israel', AE:'United Arab Emirates', SA:'Saudi Arabia',
+            QA:'Qatar', MA:'Morocco', EG:'Egypt', NG:'Nigeria', ZA:'South Africa', IN:'India', PK:'Pakistan',
+            PH:'Philippines', LY:'Libya', MT:'Malta', AU:'Australia', SE:'Sweden', NO:'Norway', DK:'Denmark', AT:'Austria'
+        };
+        const ALIAS_PAIS = {
+            'US':'United States','USA':'United States','U.S.':'United States','U.S':'United States','EEUU':'United States',
+            'EE.UU.':'United States','EE.UU':'United States','ESTADOS UNIDOS':'United States','UNITED STATES OF AMERICA':'United States',
+            'UK':'United Kingdom','U.K.':'United Kingdom','REINO UNIDO':'United Kingdom','ENGLAND':'United Kingdom','GREAT BRITAIN':'United Kingdom',
+            'ESPAÑA':'Spain','ESPANA':'Spain',
+            'MÉXICO':'Mexico','MEJICO':'Mexico','MÉJICO':'Mexico',
+            'TÜRKIYE':'Turkey','TURKIYE':'Turkey'
+        };
+        function normPais(p){
+            if (p === null || p === undefined) return 'Sin país';
+            const k = String(p).trim();
+            if (!k) return 'Sin país';
+            if (/^sin\s+pa[ií]s$/i.test(k)) return 'Sin país';
+            if (/^pa[ií]s$/i.test(k) || /^\d+$/.test(k)) return 'Sin país';   // basura del CRM: "País", "68"
+            const up = k.toUpperCase();
+            if (k.length === 2 && ISO2[up]) return ISO2[up];
+            if (ALIAS_PAIS[up]) return ALIAS_PAIS[up];
+            return k;
+        }
+
         // ---------- FORMATOS es-ES ----------
         const nf0 = n => (Number(n) || 0).toLocaleString('es-ES');
         const eur0 = n => Math.round(Number(n) || 0).toLocaleString('es-ES') + ' €';
@@ -381,9 +433,9 @@
 
             // ── VENTAS cerradas en el periodo (TODAS, vengan del canal que vengan) + su FACTURACIÓN ──
             // won_deals (cierres del periodo por fecha de ganado) × won_value (céntimos). Fuera "paciente modelo".
+            const pmSet = new Set((extra && extra.pm_won_ids) || []);   // "paciente modelo" no es venta
             let ventas = null, facturacion = null;
             if (data && Array.isArray(data.won_deals) && extra) {
-                const pmSet = new Set(extra.pm_won_ids || []);   // "paciente modelo" no es venta
                 const hayImportes = !!extra.won_value;
                 ventas = 0; let fact = 0;
                 data.won_deals.forEach(wd => {
@@ -470,10 +522,89 @@
                 </div>`;
             }
 
+            // ── CUADRO POR PAÍS — réplica del "Pipeline por país" del informe de ventas + Inversión y CPL ──
+            let paisHtml = '';
+            if (extra && extra.by_pais && Object.keys(extra.by_pais).length > 0) {
+                const adsPais = (ads && ads.by_pais) || {};
+                // Copia de trabajo (NO mutamos extra: las tarjetas y el gráfico usan totals sin tocar).
+                // Cruzamos las ventas CERRADAS del periodo por país, igual que hace el informe de ventas.
+                const byPaisTabla = {};
+                Object.entries(extra.by_pais).forEach(([p, c]) => {
+                    byPaisTabla[p] = { f1: c.f1 || 0, f2: c.f2 || 0, f3: c.f3 || 0, f4: c.f4 || 0, won: 0, wonc: c.wonc || 0 };
+                });
+                if (data && Array.isArray(data.won_deals)) {
+                    data.won_deals.forEach(wd => {
+                        if (pmSet.has(wd.id)) return;
+                        const k = normPais(wd.pais);
+                        if (!byPaisTabla[k]) byPaisTabla[k] = { f1: 0, f2: 0, f3: 0, f4: 0, won: 0, wonc: 0 };
+                        byPaisTabla[k].won++;
+                    });
+                }
+                let rowsP = Object.entries(byPaisTabla).map(([pais, c]) => ({
+                    pais, c, total: c.f1 + c.f2 + c.f3 + c.f4 + c.won
+                }));
+                rowsP.sort((a, b) => b.total - a.total || (b.c.won || 0) - (a.c.won || 0));
+                const totalPaises = rowsP.length;
+                const topP = rowsP.slice(0, 15);
+                const maxTotalP = Math.max(...topP.map(r => r.total), 1);
+                // Tooltip honesto de la columna Inversión según el estado de las conexiones
+                const canalNota = (srcMeta !== 'none' && srcGoogle === 'none') ? ' Solo incluye Meta hasta conectar Google Ads.'
+                                : (srcGoogle !== 'none' && srcMeta === 'none') ? ' Solo incluye Google hasta conectar Meta.' : '';
+                const noteP = `Top ${Math.min(15, totalPaises)} de ${totalPaises} países · <b>Ventas cerradas</b> = se ganaron en estas fechas (el lead pudo entrar antes) · <b>Ventas de leads nuevos</b> = de los leads que entraron en estas fechas, los que ya se ganaron`;
+                paisHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país, con inversión</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${noteP}</span></div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas. El lead pudo entrar antes de este periodo.">Ventas cerradas</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas, los que ya se han ganado.">Ventas de leads nuevos</th><th style="color:var(--green)" title="Ventas cerradas ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Qué % de los tratos de este país llegó a cualificar (Fase 2)">% Cualifica</th><th style="color:var(--brand)" title="Gasto en anuncios (Meta + Google) atribuido a este país en el periodo.${canalNota}">Inversión</th><th style="color:var(--brand)" title="Inversión del país ÷ tratos del país: lo que costó de media cada trato ahí.">CPL</th></tr></thead><tbody>`;
+                const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
+                const invCell = v => !hayGasto ? `<td class="cell-zero">—</td>` : (v > 0 ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(v)}</td>` : `<td class="cell-zero">·</td>`);
+                const cplCell = (v, t) => (hayGasto && v > 0 && t > 0) ? `<td class="num" style="font-weight:600">${eur2(v / t)}</td>` : `<td class="cell-zero">—</td>`;
+                topP.forEach(({ pais, c, total }, i) => {
+                    const ventaPct = total > 0 ? Math.round((c.won || 0) / total * 100) : 0;
+                    const f2Pct = total > 0 ? Math.round((c.f2 || 0) / total * 100) : 0;
+                    const heat = (0.08 + 0.42 * (total / maxTotalP)).toFixed(2);
+                    const inv = Number(adsPais[pais]) || 0;
+                    paisHtml += `<tr>
+                        <td><span class="rank-badge">${i + 1}</span></td>
+                        <td class="cell-strong">${pais}</td>
+                        <td class="cell-total" style="background:rgba(31,42,78,${heat})">${total}</td>
+                        ${zz(c.f1)}${zz(c.f2)}${zz(c.f3)}${zz(c.f4)}
+                        <td class="num ${c.won ? 'cell-win' : 'cell-zero'}">${c.won || 0}</td>
+                        <td class="num" style="font-weight:700;color:${c.wonc ? 'var(--brand-soft)' : '#D6D1DA'}">${c.wonc || 0}</td>
+                        <td class="num" style="font-weight:700;color:${ventaPct > 0 ? 'var(--green)' : '#D6D1DA'}">${ventaPct}%</td>
+                        <td class="num" style="font-weight:600;color:var(--brand)">${f2Pct}%</td>
+                        ${invCell(inv)}${cplCell(inv, total)}</tr>`;
+                });
+                // Fila TOTAL (todos los países). La Inversión total es la de la tarjeta (mismo endpoint y rango):
+                // incluye también gasto sin país asignado o de países fuera del top 15, para que siempre cuadre.
+                const T = { f1: 0, f2: 0, f3: 0, f4: 0, won: 0, wonc: 0, total: 0 };
+                rowsP.forEach(r => { T.f1 += r.c.f1; T.f2 += r.c.f2; T.f3 += r.c.f3; T.f4 += r.c.f4; T.won += r.c.won; T.wonc += r.c.wonc; T.total += r.total; });
+                const gVenta = T.total > 0 ? Math.round(T.won / T.total * 100) : 0;
+                const gF2Pct = T.total > 0 ? Math.round(T.f2 / T.total * 100) : 0;
+                const invTotCell = (hayGasto && inversion !== null)
+                    ? `<td class="num" style="font-weight:800;color:var(--brand-dark)" title="Incluye el gasto sin país asignado y el de países fuera del top 15">${eur0(inversion)}</td>`
+                    : `<td class="cell-zero">—</td>`;
+                const cplTotCell = (hayGasto && inversion !== null && T.total > 0)
+                    ? `<td class="num" style="font-weight:800">${eur2(inversion / T.total)}</td>`
+                    : `<td class="cell-zero">—</td>`;
+                paisHtml += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                    <td></td>
+                    <td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${totalPaises} países</td>
+                    <td class="num" style="font-weight:800;color:var(--brand-dark)">${T.total}</td>
+                    <td class="num" style="font-weight:800">${T.f1}</td>
+                    <td class="num" style="font-weight:800">${T.f2}</td>
+                    <td class="num" style="font-weight:800">${T.f3}</td>
+                    <td class="num" style="font-weight:800">${T.f4}</td>
+                    <td class="num cell-win" style="font-weight:800">${T.won}</td>
+                    <td class="num" style="font-weight:800;color:var(--brand-soft)">${T.wonc}</td>
+                    <td class="num" style="font-weight:800;color:var(--green)">${gVenta}%</td>
+                    <td class="num" style="font-weight:800;color:var(--brand)">${gF2Pct}%</td>
+                    ${invTotCell}${cplTotCell}</tr>`;
+                paisHtml += `</tbody></table></div></div>`;
+            }
+
             document.getElementById('dashboardContent').innerHTML =
                 avisos +
                 `<div class="cards-grid">${cards}</div>` +
                 chartHtml +
+                paisHtml +
                 `<div class="proximamente">
                     <div class="titulo">Próximamente: desglose por canal y campaña</div>
                     <div class="detalle">Aquí verás cuánto invierte y cuánto devuelve cada canal (Meta, Google) y cada campaña: tratos, ventas, coste por trato y coste por venta, uno a uno.</div>
