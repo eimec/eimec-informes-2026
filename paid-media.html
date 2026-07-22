@@ -188,6 +188,12 @@
             font-size: 12px; color: var(--muted); margin-top: 14px; text-align: center;
             background: var(--brand-tint); border-radius: 8px; padding: 10px 14px; line-height: 1.5;
         }
+        .proximamente {
+            text-align: center; padding: 34px 24px; margin-bottom: 22px;
+            border: 1.5px dashed var(--line); border-radius: var(--radius); background: var(--card);
+        }
+        .proximamente .titulo { font-size: 14px; font-weight: 700; color: var(--brand); margin-bottom: 6px; }
+        .proximamente .detalle { font-size: 12.5px; color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.6; }
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
 
         .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
@@ -322,23 +328,9 @@
             return `${d}/${m}/${y}`;
         }
 
-        // ---------- CLASIFICACIÓN DE ORIGEN (mismo criterio que api/_ads-common.js) ----------
-        // normKey: minúsculas, sin acentos, solo alfanumérico → "Meta - ads" y "meta_ads" colapsan igual.
-        function normKey(s) {
-            return String(s || '')
-                .toLowerCase()
-                .normalize('NFD').replace(/[̀-ͯ]/g, '')
-                .replace(/[^a-z0-9]+/g, '');
-        }
-        const RE_META = /meta|facebook|fb|instagram/;
-        const RE_GOOGLE = /google|adwords/;
-        function canalDe(origen) {
-            const nk = normKey(origen);
-            if (!nk) return null;
-            if (RE_META.test(nk)) return 'meta';
-            if (RE_GOOGLE.test(nk)) return 'google';
-            return null;
-        }
+        // NOTA: las tarjetas y el gráfico son GLOBALES (todo el pipeline del periodo, cualquier origen).
+        // El desglose por canal (Meta/Google) llegará en la sección de abajo, usando
+        // paid_by_date y by_campaign de ac-extra + by_channel de ads-spend.
 
         // ---------- FORMATOS es-ES ----------
         const nf0 = n => (Number(n) || 0).toLocaleString('es-ES');
@@ -382,28 +374,20 @@
             const hayGasto = !!(ads && (srcMeta !== 'none' || srcGoogle !== 'none'));
             const inversion = hayGasto ? (Number(ads.total) || 0) : null;
 
-            // ── TRATOS GENERADOS por publicidad (CRM, campo "origen" del trato) ──
-            // Cohorte de tratos CREADOS en el periodo: abiertos (total) + los ya ganados de esa cohorte (wonc).
-            let tratosAds = null, tratosTot = null;
-            if (extra && extra.by_campaign) {
-                tratosAds = 0;
-                Object.entries(extra.by_campaign).forEach(([k, b]) => {
-                    if (canalDe(k)) tratosAds += (b.total || 0) + (b.wonc || 0);
-                });
-                if (extra.totals) tratosTot = (extra.totals.total || 0) + (extra.totals.wonc || 0);
-            }
+            // ── TRATOS DEL PERIODO (CRM, TODO el pipeline de formación, cualquier origen) ──
+            // Cohorte de tratos CREADOS en el periodo: abiertos (totals.total) + los ya ganados de esa cohorte (wonc).
+            let tratosTot = null;
+            if (extra && extra.totals) tratosTot = (extra.totals.total || 0) + (extra.totals.wonc || 0);
 
-            // ── VENTAS cerradas en el periodo con origen publicitario + su FACTURACIÓN ──
-            // won_deals (cierres del periodo por fecha de ganado) × won_campaign (origen) × won_value (céntimos).
+            // ── VENTAS cerradas en el periodo (TODAS, vengan del canal que vengan) + su FACTURACIÓN ──
+            // won_deals (cierres del periodo por fecha de ganado) × won_value (céntimos). Fuera "paciente modelo".
             let ventas = null, facturacion = null;
-            if (data && Array.isArray(data.won_deals) && extra && extra.won_campaign) {
-                const pmSet = new Set(extra.pm_won_ids || []);   // fuera "paciente modelo" (no es venta)
+            if (data && Array.isArray(data.won_deals) && extra) {
+                const pmSet = new Set(extra.pm_won_ids || []);   // "paciente modelo" no es venta
                 const hayImportes = !!extra.won_value;
                 ventas = 0; let fact = 0;
                 data.won_deals.forEach(wd => {
                     if (pmSet.has(wd.id)) return;
-                    const origen = extra.won_campaign[wd.id];
-                    if (!origen || !canalDe(origen)) return;
                     ventas++;
                     if (hayImportes) fact += (Number(extra.won_value[wd.id]) || 0) / 100;   // AC guarda céntimos
                 });
@@ -411,7 +395,7 @@
             }
 
             // ── MÉTRICAS DERIVADAS (división por 0 → sin dato) ──
-            const cpl = (inversion !== null && tratosAds !== null && tratosAds > 0) ? inversion / tratosAds : null;
+            const cpl = (inversion !== null && tratosTot !== null && tratosTot > 0) ? inversion / tratosTot : null;
             const cpa = (inversion !== null && ventas !== null && ventas > 0) ? inversion / ventas : null;
             const roi = (inversion !== null && inversion > 0 && facturacion !== null)
                 ? (facturacion - inversion) / inversion * 100 : null;
@@ -443,39 +427,39 @@
                     inversion !== null ? 'Meta + Google en el periodo' : 'sin datos de inversión todavía',
                     'Todo lo invertido en publicidad (Meta y Google) en las fechas del filtro.') +
                 card('card--crm', 'Tratos generados',
-                    tratosAds !== null ? val(nf0(tratosAds)) : SD,
-                    tratosAds !== null && tratosTot !== null ? `de ${nf0(tratosTot)} tratos totales del periodo` : 'no se pudo leer el CRM',
-                    'Personas interesadas que llegaron por publicidad (Meta o Google) en estas fechas, según el origen registrado en el CRM.') +
+                    tratosTot !== null ? val(nf0(tratosTot)) : SD,
+                    tratosTot !== null ? 'leads que entraron en estas fechas' : 'no se pudo leer el CRM',
+                    'Todos los tratos (leads) que entraron en el CRM en estas fechas, vengan de publicidad, orgánico o cualquier otro origen.') +
                 card('card--euro', 'Coste por trato (CPL)',
                     cpl !== null ? val(eur2(cpl)) : SD,
-                    cpl !== null ? 'inversión ÷ tratos generados' : 'necesita inversión y tratos',
-                    'Lo que cuesta conseguir cada persona interesada: inversión dividida entre los tratos generados.') +
+                    cpl !== null ? 'inversión ÷ tratos del periodo' : 'necesita inversión y tratos',
+                    'Lo que cuesta de media conseguir cada persona interesada: inversión dividida entre todos los tratos del periodo.') +
                 card('card--crm', 'Ventas',
                     ventas !== null ? val(nf0(ventas)) : SD,
-                    ventas !== null ? 'cerradas en el periodo, origen publicidad' : 'no se pudo leer el CRM',
-                    'Ventas cerradas en estas fechas cuyo origen registrado fue la publicidad (Meta o Google).') +
+                    ventas !== null ? 'cerradas en estas fechas' : 'no se pudo leer el CRM',
+                    'Todas las ventas cerradas en estas fechas, vengan del canal que vengan.') +
                 card('card--euro', 'Coste por venta (CPA)',
                     cpa !== null ? val(eur2(cpa)) : SD,
-                    cpa !== null ? 'inversión ÷ ventas' : 'necesita inversión y ventas',
-                    'Lo que cuesta conseguir cada venta: inversión dividida entre las ventas con origen publicitario.') +
+                    cpa !== null ? 'inversión ÷ ventas del periodo' : 'necesita inversión y ventas',
+                    'Lo que cuesta de media conseguir cada venta: inversión dividida entre todas las ventas del periodo.') +
                 card('card--euro', 'Facturación',
                     facturacion !== null ? val(eur0(facturacion)) : SD,
                     facturacion !== null ? 'importe de esas ventas' : 'sin importe disponible en el CRM',
-                    'Suma de los importes de las ventas cerradas en el periodo con origen publicitario.') +
+                    'Suma de los importes de todas las ventas cerradas en el periodo.') +
                 card('card--euro', 'ROI',
                     roi !== null ? val((roi >= 0 ? '+' : '') + Math.round(roi).toLocaleString('es-ES') + ' %') : SD,
                     roi !== null ? 'retorno sobre la inversión' : 'necesita inversión y facturación',
                     'Retorno de la inversión: (facturación − inversión) ÷ inversión. +100 % significa que cada euro invertido devolvió dos.');
 
-            // ── GRÁFICO DIARIO: tratos por publicidad (barras) + coste por trato (línea, eje derecho) ──
-            const hayDetalleDiario = !!(extra && extra.paid_by_date);
+            // ── GRÁFICO DIARIO: TODOS los tratos creados (barras) + coste por trato (línea, eje derecho) ──
+            const hayDetalleDiario = !!(extra && extra.all_by_date);
             const spendDia = (ads && ads.by_day) ? ads.by_day : {};
             const haySpendDia = Object.keys(spendDia).length > 0;
             let chartHtml;
             if (hayDetalleDiario) {
                 chartHtml = `<div class="section">
                     <div class="section-title">Tratos y coste por día</div>
-                    <div class="section-sub">Tratos con origen publicitario (Meta y Google, según el origen utm registrado en el CRM), colocados en su día de creación.${haySpendDia ? ' La línea muestra lo que costó conseguir cada trato ese día (gasto del día ÷ tratos del día).' : ''}</div>
+                    <div class="section-sub">Todos los tratos que entraron en el CRM (todo el pipeline del periodo, cualquier origen), colocados en su día de creación.${haySpendDia ? ' La línea muestra lo que costó de media cada trato ese día (gasto publicitario del día ÷ tratos del día).' : ''}</div>
                     <div class="chart-container"><canvas id="paidByDayChart"></canvas></div>
                     ${haySpendDia ? '' : '<div class="chart-note">El coste por trato por día aparecerá al conectar Meta/Google Ads (en curso).</div>'}
                 </div>`;
@@ -489,9 +473,13 @@
             document.getElementById('dashboardContent').innerHTML =
                 avisos +
                 `<div class="cards-grid">${cards}</div>` +
-                chartHtml;
+                chartHtml +
+                `<div class="proximamente">
+                    <div class="titulo">Próximamente: desglose por canal y campaña</div>
+                    <div class="detalle">Aquí verás cuánto invierte y cuánto devuelve cada canal (Meta, Google) y cada campaña: tratos, ventas, coste por trato y coste por venta, uno a uno.</div>
+                </div>`;
 
-            if (hayDetalleDiario) renderPaidChart(extra.paid_by_date, spendDia, params);
+            if (hayDetalleDiario) renderPaidChart(extra.all_by_date, spendDia, params);
         }
 
         // Días 'YYYY-MM-DD' del rango, inclusive (fechas locales, sin sorpresas de zona horaria).
@@ -509,22 +497,22 @@
             return out;
         }
 
-        function renderPaidChart(paidByDate, spendDia, params) {
+        function renderPaidChart(tratosByDate, spendDia, params) {
             const el = document.getElementById('paidByDayChart');
             if (!el || typeof Chart === 'undefined') return;
             const dias = diasEntre(params.from, params.to);
             const labels = dias.map(d => { const [y, m, dd] = d.split('-'); return `${dd}/${m}`; });
-            const tratos = dias.map(d => paidByDate[d] || 0);
+            const tratos = dias.map(d => tratosByDate[d] || 0);
             const haySpendDia = Object.keys(spendDia).length > 0;
             // CPL del día = gasto del día ÷ tratos del día. Sin tratos o sin gasto ese día → sin punto (no se inventa).
             const cpl = dias.map(d => {
-                const t = paidByDate[d] || 0;
+                const t = tratosByDate[d] || 0;
                 const g = Number(spendDia[d]);
                 return (t > 0 && g > 0) ? Math.round(g / t * 100) / 100 : null;
             });
 
             const datasets = [{
-                type: 'bar', label: 'Tratos por publicidad', data: tratos,
+                type: 'bar', label: 'Tratos creados', data: tratos,
                 backgroundColor: '#1F2A4E', borderRadius: 4, maxBarThickness: 22, yAxisID: 'y', order: 2
             }];
             if (haySpendDia) {
@@ -547,7 +535,7 @@
                         legend: { display: haySpendDia, labels: { font: { family: 'Montserrat', size: 12 }, color: '#667085', usePointStyle: true, boxWidth: 8, padding: 14 } },
                         tooltip: { callbacks: { label: ctx => ctx.dataset.yAxisID === 'y1'
                             ? ' Coste por trato: ' + eur2(ctx.parsed.y)
-                            : ' Tratos por publicidad: ' + nf0(ctx.parsed.y) } }
+                            : ' Tratos creados: ' + nf0(ctx.parsed.y) } }
                     },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9A93A2', maxRotation: 45, autoSkip: true, maxTicksLimit: 31 } },
