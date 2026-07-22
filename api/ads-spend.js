@@ -29,6 +29,10 @@ function resolverCanal(nombre, api, manual, from, to) {
     if (api.by_country) out.by_country = api.by_country;
     if (api.by_day) out.by_day = api.by_day;                  // gasto por día (gráfico diario)
     if (api.currency) out.currency = api.currency;
+    if (api.impressions !== undefined) out.impressions = Number(api.impressions) || 0;   // para el cuadro por canal
+    if (api.clicks !== undefined) out.clicks = Number(api.clicks) || 0;
+    if (api.sin_pm) out.sin_pm = true;                        // Meta: sin campañas de paciente modelo
+    if (api.parcial) out.parcial = true;                      // respuesta incompleta del canal → no cachear
     return out;
   }
   const m = manual && manual[nombre];
@@ -39,7 +43,9 @@ function resolverCanal(nombre, api, manual, from, to) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');   // el gasto pasado no cambia
+  // ⚠️ La cabecera de caché se decide AL FINAL según el resultado. Cachear aquí arriba provocó un bug:
+  // una respuesta degradada (fallo transitorio de Meta con total 0) quedó cacheada 1h en el CDN y el
+  // informe mostró "sin datos de inversión" aunque el gasto real existía.
 
   const { from, to } = req.query || {};
   const hoy = new Date();
@@ -87,9 +93,16 @@ export default async function handler(req, res) {
     const restoPais = Math.round((total - sumPais) * 100) / 100;
     if (restoPais > 0.01) by_pais['Sin desglose por país'] = Math.round(((by_pais['Sin desglose por país'] || 0) + restoPais) * 100) / 100;
 
+    // CACHÉ SEGÚN RESULTADO: solo se cachea una respuesta COMPLETA y SANA. Cachear una degradada
+    // (canal caído, total 0 con source api, parcial...) dejaba el informe "sin inversión" 1 hora.
+    const canalDegradado = c => c.source === 'none' || !!c.motivo || !!c.parcial || (c.source === 'api' && !(c.total > 0));
+    const sana = !partial && !canalDegradado(meta) && !canalDegradado(google);
+    res.setHeader('Cache-Control', sana ? 's-maxage=3600, stale-while-revalidate=7200' : 'no-store');
+
     res.status(200).json({ ok: true, total, by_channel: { meta, google }, by_day, by_pais, partial, period: { from: desde, to: hasta } });
   } catch (e) {
-    // Degradación total: el informe muestra "sin datos de inversión" pero NO se rompe.
+    // Degradación total: el informe muestra "sin datos de inversión" pero NO se rompe. Y NUNCA se cachea.
+    res.setHeader('Cache-Control', 'no-store');
     res.status(200).json({
       ok: true, total: 0,
       by_channel: { meta: { total: 0, source: 'none' }, google: { total: 0, source: 'none' } },

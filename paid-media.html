@@ -349,8 +349,25 @@
         }
 
         // NOTA: las tarjetas y el gráfico son GLOBALES (todo el pipeline del periodo, cualquier origen).
-        // El desglose por canal (Meta/Google) llegará en la sección de abajo, usando
-        // paid_by_date y by_campaign de ac-extra + by_channel de ads-spend.
+        // El cuadro por canal (Meta/Google) de abajo sí clasifica por origen utm.
+
+        // ---------- CLASIFICACIÓN DE CANAL (mismo criterio que api/_ads-common.js y ac-asistidas) ----------
+        // normKey: minúsculas, sin acentos, solo alfanumérico → "Meta - ads" y "meta_ads" colapsan igual.
+        function normKey(s) {
+            return String(s || '')
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^a-z0-9]+/g, '');
+        }
+        const RE_META = /meta|facebook|fb|instagram/;
+        const RE_GOOGLE = /google|adwords/;
+        function canalDe(origen) {
+            const nk = normKey(origen);
+            if (!nk) return null;
+            if (RE_META.test(nk)) return 'meta';
+            if (RE_GOOGLE.test(nk)) return 'google';
+            return null;
+        }
 
         // ⚠️ IMPORTANTE: esta función debe ser IDÉNTICA a la normPais() de index.html y api/ac-extra.js.
         // Si difieren, el mismo país se parte en dos filas y el CPL por país sale falso.
@@ -412,10 +429,26 @@
             try { if (extraRes) { const j = await extraRes.json(); if (j && j.ok) extra = j; } } catch(_) {}
             try { if (dataRes) { const j = await dataRes.json(); if (j && j.ok) data = j; } } catch(_) {}
 
-            render(ads, extra, data, params);
+            // Ventas ASISTIDAS por canal: necesita los ids de las ventas del periodo (won_deals),
+            // por eso se pide DESPUÉS y no en paralelo. Si falla → null y el cuadro muestra "—".
+            let asistidas = null;
+            try {
+                if (data && Array.isArray(data.won_deals)) {
+                    const pmIds = new Set((extra && extra.pm_won_ids) || []);
+                    const ids = data.won_deals.filter(wd => !pmIds.has(wd.id)).map(wd => wd.id).join(',');
+                    if (!ids) {
+                        asistidas = { ok: true, asistidas: { meta: 0, google: 0 } };   // sin ventas → 0 asistidas real
+                    } else {
+                        const ar = await fetch(`/api/ac-asistidas?${query}&ids=${ids}`).catch(() => null);
+                        if (ar) { const aj = await ar.json(); if (aj && aj.ok) asistidas = aj; }
+                    }
+                }
+            } catch(_) {}
+
+            render(ads, extra, data, params, asistidas);
         }
 
-        function render(ads, extra, data, params) {
+        function render(ads, extra, data, params, asistidas) {
             document.getElementById('metaLine').innerHTML =
                 `Periodo analizado: <strong>${fmtDate(params.from)} — ${fmtDate(params.to)}</strong>`;
 
@@ -476,8 +509,8 @@
             const cards =
                 card('card--euro', 'Inversión total',
                     inversion !== null ? val(eur0(inversion)) : SD,
-                    inversion !== null ? 'Meta + Google en el periodo' : 'sin datos de inversión todavía',
-                    'Todo lo invertido en publicidad (Meta y Google) en las fechas del filtro.') +
+                    inversion !== null ? 'Meta + Google · sin paciente modelo' : 'sin datos de inversión todavía',
+                    'Todo lo invertido en publicidad (Meta y Google) en las fechas del filtro. Sin campañas de paciente modelo: solo inversión de formación.') +
                 card('card--crm', 'Tratos generados',
                     tratosTot !== null ? val(nf0(tratosTot)) : SD,
                     tratosTot !== null ? 'leads que entraron en estas fechas' : 'no se pudo leer el CRM',
@@ -522,6 +555,123 @@
                 </div>`;
             }
 
+            // ── CUADRO POR CANAL: Meta vs Google ──
+            // Tratos y fases: by_campaign de ac-extra (abiertos creados en el periodo, por utm_source).
+            // Ventas del periodo: won_campaign (cerradas en estas fechas, por utm_source). PM ya excluido en ac-extra.
+            // Asistidas: /api/ac-asistidas (el contacto de la venta tiene OTRO trato entrado por ese canal).
+            // Inversión/impresiones/clics: ads-spend por canal (Meta sin campañas de paciente modelo).
+            let canalHtml = '';
+            if (extra && extra.by_campaign) {
+                const C = {
+                    meta:   { nombre: 'Meta Ads',   f1: 0, f2: 0, f3: 0, f4: 0, tratos: 0, ventas: 0 },
+                    google: { nombre: 'Google Ads', f1: 0, f2: 0, f3: 0, f4: 0, tratos: 0, ventas: 0 }
+                };
+                Object.entries(extra.by_campaign).forEach(([lbl, c]) => {
+                    const ch = canalDe(lbl); if (!ch || !C[ch]) return;
+                    C[ch].f1 += c.f1 || 0; C[ch].f2 += c.f2 || 0; C[ch].f3 += c.f3 || 0; C[ch].f4 += c.f4 || 0;
+                });
+                // Ventas del periodo por canal: won_deals (cierres del periodo, sin PM) × won_campaign {id → utm}
+                if (data && Array.isArray(data.won_deals) && extra.won_campaign) {
+                    data.won_deals.forEach(wd => {
+                        if (pmSet.has(wd.id)) return;
+                        const ch = canalDe(extra.won_campaign[wd.id]);
+                        if (ch && C[ch]) C[ch].ventas++;
+                    });
+                }
+                // Tratos del canal = abiertos creados en el periodo (F1-F4) + cerrados del periodo (mismo criterio que el cuadro país)
+                ['meta', 'google'].forEach(ch => { C[ch].tratos = C[ch].f1 + C[ch].f2 + C[ch].f3 + C[ch].f4 + C[ch].ventas; });
+
+                const asisOk = !!(asistidas && asistidas.ok && asistidas.asistidas);
+                const asisDe = ch => asisOk ? (Number(asistidas.asistidas[ch]) || 0) : null;
+                const adsDe = ch => (bc && bc[ch] && bc[ch].source === 'api') ? bc[ch] : null;
+
+                const D = '<td class="cell-zero">—</td>';
+                const num = (v, extraStyle) => `<td class="num"${extraStyle ? ` style="${extraStyle}"` : ''}>${v}</td>`;
+                const pct1 = v => (Math.round(v * 10) / 10).toLocaleString('es-ES') + ' %';
+
+                const fila = ch => {
+                    const k = C[ch], a = adsDe(ch), asis = asisDe(ch);
+                    const inv = a ? (Number(a.total) || 0) : null;
+                    const impr = a && a.impressions !== undefined ? Number(a.impressions) : null;
+                    const clk = a && a.clicks !== undefined ? Number(a.clicks) : null;
+                    const cplC = (inv !== null && k.tratos > 0) ? inv / k.tratos : null;
+                    const cpaC = (inv !== null && k.ventas > 0) ? inv / k.ventas : null;
+                    const denomAsis = (asis !== null) ? (k.ventas + asis) : null;
+                    const cpaAsis = (inv !== null && denomAsis !== null && denomAsis > 0) ? inv / denomAsis : null;
+                    const ctr = (impr !== null && impr > 0 && clk !== null) ? (clk / impr * 100) : null;
+                    const clk2venta = (clk !== null && clk > 0) ? (k.ventas / clk * 100) : null;
+                    const zz2 = v => v ? num(nf0(v)) : `<td class="cell-zero">·</td>`;
+                    return `<tr>
+                        <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente de conectar)</span>'}</td>
+                        ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
+                        ${num(nf0(k.tratos), 'font-weight:700')}
+                        ${cplC !== null ? num(eur2(cplC), 'font-weight:600') : D}
+                        ${k.ventas ? num(nf0(k.ventas), 'font-weight:700;color:var(--green)') : `<td class="cell-zero">0</td>`}
+                        ${asis !== null ? num(nf0(asis), 'font-weight:600;color:var(--brand-soft)') : D}
+                        ${cpaC !== null ? num(eur2(cpaC), 'font-weight:600') : D}
+                        ${cpaAsis !== null ? num(eur2(cpaAsis)) : D}
+                        ${zz2(k.f1)}${zz2(k.f2)}${zz2(k.f3)}${zz2(k.f4)}
+                        ${impr !== null ? num(nf0(impr)) : D}
+                        ${clk !== null ? num(nf0(clk)) : D}
+                        ${ctr !== null ? num(pct1(ctr)) : D}
+                        ${clk2venta !== null ? num(pct1(clk2venta), 'color:var(--green);font-weight:600') : D}
+                    </tr>`;
+                };
+
+                // Fila TOTAL (Meta + Google)
+                const tm = C.meta, tg = C.google, am = adsDe('meta'), ag = adsDe('google');
+                const invT = (am || ag) ? ((am ? Number(am.total) || 0 : 0) + (ag ? Number(ag.total) || 0 : 0)) : null;
+                const tratosT = tm.tratos + tg.tratos, ventasT = tm.ventas + tg.ventas;
+                const asisT = asisOk ? (asisDe('meta') + asisDe('google')) : null;
+                const imprT = (am && am.impressions !== undefined) || (ag && ag.impressions !== undefined)
+                    ? ((am ? Number(am.impressions) || 0 : 0) + (ag ? Number(ag.impressions) || 0 : 0)) : null;
+                const clkT = (am && am.clicks !== undefined) || (ag && ag.clicks !== undefined)
+                    ? ((am ? Number(am.clicks) || 0 : 0) + (ag ? Number(ag.clicks) || 0 : 0)) : null;
+                const cplT = (invT !== null && tratosT > 0) ? invT / tratosT : null;
+                const cpaT = (invT !== null && ventasT > 0) ? invT / ventasT : null;
+                const cpaAsisT = (invT !== null && asisT !== null && (ventasT + asisT) > 0) ? invT / (ventasT + asisT) : null;
+                const ctrT = (imprT !== null && imprT > 0 && clkT !== null) ? clkT / imprT * 100 : null;
+                const c2vT = (clkT !== null && clkT > 0) ? ventasT / clkT * 100 : null;
+                const numB = (v, color) => `<td class="num" style="font-weight:800${color ? `;color:${color}` : ''}">${v}</td>`;
+                const filaTotal = `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                    <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
+                    ${invT !== null ? numB(eur0(invT), 'var(--brand-dark)') : D}
+                    ${numB(nf0(tratosT))}
+                    ${cplT !== null ? numB(eur2(cplT)) : D}
+                    ${numB(nf0(ventasT), 'var(--green)')}
+                    ${asisT !== null ? numB(nf0(asisT), 'var(--brand-soft)') : D}
+                    ${cpaT !== null ? numB(eur2(cpaT)) : D}
+                    ${cpaAsisT !== null ? numB(eur2(cpaAsisT)) : D}
+                    ${numB(nf0(tm.f1 + tg.f1))}${numB(nf0(tm.f2 + tg.f2))}${numB(nf0(tm.f3 + tg.f3))}${numB(nf0(tm.f4 + tg.f4))}
+                    ${imprT !== null ? numB(nf0(imprT)) : D}
+                    ${clkT !== null ? numB(nf0(clkT)) : D}
+                    ${ctrT !== null ? numB(pct1(ctrT)) : D}
+                    ${c2vT !== null ? numB(pct1(c2vT), 'var(--green)') : D}
+                </tr>`;
+
+                const notaAsis = asisOk ? '' : ' · Ventas asistidas: no disponibles en este momento';
+                canalHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por canal</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Tratos y ventas por origen utm del CRM · Inversión sin campañas de paciente modelo${notaAsis}</span></div><div class="table-wrap"><table class="table">
+                    <thead><tr>
+                        <th>Canal</th>
+                        <th style="color:var(--brand)" title="Gasto publicitario del canal en el periodo. Meta: sin campañas de paciente modelo (solo formación).">Inversión</th>
+                        <th style="color:var(--brand)" title="Leads del periodo que entraron por este canal (según el origen utm que graba el CRM): los que siguen abiertos más los ya ganados.">Tratos</th>
+                        <th title="Inversión ÷ tratos del canal: lo que costó de media cada lead de este canal.">CPL</th>
+                        <th style="color:var(--green)" title="Ventas cerradas en estas fechas cuyo trato entró por este canal.">Ventas del periodo</th>
+                        <th style="color:var(--brand-soft)" title="Ventas cerradas en estas fechas en las que este canal PARTICIPÓ sin ser el origen directo: la persona tiene otro trato que entró por este canal.">Ventas asistidas</th>
+                        <th title="Inversión ÷ ventas del periodo del canal: coste de cada venta atribuida directamente.">CPA final</th>
+                        <th title="Inversión ÷ (ventas del periodo + asistidas): coste por venta contando también las que el canal ayudó a cerrar.">CPA asistido</th>
+                        <th style="color:var(--slate)" title="Fase 1 · Solicitud">F1</th>
+                        <th style="color:var(--brand)" title="Fase 2 · Cualificado">F2</th>
+                        <th style="color:var(--brand-soft)" title="Fase 3 · Propuesta">F3</th>
+                        <th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th>
+                        <th title="Veces que se mostraron los anuncios del canal en el periodo.">Impresiones</th>
+                        <th title="Clics en los anuncios del canal en el periodo.">Clics</th>
+                        <th title="Clics ÷ impresiones: qué % de las veces que se vio el anuncio se hizo clic.">CTR</th>
+                        <th style="color:var(--green)" title="Ventas del periodo ÷ clics: qué % de los clics acabó en venta.">% clic→venta</th>
+                    </tr></thead><tbody>${fila('meta')}${fila('google')}${filaTotal}</tbody></table></div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados".</div></div>`;
+            }
+
             // ── CUADRO POR PAÍS — réplica del "Pipeline por país" del informe de ventas + Inversión y CPL ──
             let paisHtml = '';
             if (extra && extra.by_pais && Object.keys(extra.by_pais).length > 0) {
@@ -552,7 +702,7 @@
                                 : (srcGoogle !== 'none' && srcMeta === 'none') ? ' Solo incluye Google hasta conectar Meta.' : '';
                 const noteP = `Top ${Math.min(15, totalPaises)} de ${totalPaises} países · <b>Ventas cerradas</b> = se ganaron en estas fechas (el lead pudo entrar antes) · <b>Ventas de leads nuevos</b> = de los leads que entraron en estas fechas, los que ya se ganaron`;
                 paisHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país, con inversión</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${noteP}</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas. El lead pudo entrar antes de este periodo.">Ventas cerradas</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas, los que ya se han ganado.">Ventas de leads nuevos</th><th style="color:var(--green)" title="Ventas cerradas ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Qué % de los tratos de este país llegó a cualificar (Fase 2)">% Cualifica</th><th style="color:var(--brand)" title="Gasto en anuncios (Meta + Google) atribuido a este país en el periodo.${canalNota}">Inversión</th><th style="color:var(--brand)" title="Inversión del país ÷ tratos del país: lo que costó de media cada trato ahí.">CPL</th></tr></thead><tbody>`;
+                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas. El lead pudo entrar antes de este periodo.">Ventas cerradas</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas, los que ya se han ganado.">Ventas de leads nuevos</th><th style="color:var(--green)" title="Ventas cerradas ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Qué % de los tratos de este país llegó a cualificar (Fase 2)">% Cualifica</th><th style="color:var(--brand)" title="Gasto en anuncios (Meta + Google) atribuido a este país en el periodo. Sin campañas de paciente modelo.${canalNota}">Inversión</th><th style="color:var(--brand)" title="Inversión del país ÷ tratos del país: lo que costó de media cada trato ahí.">CPL</th></tr></thead><tbody>`;
                 const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
                 const invCell = v => !hayGasto ? `<td class="cell-zero">—</td>` : (v > 0 ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(v)}</td>` : `<td class="cell-zero">·</td>`);
                 const cplCell = (v, t) => (hayGasto && v > 0 && t > 0) ? `<td class="num" style="font-weight:600">${eur2(v / t)}</td>` : `<td class="cell-zero">—</td>`;
@@ -572,17 +722,21 @@
                         <td class="num" style="font-weight:600;color:var(--brand)">${f2Pct}%</td>
                         ${invCell(inv)}${cplCell(inv, total)}</tr>`;
                 });
-                // Fila TOTAL (todos los países). La Inversión total es la de la tarjeta (mismo endpoint y rango):
-                // incluye también gasto sin país asignado o de países fuera del top 15, para que siempre cuadre.
+                // Fila TOTAL (todos los países). La Inversión total = SUMA de by_pais (incluye "Otros países"
+                // y "Sin desglose por país", también el gasto de países fuera del top 15): así SIEMPRE cuadra
+                // con las filas y con la tarjeta. Antes usaba ads.total y una respuesta degradada mostraba 0 €.
                 const T = { f1: 0, f2: 0, f3: 0, f4: 0, won: 0, wonc: 0, total: 0 };
                 rowsP.forEach(r => { T.f1 += r.c.f1; T.f2 += r.c.f2; T.f3 += r.c.f3; T.f4 += r.c.f4; T.won += r.c.won; T.wonc += r.c.wonc; T.total += r.total; });
                 const gVenta = T.total > 0 ? Math.round(T.won / T.total * 100) : 0;
                 const gF2Pct = T.total > 0 ? Math.round(T.f2 / T.total * 100) : 0;
-                const invTotCell = (hayGasto && inversion !== null)
-                    ? `<td class="num" style="font-weight:800;color:var(--brand-dark)" title="Incluye el gasto sin país asignado y el de países fuera del top 15">${eur0(inversion)}</td>`
+                let sumAdsPais = 0;
+                Object.values(adsPais).forEach(v => { sumAdsPais += Number(v) || 0; });
+                const invTotal = sumAdsPais > 0.01 ? Math.round(sumAdsPais * 100) / 100 : (inversion || 0);
+                const invTotCell = (hayGasto && invTotal > 0)
+                    ? `<td class="num" style="font-weight:800;color:var(--brand-dark)" title="Suma de todos los países, incluido el gasto sin país asignado y el de países fuera del top 15">${eur0(invTotal)}</td>`
                     : `<td class="cell-zero">—</td>`;
-                const cplTotCell = (hayGasto && inversion !== null && T.total > 0)
-                    ? `<td class="num" style="font-weight:800">${eur2(inversion / T.total)}</td>`
+                const cplTotCell = (hayGasto && invTotal > 0 && T.total > 0)
+                    ? `<td class="num" style="font-weight:800">${eur2(invTotal / T.total)}</td>`
                     : `<td class="cell-zero">—</td>`;
                 paisHtml += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                     <td></td>
@@ -604,10 +758,11 @@
                 avisos +
                 `<div class="cards-grid">${cards}</div>` +
                 chartHtml +
+                canalHtml +
                 paisHtml +
                 `<div class="proximamente">
-                    <div class="titulo">Próximamente: desglose por canal y campaña</div>
-                    <div class="detalle">Aquí verás cuánto invierte y cuánto devuelve cada canal (Meta, Google) y cada campaña: tratos, ventas, coste por trato y coste por venta, uno a uno.</div>
+                    <div class="titulo">Próximamente: desglose por campaña</div>
+                    <div class="detalle">Aquí verás cuánto invierte y cuánto devuelve cada campaña, una a una: tratos, ventas, coste por trato y coste por venta.</div>
                 </div>`;
 
             if (hayDetalleDiario) renderPaidChart(extra.all_by_date, spendDia, params);

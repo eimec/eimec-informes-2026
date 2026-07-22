@@ -73,11 +73,13 @@ export async function googleSpend(from, to, opts = {}) {
 
     const by_campaign = {};
     const by_day = opts.byDay ? {} : null;
-    let total = 0, currency = null;
+    let total = 0, currency = null, impressions = 0, clicks = 0;
     const batches = Array.isArray(j) ? j : [j];
     batches.forEach(b => (b.results || []).forEach(row => {
       const spend = Number(row.metrics && row.metrics.costMicros || 0) / 1e6;
       total += spend;
+      impressions += Number(row.metrics && row.metrics.impressions || 0);
+      clicks += Number(row.metrics && row.metrics.clicks || 0);
       currency = currency || (row.customer && row.customer.currencyCode);
       const k = (row.campaign && row.campaign.name) || 'Sin campaña';
       by_campaign[k] = (by_campaign[k] || 0) + spend;
@@ -117,6 +119,7 @@ export async function googleSpend(from, to, opts = {}) {
     return {
       ok: true, platform: 'google', currency,
       by_campaign, total: Math.round(total * 100) / 100,
+      impressions, clicks,
       ...(by_day ? { by_day } : {}),
       ...(by_country ? { by_country } : {}),
       period: { from: desde, to: hasta }, ms: Date.now() - start
@@ -128,7 +131,11 @@ export async function googleSpend(from, to, opts = {}) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
   const { from, to } = req.query;
-  res.status(200).json(await googleSpend(from, to));
+  const out = await googleSpend(from, to);
+  // Caché SEGÚN resultado: los errores ({ok:false}) no se cachean nunca (antes se cacheaban 1h).
+  res.setHeader('Cache-Control', (out && out.ok)
+    ? 's-maxage=3600, stale-while-revalidate=7200'
+    : 'no-store');
+  res.status(200).json(out);
 }

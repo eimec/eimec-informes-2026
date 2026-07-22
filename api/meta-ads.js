@@ -19,6 +19,12 @@ const ISO2 = {
 };
 const pais = c => ISO2[(c || '').toUpperCase()] || c || 'Sin país';
 
+// "Paciente modelo" = captación de modelos para prácticas, NO es inversión de FORMACIÓN.
+// MISMO regex que api/ac-extra.js: sus campañas se EXCLUYEN de total, by_campaign, by_country y by_day,
+// para que el CPL del informe sea puro de formación y cuadre con el pipeline (que ya excluye PM).
+const PM_RE = /pacientes?[\s_\-]*modelo/i;
+const sinPM = rows => (rows || []).filter(x => !PM_RE.test(x.campaign_name || ''));
+
 async function graph(base, path, params) {
   const qs = new URLSearchParams(params).toString();
   const r = await fetch(`${base}/${path}?${qs}`, { headers: { Accept: 'application/json' } });
@@ -68,26 +74,50 @@ export async function metaSpend(from, to, opts = {}) {
 
   try {
     // 1) gasto por CAMPAÑA (sin breakdown)  2) gasto por PAÍS (breakdown=country)  3) opcional: por DÍA
-    const [byCampRows, byCountryRows, byDayRows] = await Promise.all([
+    // Todas las peticiones son level=campaign, así que cada fila trae campaign_name → se filtra PM en todas.
+    const [byCampRowsAll, byCountryRowsAll, byDayRowsAll] = await Promise.all([
       insights(base, ACT, TOKEN, timeRange, null),
       insights(base, ACT, TOKEN, timeRange, 'country'),
       opts.byDay ? insights(base, ACT, TOKEN, timeRange, null, 1) : Promise.resolve(null)
     ]);
+    const byCampRows = sinPM(byCampRowsAll);
+    const byCountryRows = sinPM(byCountryRowsAll);
+    const byDayRows = byDayRowsAll ? sinPM(byDayRowsAll) : null;
 
     const by_campaign = {};
-    let total = 0;
-    byCampRows.forEach(x => {
+    let total = 0, impressions = 0, clicks = 0;
+    const sumaCampanas = rows => rows.forEach(x => {
       const s = parseFloat(x.spend || 0) || 0;
       total += s;
+      impressions += parseInt(x.impressions || 0, 10) || 0;
+      clicks += parseInt(x.clicks || 0, 10) || 0;
       const k = x.campaign_name || x.campaign_id || 'Sin campaña';
       by_campaign[k] = (by_campaign[k] || 0) + s;
     });
+    sumaCampanas(byCampRows);
     const by_country = {};
     byCountryRows.forEach(x => {
       const s = parseFloat(x.spend || 0) || 0;
       const k = pais(x.country);
       by_country[k] = (by_country[k] || 0) + s;
     });
+
+    // RESILIENCIA: a veces la Graph API devuelve transitoriamente 0 filas en la petición de campañas
+    // aunque el desglose por país SÍ trae gasto (incoherencia = fallo transitorio). Reintentamos UNA vez
+    // la de campañas; si sigue vacía, usamos la suma por país como total (con marca 'parcial') para
+    // NUNCA devolver un total 0 falso que el informe muestre como "sin inversión".
+    let parcial = false;
+    let sumCountry = 0;
+    Object.values(by_country).forEach(v => { sumCountry += v; });
+    if (byCampRows.length === 0 && sumCountry > 0.01) {
+      const retryRows = sinPM(await insights(base, ACT, TOKEN, timeRange, null));
+      if (retryRows.length > 0) {
+        sumaCampanas(retryRows);
+      } else {
+        total = sumCountry;
+        parcial = true;   // total tomado del desglose por país; sin detalle por campaña esta vez
+      }
+    }
     let by_day = null;
     if (byDayRows) {
       by_day = {};
@@ -100,6 +130,9 @@ export async function metaSpend(from, to, opts = {}) {
     return {
       ok: true, platform: 'meta', currency: null,
       by_country, by_campaign, total: Math.round(total * 100) / 100,
+      impressions, clicks,
+      sin_pm: true,   // las campañas de "paciente modelo" están EXCLUIDAS de todas las cifras
+      ...(parcial ? { parcial: true, nota: 'total tomado del desglose por pais; sin detalle por campana esta vez' } : {}),
       ...(by_day ? { by_day } : {}),
       period: { from: timeRange.since, to: timeRange.until }, ms: Date.now() - start
     };
@@ -110,7 +143,12 @@ export async function metaSpend(from, to, opts = {}) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');   // el gasto pasado no cambia
   const { from, to } = req.query;
-  res.status(200).json(await metaSpend(from, to));
+  const out = await metaSpend(from, to);
+  // La cabecera de caché se decide SEGÚN el resultado: cachear un error 1h dejaba el informe
+  // "sin inversión" una hora entera aunque la API ya funcionara. Solo se cachean éxitos completos.
+  res.setHeader('Cache-Control', (out && out.ok && !out.parcial)
+    ? 's-maxage=3600, stale-while-revalidate=7200'   // el gasto pasado no cambia
+    : 'no-store');
+  res.status(200).json(out);
 }

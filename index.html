@@ -607,7 +607,7 @@
                     {k:'F3', label:'Propuesta', v:st.f3, c:'#2E5082'},
                     {k:'F4', label:'Facturación', v:st.f4, c:'#448497'}
                 ];
-                html += `<div class="funnel" style="margin:6px 0 4px"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">📦 Stock total del pipeline · ${nf0(stock.total)} tratos abiertos</div><div style="font-size:11.5px;color:var(--muted);max-width:520px;text-align:right;line-height:1.55">Todo lo <b>acumulado en el CRM ahora mismo</b> en cada fase — histórico completo, <b>SIN filtro de fechas</b>. Es el "saldo" vivo del pipeline (no la actividad del periodo de arriba).</div></div>
+                html += `<div class="funnel" style="margin:6px 0 4px"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">📦 Stock total del pipeline · ${nf0(stock.total)} tratos abiertos</div><div style="font-size:11.5px;color:#7A5A1E;max-width:540px;text-align:left;line-height:1.55;background:#FFF6E9;border:1px solid #F0D9A8;border-radius:10px;padding:10px 14px">Todo lo <b>acumulado en el CRM ahora mismo</b> en cada fase — histórico completo, <b>SIN filtro de fechas</b>. Es el "saldo" vivo del pipeline (no la actividad del periodo de arriba).</div></div>
                     <div class="cards-grid" style="padding:2px 4px 6px">
                     ${seg.map(x=>`<div class="card" style="border-top:3px solid ${x.c}"><div class="card-label">${x.k} · ${x.label}</div><div class="card-value">${nf0(x.v)}</div><div class="card-foot">abiertos en esta fase</div></div>`).join('')}
                     </div></div>`;
