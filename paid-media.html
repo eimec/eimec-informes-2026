@@ -615,7 +615,7 @@
                     const clk2venta = (clk !== null && clk > 0) ? (k.ventas / clk * 100) : null;
                     const zz2 = v => v ? num(nf0(v)) : `<td class="cell-zero">·</td>`;
                     const tratosCell = usaConv
-                        ? `<td class="num" style="font-weight:700" title="PROVISIONAL: conversiones únicas según ${k.nombre} (formularios enviados que la plataforma atribuye a sus anuncios). El CRM solo tiene ${k.tratos} tratos con utm de este canal porque el formulario web aún no guarda el origen — al arreglarlo, esta cifra volverá a salir del CRM.">${nf0(tratosCanal)}<span style="color:var(--brand-soft)">*</span></td>`
+                        ? `<td class="num" style="font-weight:700" title="PROVISIONAL: conversiones únicas según ${k.nombre} entre el ${fmtDate(params.from)} y el ${fmtDate(params.to)} (formularios enviados que la plataforma atribuye a sus anuncios en las fechas del filtro). El CRM solo tiene ${k.tratos} tratos con utm de este canal porque el formulario web aún no guarda el origen — al arreglarlo, esta cifra volverá a salir del CRM.">${nf0(tratosCanal)}<span style="color:var(--brand-soft)">*</span></td>`
                         : num(nf0(tratosCanal), 'font-weight:700');
                     return `<tr>
                         <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente)</span>'}</td>
