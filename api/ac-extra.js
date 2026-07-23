@@ -131,6 +131,7 @@ export default async function handler(req, res) {
     }
 
     const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {}, f2_by_date = {}, paid_by_date = {}, all_by_date = {};
+    const by_campana_fases = {};   // utm_campaign (cf11) -> {f1..f4}: fases comerciales por CAMPAÑA (cuadro de Paid Media)
     const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
@@ -146,6 +147,7 @@ export default async function handler(req, res) {
         add(by_owner, ownerName, sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
         const utm = normUtm(c[M_UTM]); add(by_campaign, utm || 'Sin dato', sk);
+        if (pmCamp) add(by_campana_fases, pmCamp.slice(0, 80), sk);   // fases F1-F4 por utm_campaign
         // Tratos con origen publicitario, por día de CREACIÓN (para el gráfico diario de Paid Media)
         if (d.cdate && isPaid(utm)) { const pd = String(d.cdate).slice(0, 10); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
         const pv = c[M_PAIS];
@@ -320,7 +322,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
-      creados_total, creados_by_date, creados_por_utm, creados_por_campana, won_campana,
+      creados_total, creados_by_date, creados_por_utm, creados_por_campana, won_campana, by_campana_fases,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
