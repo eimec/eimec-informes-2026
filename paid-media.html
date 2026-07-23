@@ -466,9 +466,12 @@
             const inversion = hayGasto ? (Number(ads.total) || 0) : null;
 
             // ── TRATOS DEL PERIODO (CRM, TODO el pipeline de formación, cualquier origen) ──
-            // Cohorte de tratos CREADOS en el periodo: abiertos (totals.total) + los ya ganados de esa cohorte (wonc).
+            // creados_total = TODOS los leads que entraron en el periodo, en CUALQUIER etapa (incluye
+            // "Para Contactar" y "Eventos" — auditoría 22-jul: antes se quedaban fuera hasta un 45% del día).
+            // Fallback al método antiguo (F1-F4 + ganados de cohorte) si el dato aún no llegó (caché vieja).
             let tratosTot = null;
-            if (extra && extra.totals) tratosTot = (extra.totals.total || 0) + (extra.totals.wonc || 0);
+            if (extra && extra.creados_total !== undefined) tratosTot = extra.creados_total;
+            else if (extra && extra.totals) tratosTot = (extra.totals.total || 0) + (extra.totals.wonc || 0);
 
             // ── VENTAS cerradas en el periodo (TODAS, vengan del canal que vengan) + su FACTURACIÓN ──
             // won_deals (cierres del periodo por fecha de ganado) × won_value (céntimos). Fuera "paciente modelo".
@@ -544,7 +547,9 @@
                     'Ingresos dividido entre la inversión publicitaria: por cada euro invertido en anuncios, cuántos euros entraron en ventas en el periodo.');
 
             // ── GRÁFICO DIARIO: TODOS los tratos creados (barras) + coste por trato (línea, eje derecho) ──
-            const hayDetalleDiario = !!(extra && extra.all_by_date);
+            // creados_by_date (todas las etapas) con fallback a all_by_date (método antiguo) por caché vieja.
+            const serieDiaria = (extra && (extra.creados_by_date || extra.all_by_date)) || null;
+            const hayDetalleDiario = !!serieDiaria;
             const spendDia = (ads && ads.by_day) ? ads.by_day : {};
             const haySpendDia = Object.keys(spendDia).length > 0;
             let chartHtml;
@@ -590,8 +595,17 @@
                         if (enc && C[enc]) { C[enc].ventas++; C[enc].ventasEncuesta++; }
                     });
                 }
-                // Tratos del canal = abiertos creados en el periodo (F1-F4) + cerrados del periodo (mismo criterio que el cuadro país)
-                ['meta', 'google'].forEach(ch => { C[ch].tratos = C[ch].f1 + C[ch].f2 + C[ch].f3 + C[ch].f4 + C[ch].ventas; });
+                // Tratos del canal = TODOS los creados en el periodo con utm del canal (cualquier etapa,
+                // creados_por_utm de la auditoría 22-jul). Fallback al método antiguo (F1-F4 + ventas) por caché vieja.
+                if (extra.creados_por_utm) {
+                    ['meta', 'google'].forEach(ch => { C[ch].tratos = 0; });
+                    Object.entries(extra.creados_por_utm).forEach(([lbl, n]) => {
+                        const ch = canalDe(lbl);
+                        if (ch && C[ch]) C[ch].tratos += Number(n) || 0;
+                    });
+                } else {
+                    ['meta', 'google'].forEach(ch => { C[ch].tratos = C[ch].f1 + C[ch].f2 + C[ch].f3 + C[ch].f4 + C[ch].ventas; });
+                }
 
                 const asisOk = !!(asistidas && asistidas.ok && asistidas.asistidas);
                 const asisDe = ch => asisOk ? (Number(asistidas.asistidas[ch]) || 0) : null;
@@ -793,7 +807,7 @@
                     <div class="detalle">Aquí verás cuánto invierte y cuánto devuelve cada campaña, una a una: tratos, ventas, coste por trato y coste por venta.</div>
                 </div>`;
 
-            if (hayDetalleDiario) renderPaidChart(extra.all_by_date, spendDia, params);
+            if (hayDetalleDiario) renderPaidChart(serieDiaria, spendDia, params);
         }
 
         // Días 'YYYY-MM-DD' del rango, inclusive (fechas locales, sin sorpresas de zona horaria).

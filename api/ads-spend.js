@@ -83,16 +83,19 @@ export default async function handler(req, res) {
     // Gasto POR PAÍS combinado (claves = nombres normPais, las mismas que la tabla del CRM).
     // Si parte del gasto no tiene desglose por país (canal manual, o el desglose falló), se apunta
     // en "Sin desglose por país" para que la SUMA por país siempre cuadre con el total. NUNCA se pierde.
+    // Acumulamos SIN redondear y redondeamos UNA sola vez al final: redondear fila a fila
+    // desviaba la suma por país 1-2 céntimos respecto del total (auditoría 22-jul).
     const by_pais = {};
     [meta, google].forEach(c => {
       if (c.by_country) Object.entries(c.by_country).forEach(([p, v]) => {
-        by_pais[p] = Math.round(((by_pais[p] || 0) + (Number(v) || 0)) * 100) / 100;
+        by_pais[p] = (by_pais[p] || 0) + (Number(v) || 0);
       });
     });
     let sumPais = 0;
     Object.values(by_pais).forEach(v => { sumPais += v; });
-    const restoPais = Math.round((total - sumPais) * 100) / 100;
-    if (restoPais > 0.01) by_pais['Sin desglose por país'] = Math.round(((by_pais['Sin desglose por país'] || 0) + restoPais) * 100) / 100;
+    const restoPais = total - sumPais;
+    if (restoPais > 0.01) by_pais['Sin desglose por país'] = (by_pais['Sin desglose por país'] || 0) + restoPais;
+    Object.keys(by_pais).forEach(p => { by_pais[p] = Math.round(by_pais[p] * 100) / 100; });
 
     // CACHÉ SEGÚN RESULTADO: solo se cachea una respuesta COMPLETA y SANA. Cachear una degradada
     // (canal caído, total 0 con source api, parcial...) dejaba el informe "sin inversión" 1 hora.

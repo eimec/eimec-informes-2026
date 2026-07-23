@@ -180,6 +180,37 @@ export default async function handler(req, res) {
       await fetchStage({ 'filters[stage]': sid, 'filters[status]': 0, ...dateParams }, sk);
     }
 
+    // TODOS los tratos creados en el periodo (CUALQUIER etapa y estado del pipeline de formación).
+    // Hallazgo de la auditoría 22-jul: la tarjeta "leads que entraron" solo contaba F1-F4 abiertos
+    // y dejaba fuera "Para Contactar", "Eventos" (etapa 95), TRASH y perdidos — hoy 20 reales vs 11
+    // mostrados. Este contador es la verdad de "entraron"; el embudo F1-F4 de arriba no cambia.
+    let creados_total = 0;
+    const creados_by_date = {}, creados_por_utm = {};
+    {
+      const proc = (resp) => {
+        const cf = {};
+        (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
+        (resp.deals || []).forEach(d => {
+          const c = cf[d.id] || {};
+          const pmCamp = c[M_PM_CAMPAIGN] && String(c[M_PM_CAMPAIGN]).trim();
+          if (isPM(pmCamp, ownerMap[d.owner] || 'Sin asignar')) return;   // paciente modelo fuera, como siempre
+          creados_total++;
+          if (d.cdate) { const day = String(d.cdate).slice(0, 10); creados_by_date[day] = (creados_by_date[day] || 0) + 1; }
+          const utm = normUtm(c[M_UTM]) || 'Sin dato';
+          creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
+        });
+      };
+      const base = { 'filters[group]': GROUP, ...dateParams };
+      const first = await acGet(KEY, '/deals', { ...base, include: 'dealCustomFieldData', limit: 100, offset: 0 });
+      proc(first);
+      const totalC = (first.meta && first.meta.total) ? Math.min(parseInt(first.meta.total, 10), 30000) : (first.deals || []).length;
+      const offsC = []; for (let o = 100; o < totalC; o += 100) offsC.push(o);
+      for (let i = 0; i < offsC.length; i += 10) {
+        const r = await Promise.all(offsC.slice(i, i + 10).map(o => acGet(KEY, '/deals', { ...base, include: 'dealCustomFieldData', limit: 100, offset: o })));
+        r.forEach(proc);
+      }
+    }
+
     // Completar "Sin país": inferir por el prefijo del teléfono del contacto (solo los que no tienen país)
     let pais_recuperados = 0;
     const needC = [...new Set(sinPais.map(x => x.contact).filter(Boolean))].slice(0, 700);
@@ -284,6 +315,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
+      creados_total, creados_by_date, creados_por_utm,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
