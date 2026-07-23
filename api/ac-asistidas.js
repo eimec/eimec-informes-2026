@@ -76,21 +76,28 @@ export default async function handler(req, res) {
         (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
         canalesContacto[lote[j]] = (d.deals || []).map(x => ({
           id: String(x.id),
-          canal: canalDe(cf[x.id] && cf[x.id][M_UTM])
+          canal: canalDe(cf[x.id] && cf[x.id][M_UTM]),
+          campana: (cf[x.id] && cf[x.id]['11'] && String(cf[x.id]['11']).trim().slice(0, 80)) || null   // utm_campaign
         }));
       });
     }
 
-    // 3) Una venta es "asistida" por un canal si el contacto tiene OTRO trato (id distinto) de ese canal
+    // 3) Una venta es "asistida" por un canal si el contacto tiene OTRO trato (id distinto) de ese canal.
+    //    Y por CAMPAÑA: si ese otro trato lleva un utm_campaign, esa campaña asistió la venta (1 por venta).
     const asistidas = { meta: 0, google: 0 };
+    const asistidas_campana = {};   // utm_campaign -> nº de ventas del periodo que asistió
     const por_venta = {};
     ids.forEach(wonId => {
       const cid = ventaContacto[wonId];
       const deals = (cid && canalesContacto[cid]) || [];
-      const m = deals.some(dl => dl.id !== String(wonId) && dl.canal === 'meta');
-      const g = deals.some(dl => dl.id !== String(wonId) && dl.canal === 'google');
+      const otros = deals.filter(dl => dl.id !== String(wonId));
+      const m = otros.some(dl => dl.canal === 'meta');
+      const g = otros.some(dl => dl.canal === 'google');
       if (m) asistidas.meta++;
       if (g) asistidas.google++;
+      new Set(otros.map(dl => dl.campana).filter(Boolean)).forEach(camp => {
+        asistidas_campana[camp] = (asistidas_campana[camp] || 0) + 1;
+      });
       por_venta[wonId] = { meta: m, google: g };
     });
 
@@ -99,7 +106,7 @@ export default async function handler(req, res) {
       && contactos.every(c => canalesContacto[c] !== undefined);
     res.setHeader('Cache-Control', sana ? 's-maxage=600, stale-while-revalidate=1200' : 'no-store');
     res.status(200).json({
-      ok: true, asistidas, por_venta, n: ids.length, completo: sana,
+      ok: true, asistidas, asistidas_campana, por_venta, n: ids.length, completo: sana,
       period: { from: from || null, to: to || null }, ms: Date.now() - start
     });
   } catch (e) {

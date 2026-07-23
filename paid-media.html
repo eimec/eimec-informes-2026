@@ -833,7 +833,15 @@
                     if (!crmFases[k]) crmFases[k] = { f1: 0, f2: 0, f3: 0, f4: 0 };
                     ['f1', 'f2', 'f3', 'f4'].forEach(s => { crmFases[k][s] += Number(v[s]) || 0; });
                 });
-                const keys = [...new Set([...Object.keys(spendRows), ...Object.keys(crmTratos), ...Object.keys(crmVentas)])];
+                // Asistidas por campaña (multi-touch): del endpoint ac-asistidas, casadas por normKey
+                const asistCamp = {};
+                if (asistidas && asistidas.ok && asistidas.asistidas_campana) {
+                    Object.entries(asistidas.asistidas_campana).forEach(([n, v]) => {
+                        const k = normKey(n); if (!k) return;
+                        asistCamp[k] = (asistCamp[k] || 0) + (Number(v) || 0);
+                    });
+                }
+                const keys = [...new Set([...Object.keys(spendRows), ...Object.keys(crmTratos), ...Object.keys(crmVentas), ...Object.keys(asistCamp)])];
                 if (keys.length) {
                     const filas = keys.map(k => {
                         const s = spendRows[k], c = crmTratos[k], fs = crmFases[k] || { f1: 0, f2: 0, f3: 0, f4: 0 };
@@ -843,6 +851,7 @@
                             inv: s ? s.inv : null,
                             tratos: c ? c.tratos : 0,
                             ventas: crmVentas[k] || 0,
+                            asis: asistCamp[k] || 0,
                             f1: fs.f1, f2: fs.f2, f3: fs.f3, f4: fs.f4
                         };
                     }).sort((a, b) => (b.inv || 0) - (a.inv || 0) || b.tratos - a.tratos);
@@ -865,6 +874,7 @@
                             ${f.tratos ? `<td class="num" style="font-weight:700">${nf0(f.tratos)}</td>` : `<td class="cell-zero">·</td>`}
                             ${cpl !== null ? `<td class="num">${eur2(cpl)}</td>` : D2}
                             ${f.ventas ? `<td class="num" style="font-weight:700;color:var(--green)">${nf0(f.ventas)}</td>` : `<td class="cell-zero">·</td>`}
+                            ${f.asis ? `<td class="num" style="font-weight:600;color:var(--brand-soft)">${nf0(f.asis)}</td>` : `<td class="cell-zero">·</td>`}
                             ${cpa !== null ? `<td class="num">${eur2(cpa)}</td>` : D2}
                             ${f.f1 ? `<td class="num">${nf0(f.f1)}</td>` : `<td class="cell-zero">·</td>`}
                             ${f.f2 ? `<td class="num">${nf0(f.f2)}</td>` : `<td class="cell-zero">·</td>`}
@@ -873,8 +883,8 @@
                         </tr>`;
                     });
                     // Fila agregada con las campañas SIN gasto en el periodo (si aportan tratos o ventas)
-                    const R2 = resto.reduce((a, f) => ({ n: a.n + 1, tratos: a.tratos + f.tratos, ventas: a.ventas + f.ventas, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { n: 0, tratos: 0, ventas: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
-                    if (R2.tratos > 0 || R2.ventas > 0) {
+                    const R2 = resto.reduce((a, f) => ({ n: a.n + 1, tratos: a.tratos + f.tratos, ventas: a.ventas + f.ventas, asis: a.asis + f.asis, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { n: 0, tratos: 0, ventas: 0, asis: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
+                    if (R2.tratos > 0 || R2.ventas > 0 || R2.asis > 0) {
                         cuerpo += `<tr>
                             <td></td>
                             <td style="color:var(--muted);font-style:italic" title="Tratos y ventas del periodo cuyo utm_campaign es de campañas SIN gasto en estas fechas (campañas antiguas, newsletters, utms sueltos...). Agrupadas para no alargar la lista.">Otras · ${nf0(R2.n)} campañas sin gasto en el periodo</td>
@@ -883,6 +893,7 @@
                             <td class="num" style="color:var(--muted)">${nf0(R2.tratos)}</td>
                             ${D2}
                             <td class="num" style="color:var(--muted)">${nf0(R2.ventas)}</td>
+                            <td class="num" style="color:var(--muted)">${nf0(R2.asis)}</td>
                             ${D2}
                             <td class="num" style="color:var(--muted)">${nf0(R2.f1)}</td>
                             <td class="num" style="color:var(--muted)">${nf0(R2.f2)}</td>
@@ -890,20 +901,21 @@
                             <td class="num" style="color:var(--muted)">${nf0(R2.f4)}</td>
                         </tr>`;
                     }
-                    const T2 = filas.reduce((a, f) => ({ inv: a.inv + (f.inv || 0), tratos: a.tratos + f.tratos, ventas: a.ventas + f.ventas, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { inv: 0, tratos: 0, ventas: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
+                    const T2 = filas.reduce((a, f) => ({ inv: a.inv + (f.inv || 0), tratos: a.tratos + f.tratos, ventas: a.ventas + f.ventas, asis: a.asis + f.asis, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { inv: 0, tratos: 0, ventas: 0, asis: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
                     cuerpo += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                         <td></td><td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${activas.length} con gasto${R2.n ? ` + ${R2.n} sin gasto` : ''}</td><td></td>
                         <td class="num" style="font-weight:800;color:var(--brand-dark)">${eur0(T2.inv)}</td>
                         <td class="num" style="font-weight:800">${nf0(T2.tratos)}</td>
                         <td class="num" style="font-weight:800">${T2.tratos > 0 ? eur2(T2.inv / T2.tratos) : '—'}</td>
                         <td class="num" style="font-weight:800;color:var(--green)">${nf0(T2.ventas)}</td>
+                        <td class="num" style="font-weight:800;color:var(--brand-soft)">${nf0(T2.asis)}</td>
                         <td class="num" style="font-weight:800">${T2.ventas > 0 ? eur2(T2.inv / T2.ventas) : '—'}</td>
                         <td class="num" style="font-weight:800">${nf0(T2.f1)}</td>
                         <td class="num" style="font-weight:800">${nf0(T2.f2)}</td>
                         <td class="num" style="font-weight:800">${nf0(T2.f3)}</td>
                         <td class="num" style="font-weight:800">${nf0(T2.f4)}</td></tr>`;
                     campHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por campaña</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Gasto de la plataforma × tratos/ventas del CRM, casados por nombre de campaña (utm_campaign) · Solo campañas con gasto en las fechas del filtro (${top.length}${activas.length > top.length ? ` de ${activas.length}` : ''})</span></div><div class="table-wrap"><table class="table table--compact">
-                        <thead><tr><th>#</th><th>Campaña</th><th title="Plataforma del gasto. 'Solo CRM' = tratos con ese utm_campaign pero sin gasto en el periodo (campaña antigua o nombre distinto).">Canal</th><th style="color:var(--brand)" title="Gasto de la campaña en el periodo (sin paciente modelo).">Inversión</th><th title="Tratos del CRM creados en el periodo cuyo utm_campaign casa con la campaña.">Tratos</th><th title="Inversión ÷ tratos casados.">CPL</th><th style="color:var(--green)" title="Ventas cerradas en el periodo cuyo utm_campaign casa con la campaña.">Ventas</th><th title="Inversión ÷ ventas casadas.">CPA</th><th style="color:var(--slate)" title="Fase 1 · Solicitud">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th></tr></thead><tbody>${cuerpo}</tbody></table></div>
+                        <thead><tr><th>#</th><th>Campaña</th><th title="Plataforma del gasto. 'Solo CRM' = tratos con ese utm_campaign pero sin gasto en el periodo (campaña antigua o nombre distinto).">Canal</th><th style="color:var(--brand)" title="Gasto de la campaña en el periodo (sin paciente modelo).">Inversión</th><th title="Tratos del CRM creados en el periodo cuyo utm_campaign casa con la campaña.">Tratos</th><th title="Inversión ÷ tratos casados.">CPL</th><th style="color:var(--green)" title="Ventas cerradas en el periodo cuyo utm_campaign casa con la campaña.">Ventas</th><th style="color:var(--brand-soft)" title="Ventas del periodo en las que esta campaña PARTICIPÓ sin ser el origen: la persona de la venta tiene otro trato con este utm_campaign.">Asistidas</th><th title="Inversión ÷ ventas casadas.">CPA</th><th style="color:var(--slate)" title="Fase 1 · Solicitud">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th></tr></thead><tbody>${cuerpo}</tbody></table></div>
                         <div style="font-size:11px;color:var(--muted);margin-top:8px">"sin match" = campañas con gasto cuyos leads no llegan etiquetados al CRM (el formulario web pierde el utm — arreglo en curso). Por eso la suma de tratos por campaña es menor que el total real del canal.</div></div>`;
                 }
             }
