@@ -82,6 +82,7 @@ export async function googleSpend(from, to, opts = {}) {
     if (!r.ok) throw new Error('ads: ' + JSON.stringify(j).slice(0, 200));
 
     const by_campaign = {};
+    const conversions_by_campaign = {};   // conversiones únicas por campaña (para el cuadro por campaña)
     const by_day = opts.byDay ? {} : null;
     let total = 0, currency = null, impressions = 0, clicks = 0, conversions = 0;
     const batches = Array.isArray(j) ? j : [j];
@@ -90,10 +91,12 @@ export async function googleSpend(from, to, opts = {}) {
       total += spend;
       impressions += Number(row.metrics && row.metrics.impressions || 0);
       clicks += Number(row.metrics && row.metrics.clicks || 0);
-      conversions += Number(row.metrics && row.metrics.conversions || 0);
+      const convRow = Number(row.metrics && row.metrics.conversions || 0);
+      conversions += convRow;
       currency = currency || (row.customer && row.customer.currencyCode);
       const k = (row.campaign && row.campaign.name) || 'Sin campaña';
       by_campaign[k] = (by_campaign[k] || 0) + spend;
+      if (convRow) conversions_by_campaign[k] = (conversions_by_campaign[k] || 0) + convRow;
       if (by_day) { const dia = row.segments && row.segments.date; if (dia) by_day[dia] = Math.round(((by_day[dia] || 0) + spend) * 100) / 100; }
     }));
 
@@ -133,6 +136,7 @@ export async function googleSpend(from, to, opts = {}) {
       by_campaign, total: Math.round(total * 100) / 100,
       impressions, clicks,
       conversions: Math.round(conversions),   // conversiones que reporta Google (formulario enviado)
+      conversions_by_campaign,                // por campaña, para el cuadro de campañas de Paid Media
       ...(by_day ? { by_day } : {}),
       ...(by_country ? { by_country } : {}),
       period: { from: desde, to: hasta }, ms: Date.now() - start

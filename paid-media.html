@@ -801,14 +801,20 @@
             // ("META ADS LEADFORM MEF" y "META_ADS_LEADFORM_MEF" casan). Lo que no casa se marca honesto.
             let campHtml = '';
             {
-                const spendRows = {};   // normKey -> { nombre, canal, inv }
+                const spendRows = {};   // normKey -> { nombre, canal, inv, conv }
                 if (bc) {
                     [['meta', 'Meta'], ['google', 'Google']].forEach(([ch, tag]) => {
                         const a = bc[ch] && bc[ch].source === 'api' ? bc[ch] : null;
                         if (a && a.by_campaign) Object.entries(a.by_campaign).forEach(([n, v]) => {
                             const k = normKey(n); if (!k) return;
-                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0 };
+                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0, conv: 0 };
                             spendRows[k].inv += Number(v) || 0;
+                        });
+                        // Conversiones únicas por campaña (Google): respaldo provisional mientras el CRM pierda el utm
+                        if (a && a.conversions_by_campaign) Object.entries(a.conversions_by_campaign).forEach(([n, v]) => {
+                            const k = normKey(n); if (!k) return;
+                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0, conv: 0 };
+                            spendRows[k].conv += Number(v) || 0;
                         });
                     });
                 }
@@ -845,11 +851,18 @@
                 if (keys.length) {
                     const filas = keys.map(k => {
                         const s = spendRows[k], c = crmTratos[k], fs = crmFases[k] || { f1: 0, f2: 0, f3: 0, f4: 0 };
+                        const tratosCrm = c ? c.tratos : 0;
+                        const conv = s ? Math.round(s.conv) : 0;
+                        // PROVISIONAL (igual que el cuadro por canal): en campañas de Google, si la plataforma
+                        // reporta más conversiones únicas que tratos con utm en el CRM, usamos las de Google
+                        // (el formulario web pierde el utm — al arreglarlo, esta regla se apaga sola).
+                        const prov = s && s.canal === 'Google' && conv > tratosCrm;
                         return {
                             nombre: (s && s.nombre) || (c && c.nombre) || k,
                             canal: s ? s.canal : 'Solo CRM',
                             inv: s ? s.inv : null,
-                            tratos: c ? c.tratos : 0,
+                            tratos: prov ? conv : tratosCrm,
+                            tratosCrm, prov,
                             ventas: crmVentas[k] || 0,
                             asis: asistCamp[k] || 0,
                             f1: fs.f1, f2: fs.f2, f3: fs.f3, f4: fs.f4
@@ -871,7 +884,9 @@
                             <td class="cell-strong" style="max-width:340px;overflow:hidden;text-overflow:ellipsis" title="${f.nombre}">${f.nombre}${sinMatch ? ' <span style="font-weight:400;font-size:9.5px;color:#B8860B" title="Esta campaña tiene gasto pero ningún trato del CRM lleva su utm_campaign: o los leads llegan sin utm (formulario web) o el nombre no coincide.">sin match</span>' : ''}</td>
                             <td class="num" style="font-size:11px;color:var(--muted)">${f.canal}</td>
                             ${f.inv !== null ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(f.inv)}</td>` : D2}
-                            ${f.tratos ? `<td class="num" style="font-weight:700">${nf0(f.tratos)}</td>` : `<td class="cell-zero">·</td>`}
+                            ${f.prov
+                                ? `<td class="num" style="font-weight:700" title="PROVISIONAL: conversiones únicas según Google Ads para esta campaña en las fechas del filtro. El CRM solo tiene ${nf0(f.tratosCrm)} tratos con su utm_campaign porque el formulario web pierde el utm — al arreglarlo, la cifra volverá a salir del CRM.">${nf0(f.tratos)}<span style="color:var(--brand-soft)">*</span></td>`
+                                : (f.tratos ? `<td class="num" style="font-weight:700">${nf0(f.tratos)}</td>` : `<td class="cell-zero">·</td>`)}
                             ${cpl !== null ? `<td class="num">${eur2(cpl)}</td>` : D2}
                             ${f.ventas ? `<td class="num" style="font-weight:700;color:var(--green)">${nf0(f.ventas)}</td>` : `<td class="cell-zero">·</td>`}
                             ${f.asis ? `<td class="num" style="font-weight:600;color:var(--brand-soft)">${nf0(f.asis)}</td>` : `<td class="cell-zero">·</td>`}
