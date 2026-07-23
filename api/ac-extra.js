@@ -185,7 +185,7 @@ export default async function handler(req, res) {
     // y dejaba fuera "Para Contactar", "Eventos" (etapa 95), TRASH y perdidos — hoy 20 reales vs 11
     // mostrados. Este contador es la verdad de "entraron"; el embudo F1-F4 de arriba no cambia.
     let creados_total = 0;
-    const creados_by_date = {}, creados_por_utm = {};
+    const creados_by_date = {}, creados_por_utm = {}, creados_por_campana = {};
     {
       const proc = (resp) => {
         const cf = {};
@@ -198,6 +198,9 @@ export default async function handler(req, res) {
           if (d.cdate) { const day = String(d.cdate).slice(0, 10); creados_by_date[day] = (creados_by_date[day] || 0) + 1; }
           const utm = normUtm(c[M_UTM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
+          // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
+          const camp = pmCamp;   // cf11 es el mismo campo M_PM_CAMPAIGN (utm_campaign)
+          if (camp) { const k = camp.slice(0, 80); creados_por_campana[k] = (creados_por_campana[k] || 0) + 1; }
         });
       };
       const base = { 'filters[group]': GROUP, ...dateParams };
@@ -234,6 +237,7 @@ export default async function handler(req, res) {
     const won_value = {};  // id -> importe en CÉNTIMOS (AC guarda deal.value en céntimos)
     const won_title = {};  // id -> título del trato
     const won_conocio = {};   // id -> "¿Cómo has conocido EIMEC?" (cf9): atribución de respaldo cuando falta el utm
+    const won_campana = {};   // id -> utm_campaign (cf11) del ganado, para el desglose por campaña
     const pmWonIds = [];   // ids de ganados que son "paciente modelo" → el front los excluye
     {
       const grab = async (off) => {
@@ -248,6 +252,7 @@ export default async function handler(req, res) {
           won_campaign[x.id] = utm || 'Sin dato';
           const conocio = cf[x.id] && cf[x.id]['9'] && String(cf[x.id]['9']).trim();
           if (conocio) won_conocio[x.id] = conocio;
+          if (pmCamp) won_campana[x.id] = pmCamp.slice(0, 80);   // utm_campaign del ganado (desglose por campaña)
           // Importe (AC lo guarda en CÉNTIMOS) y título, para el listado de ventas de administración
           won_value[x.id] = x.value ? Number(x.value) : 0;
           won_title[x.id] = x.title || '';
@@ -315,7 +320,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
-      creados_total, creados_by_date, creados_por_utm,
+      creados_total, creados_by_date, creados_por_utm, creados_por_campana, won_campana,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',

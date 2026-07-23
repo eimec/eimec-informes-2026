@@ -796,16 +796,88 @@
                 paisHtml += `</tbody></table></div></div>`;
             }
 
+            // ── CUADRO POR CAMPAÑA: gasto de la plataforma × tratos/ventas del CRM (match por nombre) ──
+            // Cruce: nombre de campaña de Meta/Google vs utm_campaign del CRM, normalizados con normKey
+            // ("META ADS LEADFORM MEF" y "META_ADS_LEADFORM_MEF" casan). Lo que no casa se marca honesto.
+            let campHtml = '';
+            {
+                const spendRows = {};   // normKey -> { nombre, canal, inv }
+                if (bc) {
+                    [['meta', 'Meta'], ['google', 'Google']].forEach(([ch, tag]) => {
+                        const a = bc[ch] && bc[ch].source === 'api' ? bc[ch] : null;
+                        if (a && a.by_campaign) Object.entries(a.by_campaign).forEach(([n, v]) => {
+                            const k = normKey(n); if (!k) return;
+                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0 };
+                            spendRows[k].inv += Number(v) || 0;
+                        });
+                    });
+                }
+                const crmTratos = {};   // normKey -> { nombre, tratos }
+                Object.entries((extra && extra.creados_por_campana) || {}).forEach(([n, v]) => {
+                    const k = normKey(n); if (!k) return;
+                    if (!crmTratos[k]) crmTratos[k] = { nombre: n, tratos: 0 };
+                    crmTratos[k].tratos += Number(v) || 0;
+                });
+                const crmVentas = {};   // normKey -> ventas del periodo
+                if (data && Array.isArray(data.won_deals) && extra && extra.won_campana) {
+                    data.won_deals.forEach(wd => {
+                        if (pmSet.has(wd.id)) return;
+                        const n = extra.won_campana[wd.id]; if (!n) return;
+                        const k = normKey(n); if (!k) return;
+                        crmVentas[k] = (crmVentas[k] || 0) + 1;
+                    });
+                }
+                const keys = [...new Set([...Object.keys(spendRows), ...Object.keys(crmTratos), ...Object.keys(crmVentas)])];
+                if (keys.length) {
+                    const filas = keys.map(k => {
+                        const s = spendRows[k], c = crmTratos[k];
+                        return {
+                            nombre: (s && s.nombre) || (c && c.nombre) || k,
+                            canal: s ? s.canal : 'Solo CRM',
+                            inv: s ? s.inv : null,
+                            tratos: c ? c.tratos : 0,
+                            ventas: crmVentas[k] || 0
+                        };
+                    }).sort((a, b) => (b.inv || 0) - (a.inv || 0) || b.tratos - a.tratos);
+                    const top = filas.slice(0, 25);
+                    const D2 = '<td class="cell-zero">—</td>';
+                    let cuerpo = '';
+                    top.forEach((f, i) => {
+                        const cpl = (f.inv !== null && f.tratos > 0) ? f.inv / f.tratos : null;
+                        const cpa = (f.inv !== null && f.ventas > 0) ? f.inv / f.ventas : null;
+                        const sinMatch = f.inv !== null && f.tratos === 0;
+                        cuerpo += `<tr>
+                            <td><span class="rank-badge">${i + 1}</span></td>
+                            <td class="cell-strong" style="max-width:340px;overflow:hidden;text-overflow:ellipsis" title="${f.nombre}">${f.nombre}${sinMatch ? ' <span style="font-weight:400;font-size:9.5px;color:#B8860B" title="Esta campaña tiene gasto pero ningún trato del CRM lleva su utm_campaign: o los leads llegan sin utm (formulario web) o el nombre no coincide.">sin match</span>' : ''}</td>
+                            <td class="num" style="font-size:11px;color:var(--muted)">${f.canal}</td>
+                            ${f.inv !== null ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(f.inv)}</td>` : D2}
+                            ${f.tratos ? `<td class="num" style="font-weight:700">${nf0(f.tratos)}</td>` : `<td class="cell-zero">·</td>`}
+                            ${cpl !== null ? `<td class="num">${eur2(cpl)}</td>` : D2}
+                            ${f.ventas ? `<td class="num" style="font-weight:700;color:var(--green)">${nf0(f.ventas)}</td>` : `<td class="cell-zero">·</td>`}
+                            ${cpa !== null ? `<td class="num">${eur2(cpa)}</td>` : D2}
+                        </tr>`;
+                    });
+                    const T2 = filas.reduce((a, f) => ({ inv: a.inv + (f.inv || 0), tratos: a.tratos + f.tratos, ventas: a.ventas + f.ventas }), { inv: 0, tratos: 0, ventas: 0 });
+                    cuerpo += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                        <td></td><td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${filas.length} campañas</td><td></td>
+                        <td class="num" style="font-weight:800;color:var(--brand-dark)">${eur0(T2.inv)}</td>
+                        <td class="num" style="font-weight:800">${nf0(T2.tratos)}</td>
+                        <td class="num" style="font-weight:800">${T2.tratos > 0 ? eur2(T2.inv / T2.tratos) : '—'}</td>
+                        <td class="num" style="font-weight:800;color:var(--green)">${nf0(T2.ventas)}</td>
+                        <td class="num" style="font-weight:800">${T2.ventas > 0 ? eur2(T2.inv / T2.ventas) : '—'}</td></tr>`;
+                    campHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por campaña</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Gasto de la plataforma × tratos/ventas del CRM, casados por nombre de campaña (utm_campaign) · Top ${top.length} de ${filas.length}</span></div><div class="table-wrap"><table class="table table--compact">
+                        <thead><tr><th>#</th><th>Campaña</th><th title="Plataforma del gasto. 'Solo CRM' = tratos con ese utm_campaign pero sin gasto en el periodo (campaña antigua o nombre distinto).">Canal</th><th style="color:var(--brand)" title="Gasto de la campaña en el periodo (sin paciente modelo).">Inversión</th><th title="Tratos del CRM creados en el periodo cuyo utm_campaign casa con la campaña.">Tratos</th><th title="Inversión ÷ tratos casados.">CPL</th><th style="color:var(--green)" title="Ventas cerradas en el periodo cuyo utm_campaign casa con la campaña.">Ventas</th><th title="Inversión ÷ ventas casadas.">CPA</th></tr></thead><tbody>${cuerpo}</tbody></table></div>
+                        <div style="font-size:11px;color:var(--muted);margin-top:8px">"sin match" = campañas con gasto cuyos leads no llegan etiquetados al CRM (el formulario web pierde el utm — arreglo en curso). Por eso la suma de tratos por campaña es menor que el total real del canal.</div></div>`;
+                }
+            }
+
             document.getElementById('dashboardContent').innerHTML =
                 avisos +
                 `<div class="cards-grid">${cards}</div>` +
                 chartHtml +
                 canalHtml +
                 paisHtml +
-                `<div class="proximamente">
-                    <div class="titulo">Próximamente: desglose por campaña</div>
-                    <div class="detalle">Aquí verás cuánto invierte y cuánto devuelve cada campaña, una a una: tratos, ventas, coste por trato y coste por venta.</div>
-                </div>`;
+                campHtml;
 
             if (hayDetalleDiario) renderPaidChart(serieDiaria, spendDia, params);
         }
