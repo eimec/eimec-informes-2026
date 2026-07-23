@@ -617,7 +617,8 @@
                     const denomAsis = (asis !== null) ? (k.ventas + asis) : null;
                     const cpaAsis = (inv !== null && denomAsis !== null && denomAsis > 0) ? inv / denomAsis : null;
                     const ctr = (impr !== null && impr > 0 && clk !== null) ? (clk / impr * 100) : null;
-                    const clk2venta = (clk !== null && clk > 0) ? (k.ventas / clk * 100) : null;
+                    // Pedido por dirección: en vez de ventas÷clics (ilegible), % de TRATOS del canal que acaban en VENTA
+                    const trato2venta = (tratosCanal > 0) ? (k.ventas / tratosCanal * 100) : null;
                     const zz2 = v => v ? num(nf0(v)) : `<td class="cell-zero">·</td>`;
                     const tratosCell = usaConv
                         ? `<td class="num" style="font-weight:700" title="PROVISIONAL: conversiones únicas según ${k.nombre} entre el ${fmtDate(params.from)} y el ${fmtDate(params.to)} (formularios enviados que la plataforma atribuye a sus anuncios en las fechas del filtro). El CRM solo tiene ${k.tratos} tratos con utm de este canal porque el formulario web aún no guarda el origen — al arreglarlo, esta cifra volverá a salir del CRM.">${nf0(tratosCanal)}<span style="color:var(--brand-soft)">*</span></td>`
@@ -639,7 +640,7 @@
                         ${impr !== null ? num(nf0(impr)) : D}
                         ${clk !== null ? num(nf0(clk)) : D}
                         ${ctr !== null ? num(pct1(ctr)) : D}
-                        ${clk2venta !== null ? num(pct1(clk2venta), 'color:var(--green);font-weight:600') : D}
+                        ${trato2venta !== null ? num(pct1(trato2venta), 'color:var(--green);font-weight:600') : D}
                     </tr>`;
                 };
 
@@ -658,7 +659,7 @@
                 const cpaT = (invT !== null && ventasT > 0) ? invT / ventasT : null;
                 const cpaAsisT = (invT !== null && asisT !== null && (ventasT + asisT) > 0) ? invT / (ventasT + asisT) : null;
                 const ctrT = (imprT !== null && imprT > 0 && clkT !== null) ? clkT / imprT * 100 : null;
-                const c2vT = (clkT !== null && clkT > 0) ? ventasT / clkT * 100 : null;
+                const c2vT = (tratosT > 0) ? ventasT / tratosT * 100 : null;   // Trato→venta del total
                 const numB = (v, color) => `<td class="num" style="font-weight:800${color ? `;color:${color}` : ''}">${v}</td>`;
                 const filaTotal = `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                     <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
@@ -694,7 +695,7 @@
                         <th title="Veces que se mostraron los anuncios del canal en el periodo.">Impres.</th>
                         <th title="Clics en los anuncios del canal en el periodo.">Clics</th>
                         <th title="Clics ÷ impresiones: qué % de las veces que se vio el anuncio se hizo clic.">CTR</th>
-                        <th style="color:var(--green)" title="Ventas del periodo ÷ clics: qué % de los clics acabó en venta.">Clic→venta</th>
+                        <th style="color:var(--green)" title="Ventas ÷ tratos del canal: qué % de los leads que entraron por este canal acabó comprando.">Trato→venta</th>
                     </tr></thead><tbody>${fila('meta')}${fila('google')}${filaTotal}</tbody></table></div>
                     <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados". <b>*</b> = cifra provisional mientras el formulario web no guarda el origen del anuncio en el CRM (arreglo en curso): los tratos salen de las conversiones de la propia plataforma y las ventas suman la atribución por la encuesta "¿Cómo has conocido EIMEC?".</div></div>`;
             }
