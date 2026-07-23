@@ -881,7 +881,7 @@
                         const sinMatch = f.inv !== null && f.tratos === 0;
                         cuerpo += `<tr>
                             <td><span class="rank-badge">${i + 1}</span></td>
-                            <td class="cell-strong" style="max-width:340px;overflow:hidden;text-overflow:ellipsis" title="${f.nombre}">${f.nombre}${sinMatch ? ' <span style="font-weight:400;font-size:9.5px;color:#B8860B" title="Esta campaña tiene gasto pero ningún trato del CRM lleva su utm_campaign: o los leads llegan sin utm (formulario web) o el nombre no coincide.">sin match</span>' : ''}</td>
+                            <td class="cell-strong" style="max-width:340px;overflow:hidden;text-overflow:ellipsis" title="${f.nombre}">${f.nombre}${sinMatch ? ` <span style="font-weight:400;font-size:9.5px;color:#B8860B" title="EN LAS FECHAS DEL FILTRO (${fmtDate(params.from)} — ${fmtDate(params.to)}): esta campaña tiene gasto pero ningún trato creado en el periodo lleva su utm_campaign. Causas posibles: los leads llegan sin utm (formulario web, arreglo en curso), el nombre de la campaña no coincide con su utm, o no generó leads en este rango. En otro periodo puede tener match.">sin match en el periodo</span>` : ''}</td>
                             <td class="num" style="font-size:11px;color:var(--muted)">${f.canal}</td>
                             ${f.inv !== null ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(f.inv)}</td>` : D2}
                             ${f.prov
