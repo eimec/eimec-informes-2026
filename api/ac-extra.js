@@ -110,7 +110,14 @@ export default async function handler(req, res) {
   const { from, to } = req.query;
   const dateParams = {};
   if (from) dateParams['filters[created_after]'] = from;
-  if (to) dateParams['filters[created_before]'] = to;
+  // ⚠️ AC trata created_before como EXCLUSIVO (deja fuera ese día). Para que el rango incluya
+  // el día "hasta" (y que "hoy" no salga vacío), mandamos to + 1 día. Verificado contra la API:
+  // created_before=2026-07-22 → 0 tratos del 22; created_before=2026-07-23 → los 20 del 22.
+  if (to) {
+    const [y, m, d] = String(to).split('-').map(Number);
+    const t1 = new Date(Date.UTC(y, m - 1, d + 1));
+    dateParams['filters[created_before]'] = t1.toISOString().slice(0, 10);
+  }
 
   const start = Date.now();
   try {
