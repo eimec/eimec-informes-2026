@@ -837,57 +837,24 @@
                 const regiones = Object.entries(porRegion).map(([nombre, R]) => ({ nombre, R }));
                 regiones.sort((a, b) => b.R.total - a.R.total || b.R.inv - a.R.inv);
                 let regBody = '';
+                const maxTotalR = Math.max(...regiones.map(x => x.R.total), 1);
                 regiones.forEach(({ nombre, R }, ri) => {
                     const vPct = R.total > 0 ? Math.round(R.won / R.total * 100) : 0;
                     const qPct = R.total > 0 ? Math.round(R.f2 / R.total * 100) : 0;
-                    regBody += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                    const heat = (0.08 + 0.42 * (R.total / maxTotalR)).toFixed(2);
+                    regBody += `<tr>
                         <td><span class="rank-badge">${ri + 1}</span></td>
-                        <td class="cell-strong" style="color:var(--brand-dark)">${nombre} · ${R.paises.length} ${R.paises.length === 1 ? 'país' : 'países'}</td>
-                        <td class="num" style="font-weight:800;color:var(--brand-dark)">${R.total}</td>
-                        <td class="num" style="font-weight:800">${R.f1}</td>
-                        <td class="num" style="font-weight:800">${R.f2}</td>
-                        <td class="num" style="font-weight:800">${R.f3}</td>
-                        <td class="num" style="font-weight:800">${R.f4}</td>
-                        <td class="num cell-win" style="font-weight:800">${R.won}</td>
-                        <td class="num" style="font-weight:800;color:var(--brand-soft)">${R.wonc}</td>
-                        <td class="num" style="font-weight:800;color:${vPct > 0 ? 'var(--green)' : '#D6D1DA'}">${vPct}%</td>
-                        <td class="num" style="font-weight:800;color:var(--brand)">${qPct}%</td>
-                        ${R.inv > 0 && hayGasto ? `<td class="num" style="font-weight:800;color:var(--brand-dark)">${eur0(R.inv)}</td>` : `<td class="cell-zero">—</td>`}
-                        ${cplCell(R.inv, R.total)}${cpaCell(R.inv, R.won)}</tr>`;
-                    const subs = R.paises.sort((a, b) => b.total - a.total || b.inv - a.inv);
-                    const visibles = subs.slice(0, 10);
-                    const resto = subs.slice(10);
-                    visibles.forEach(s => {
-                        const sv = s.total > 0 ? Math.round((s.c.won || 0) / s.total * 100) : 0;
-                        const sq = s.total > 0 ? Math.round((s.c.f2 || 0) / s.total * 100) : 0;
-                        regBody += `<tr>
-                            <td></td>
-                            <td style="padding-left:22px;color:var(--slate)">${s.pais}</td>
-                            ${s.total ? `<td class="num" style="font-weight:600">${s.total}</td>` : `<td class="cell-zero">·</td>`}
-                            ${zz(s.c.f1)}${zz(s.c.f2)}${zz(s.c.f3)}${zz(s.c.f4)}
-                            <td class="num ${s.c.won ? 'cell-win' : 'cell-zero'}">${s.c.won || 0}</td>
-                            <td class="num" style="color:${s.c.wonc ? 'var(--brand-soft)' : '#D6D1DA'}">${s.c.wonc || 0}</td>
-                            <td class="num" style="color:${sv > 0 ? 'var(--green)' : '#D6D1DA'}">${sv}%</td>
-                            <td class="num" style="color:var(--brand)">${sq}%</td>
-                            ${invCell(s.inv)}${cplCell(s.inv, s.total)}${cpaCell(s.inv, s.c.won || 0)}</tr>`;
-                    });
-                    if (resto.length) {
-                        const RR = { f1: 0, f2: 0, f3: 0, f4: 0, won: 0, wonc: 0, total: 0, inv: 0 };
-                        resto.forEach(s => { RR.f1 += s.c.f1; RR.f2 += s.c.f2; RR.f3 += s.c.f3; RR.f4 += s.c.f4; RR.won += s.c.won || 0; RR.wonc += s.c.wonc || 0; RR.total += s.total; RR.inv += s.inv; });
-                        regBody += `<tr>
-                            <td></td>
-                            <td style="padding-left:22px;color:var(--muted);font-style:italic">… otros ${resto.length} países de la región</td>
-                            ${RR.total ? `<td class="num">${RR.total}</td>` : `<td class="cell-zero">·</td>`}
-                            ${zz(RR.f1)}${zz(RR.f2)}${zz(RR.f3)}${zz(RR.f4)}
-                            <td class="num ${RR.won ? 'cell-win' : 'cell-zero'}">${RR.won}</td>
-                            <td class="num" style="color:${RR.wonc ? 'var(--brand-soft)' : '#D6D1DA'}">${RR.wonc}</td>
-                            <td class="cell-zero">—</td>
-                            <td class="cell-zero">—</td>
-                            ${invCell(RR.inv)}${cplCell(RR.inv, RR.total)}${cpaCell(RR.inv, RR.won)}</tr>`;
-                    }
+                        <td class="cell-strong">${nombre} <span style="color:var(--muted);font-weight:500">· ${R.paises.length} ${R.paises.length === 1 ? 'país' : 'países'}</span></td>
+                        <td class="cell-total" style="background:rgba(31,42,78,${heat})">${R.total}</td>
+                        ${zz(R.f1)}${zz(R.f2)}${zz(R.f3)}${zz(R.f4)}
+                        <td class="num ${R.won ? 'cell-win' : 'cell-zero'}">${R.won}</td>
+                        <td class="num" style="font-weight:700;color:${R.wonc ? 'var(--brand-soft)' : '#D6D1DA'}">${R.wonc}</td>
+                        <td class="num" style="font-weight:700;color:${vPct > 0 ? 'var(--green)' : '#D6D1DA'}">${vPct}%</td>
+                        <td class="num" style="font-weight:600;color:var(--brand)">${qPct}%</td>
+                        ${invCell(R.inv)}${cplCell(R.inv, R.total)}${cpaCell(R.inv, R.won)}</tr>`;
                 });
-                regionHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Pipeline por región</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Los mismos datos (CRM + Meta + Google) agrupados por región · Top 10 países por región, el resto agregado · El gasto sin país asignado por las plataformas cae en "Otros / Sin país"</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>#</th><th>Región / País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas. El lead pudo entrar antes de este periodo.">Ventas (fecha de ganado)</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas, los que ya se han ganado.">Ventas (fecha de creado)</th><th style="color:var(--green)" title="Ventas cerradas ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Qué % de los tratos llegó a cualificar (Fase 2)">% Cualifica</th><th style="color:var(--brand)" title="Gasto en anuncios (Meta + Google) atribuido a la región en el periodo. Sin campañas de paciente modelo.${canalNota}">Inversión</th><th style="color:var(--brand)" title="Inversión ÷ tratos.">CPL</th><th style="color:var(--brand)" title="Inversión ÷ ventas (fecha de ganado).">CPA</th></tr></thead><tbody>${regBody}
+                regionHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Pipeline por región</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Los mismos datos (CRM + Meta + Google) agrupados por región · El gasto sin país asignado por las plataformas cae en "Otros / Sin país"</span></div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>#</th><th>Región</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas. El lead pudo entrar antes de este periodo.">Ventas (fecha de ganado)</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas, los que ya se han ganado.">Ventas (fecha de creado)</th><th style="color:var(--green)" title="Ventas cerradas ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Qué % de los tratos llegó a cualificar (Fase 2)">% Cualifica</th><th style="color:var(--brand)" title="Gasto en anuncios (Meta + Google) atribuido a la región en el periodo. Sin campañas de paciente modelo.${canalNota}">Inversión</th><th style="color:var(--brand)" title="Inversión ÷ tratos.">CPL</th><th style="color:var(--brand)" title="Inversión ÷ ventas (fecha de ganado).">CPA</th></tr></thead><tbody>${regBody}
                     <tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                         <td></td>
                         <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
