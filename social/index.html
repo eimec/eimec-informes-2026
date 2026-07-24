@@ -1028,6 +1028,9 @@ function loadData(){
   });
 }
 var PASSWORD='social-eimec-2026', AUTH_KEY='social_auth';
+// Sesión unificada con el informe principal (como Paid Media): si ya entraste con la contraseña
+// general ('authenticated'), Social abre directo. La contraseña propia de social sigue valiendo
+// para quien solo tenga esta URL — y esa NO desbloquea los otros informes (solo pone social_auth).
 function checkPassword(){
   var input=document.getElementById('passwordInput');
   if(input.value===PASSWORD){
@@ -1043,7 +1046,7 @@ function showDashboard(){
   document.getElementById('dashboard').style.display='block';
   loadData();
 }
-if(sessionStorage.getItem(AUTH_KEY)==='true'){showDashboard();}
+if(sessionStorage.getItem(AUTH_KEY)==='true' || sessionStorage.getItem('authenticated')==='true'){showDashboard();}
 </script>
 </body>
 </html>
