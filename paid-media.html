@@ -745,10 +745,11 @@
                                 : (srcGoogle !== 'none' && srcMeta === 'none') ? ' Solo incluye Google hasta conectar Meta.' : '';
                 const noteP = `Top ${Math.min(15, totalPaises)} de ${totalPaises} países · <b>Ventas (fecha de ganado)</b> = se firmaron en estas fechas, aunque el lead entrara antes · <b>Ventas (fecha de creado)</b> = de los leads que entraron en estas fechas, los que ya han comprado`;
                 paisHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Pipeline por país, con inversión</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${noteP}</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas. El lead pudo entrar antes de este periodo.">Ventas (fecha de ganado)</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas, los que ya se han ganado.">Ventas (fecha de creado)</th><th style="color:var(--green)" title="Ventas cerradas ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Qué % de los tratos de este país llegó a cualificar (Fase 2)">% Cualifica</th><th style="color:var(--brand)" title="Gasto en anuncios (Meta + Google) atribuido a este país en el periodo. Sin campañas de paciente modelo.${canalNota}">Inversión</th><th style="color:var(--brand)" title="Inversión del país ÷ tratos del país: lo que costó de media cada trato ahí.">CPL</th></tr></thead><tbody>`;
+                    <thead><tr><th>#</th><th>País</th><th style="color:var(--brand)">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas. El lead pudo entrar antes de este periodo.">Ventas (fecha de ganado)</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas, los que ya se han ganado.">Ventas (fecha de creado)</th><th style="color:var(--green)" title="Ventas cerradas ÷ tratos">% Venta</th><th style="color:var(--brand)" title="Qué % de los tratos de este país llegó a cualificar (Fase 2)">% Cualifica</th><th style="color:var(--brand)" title="Gasto en anuncios (Meta + Google) atribuido a este país en el periodo. Sin campañas de paciente modelo.${canalNota}">Inversión</th><th style="color:var(--brand)" title="Inversión del país ÷ tratos del país: lo que costó de media cada trato ahí.">CPL</th><th style="color:var(--brand)" title="Inversión del país ÷ ventas (fecha de ganado): lo que costó de media cada venta ahí.">CPA</th></tr></thead><tbody>`;
                 const zz = v => v ? `<td class="num">${v}</td>` : `<td class="cell-zero">·</td>`;
                 const invCell = v => !hayGasto ? `<td class="cell-zero">—</td>` : (v > 0 ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(v)}</td>` : `<td class="cell-zero">·</td>`);
                 const cplCell = (v, t) => (hayGasto && v > 0 && t > 0) ? `<td class="num" style="font-weight:600">${eur2(v / t)}</td>` : `<td class="cell-zero">—</td>`;
+                const cpaCell = (v, w) => (hayGasto && v > 0 && w > 0) ? `<td class="num" style="font-weight:600">${eur2(v / w)}</td>` : `<td class="cell-zero">—</td>`;
                 topP.forEach(({ pais, c, total }, i) => {
                     const ventaPct = total > 0 ? Math.round((c.won || 0) / total * 100) : 0;
                     const f2Pct = total > 0 ? Math.round((c.f2 || 0) / total * 100) : 0;
@@ -763,7 +764,7 @@
                         <td class="num" style="font-weight:700;color:${c.wonc ? 'var(--brand-soft)' : '#D6D1DA'}">${c.wonc || 0}</td>
                         <td class="num" style="font-weight:700;color:${ventaPct > 0 ? 'var(--green)' : '#D6D1DA'}">${ventaPct}%</td>
                         <td class="num" style="font-weight:600;color:var(--brand)">${f2Pct}%</td>
-                        ${invCell(inv)}${cplCell(inv, total)}</tr>`;
+                        ${invCell(inv)}${cplCell(inv, total)}${cpaCell(inv, c.won)}</tr>`;
                 });
                 // Fila TOTAL (todos los países). La Inversión total = SUMA de by_pais (incluye "Otros países"
                 // y "Sin desglose por país", también el gasto de países fuera del top 15): así SIEMPRE cuadra
@@ -781,6 +782,9 @@
                 const cplTotCell = (hayGasto && invTotal > 0 && T.total > 0)
                     ? `<td class="num" style="font-weight:800">${eur2(invTotal / T.total)}</td>`
                     : `<td class="cell-zero">—</td>`;
+                const cpaTotCell = (hayGasto && invTotal > 0 && T.won > 0)
+                    ? `<td class="num" style="font-weight:800">${eur2(invTotal / T.won)}</td>`
+                    : `<td class="cell-zero">—</td>`;
                 paisHtml += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                     <td></td>
                     <td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${totalPaises} países</td>
@@ -793,7 +797,7 @@
                     <td class="num" style="font-weight:800;color:var(--brand-soft)">${T.wonc}</td>
                     <td class="num" style="font-weight:800;color:var(--green)">${gVenta}%</td>
                     <td class="num" style="font-weight:800;color:var(--brand)">${gF2Pct}%</td>
-                    ${invTotCell}${cplTotCell}</tr>`;
+                    ${invTotCell}${cplTotCell}${cpaTotCell}</tr>`;
                 paisHtml += `</tbody></table></div></div>`;
             }
 
