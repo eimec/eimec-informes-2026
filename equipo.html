@@ -402,17 +402,24 @@
             document.getElementById('metaLine').innerHTML = 'Calculando…';
             document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando tratos, fases y ventas por vendedor… puede tardar unos segundos la primera vez.</div>';
 
-            const [extraRes, dataRes] = await Promise.all([
+            // Acumulado YTD: del 1 de enero al día de hoy, independiente del filtro
+            const ytdFrom = `${new Date().getFullYear()}-01-01`;
+            const ytdTo   = ymd(new Date());
+            const ytdQuery = new URLSearchParams({ from: ytdFrom, to: ytdTo }).toString();
+
+            const [extraRes, dataRes, ytdRes] = await Promise.all([
                 fetch(`/api/ac-extra?${query}`).catch(() => null),
-                fetch(`/api/ac-data?${query}`).catch(() => null)
+                fetch(`/api/ac-data?${query}`).catch(() => null),
+                fetch(`/api/ac-extra?${ytdQuery}`).catch(() => null)
             ]);
-            let extra = null, data = null;
+            let extra = null, data = null, ytd = null;
             try { if (extraRes) { const j = await extraRes.json(); if (j && j.ok) extra = j; } } catch(_) {}
-            try { if (dataRes) { const j = await dataRes.json(); if (j && j.ok) data = j; } } catch(_) {}
-            render(extra, data, params);
+            try { if (dataRes)  { const j = await dataRes.json();  if (j && j.ok) data  = j; } } catch(_) {}
+            try { if (ytdRes)   { const j = await ytdRes.json();   if (j && j.ok) ytd   = j; } } catch(_) {}
+            render(extra, data, params, ytd, ytdFrom, ytdTo);
         }
 
-        function render(extra, data, params) {
+        function render(extra, data, params, ytd, ytdFrom, ytdTo) {
             document.getElementById('metaLine').innerHTML =
                 `Periodo analizado: <strong>${fmtDate(params.from)} — ${fmtDate(params.to)}</strong>`;
 
@@ -534,6 +541,123 @@
                 <thead><tr><th>#</th><th>Vendedor</th><th style="color:var(--brand)" title="Leads que ENTRARON en el periodo asignados a este vendedor (cualquier etapa, incluidas Para Contactar, Eventos y TRASH).">Tratos</th><th style="color:var(--brand)" title="Tratos del periodo que llegaron AL MENOS a Fase 2: hoy están en F2, F3, F4 o ya se ganaron. Es el trabajo real de cualificación — la columna F2 sola no los ve porque los que avanzaron ya no están ahí.">Cualificados (F2+)</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — abiertos, creados en el periodo">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — abiertos, creados en el periodo">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas por este vendedor en estas fechas. El lead pudo entrar antes.">Ventas (fecha de ganado)</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas asignados a este vendedor, los que ya se han ganado.">Ventas (fecha de creado)</th><th style="color:var(--green)" title="Ventas (fecha de ganado) ÷ tratos del periodo.">% Venta</th><th style="color:var(--brand)" title="Cualificados (F2+) ÷ tratos del periodo.">% Cualifica</th><th style="color:var(--brand)" title="Importe de las ventas firmadas en el periodo por este vendedor.">Facturación</th></tr></thead>
                 <tbody>${cuerpo}</tbody></table></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:8px">Los % se calculan sobre los tratos que entraron en el periodo: un vendedor puede firmar más ventas que tratos nuevos tenga (leads de meses anteriores), en ese caso el % Venta supera el 100%.</div></div>`;
+
+            // ── TABLA ACUMULADA: mismo formato pero YTD (01-ene → hoy), color turquesa ──
+            let tablaAcumHtml = '';
+            if (ytd) {
+                const ytdPmSet    = new Set(ytd.pm_won_ids || []);
+                const ytdWonOwner = ytd.won_owner  || {};
+                const ytdWonValue = ytd.won_value  || {};
+                const ytdByOwner  = ytd.by_owner   || {};
+                const ytdCualiOwner = ytd.cuali_por_owner || {};
+                const ytdCreadosOwner = ytd.creados_por_owner || {};
+
+                // ventas (fecha ganado) y facturación del año
+                const ytdVentasPorOwner = {}, ytdValorPorOwner = {};
+                Object.entries(ytdWonOwner).forEach(([id, owner]) => {
+                    if (ytdPmSet.has(Number(id)) || ytdPmSet.has(id)) return;
+                    ytdVentasPorOwner[owner] = (ytdVentasPorOwner[owner] || 0) + 1;
+                    ytdValorPorOwner[owner]  = (ytdValorPorOwner[owner]  || 0) + (Number(ytdWonValue[id]) || 0) / 100;
+                });
+
+                const ytdOwners = new Set([
+                    ...Object.keys(ytdCreadosOwner),
+                    ...Object.keys(ytdByOwner),
+                    ...Object.keys(ytdVentasPorOwner)
+                ]);
+                ytdOwners.delete('Sin dato');
+
+                const ytdFilas = [...ytdOwners].map(o => {
+                    const b = ytdByOwner[o] || { f1: 0, f2: 0, f3: 0, f4: 0 };
+                    const tratos = ytdCreadosOwner[o] || ((b.total || 0) + (b.wonc || 0));
+                    return {
+                        owner: o, tratos,
+                        f1: b.f1 || 0, f2: b.f2 || 0, f3: b.f3 || 0, f4: b.f4 || 0,
+                        cuali: ytdCualiOwner[o] || 0,
+                        won:  ytdVentasPorOwner[o] || 0,
+                        wonc: b.wonc || 0,
+                        valor: ytdValorPorOwner[o] || 0
+                    };
+                }).filter(f => f.tratos > 0 || f.won > 0);
+                ytdFilas.sort((a, b) => b.tratos - a.tratos || b.won - a.won);
+                const maxTratosYtd = Math.max(...ytdFilas.map(f => f.tratos), 1);
+
+                // colores turquesa para el cuadro acumulado
+                const TEAL = '#006F74', TEAL_SOFT = '#69C2C2', TEAL_TINT = 'rgba(0,111,116,0.07)';
+
+                let cuerpoYtd = '';
+                ytdFilas.forEach((f, i) => {
+                    const vPct = f.tratos > 0 ? Math.round(f.won  / f.tratos * 100) : 0;
+                    const qPct = f.tratos > 0 ? Math.round(f.cuali/ f.tratos * 100) : 0;
+                    const heat = (0.08 + 0.42 * (f.tratos / maxTratosYtd)).toFixed(2);
+                    cuerpoYtd += `<tr>
+                        <td><span class="rank-badge" style="background:${TEAL}">${i + 1}</span></td>
+                        <td class="cell-strong">${f.owner}</td>
+                        <td class="cell-total" style="background:rgba(0,111,116,${heat})">${nf0(f.tratos)}</td>
+                        <td class="num" style="font-weight:700;color:${f.cuali ? TEAL : '#D6D1DA'}">${f.cuali}</td>
+                        ${f.f1 ? `<td class="num">${f.f1}</td>` : `<td class="cell-zero">·</td>`}
+                        ${f.f2 ? `<td class="num">${f.f2}</td>` : `<td class="cell-zero">·</td>`}
+                        ${f.f3 ? `<td class="num">${f.f3}</td>` : `<td class="cell-zero">·</td>`}
+                        ${f.f4 ? `<td class="num">${f.f4}</td>` : `<td class="cell-zero">·</td>`}
+                        <td class="num ${f.won ? 'cell-win' : 'cell-zero'}">${f.won}</td>
+                        <td class="num" style="font-weight:700;color:${f.wonc ? TEAL_SOFT : '#D6D1DA'}">${f.wonc}</td>
+                        <td class="num" style="font-weight:700;color:${vPct > 0 ? 'var(--green)' : '#D6D1DA'}">${vPct}%</td>
+                        <td class="num" style="font-weight:600;color:${TEAL}">${qPct}%</td>
+                        ${f.valor > 0 ? `<td class="num" style="font-weight:700;color:${TEAL}">${eur0(f.valor)}</td>` : `<td class="cell-zero">—</td>`}</tr>`;
+                });
+                const TY = ytdFilas.reduce((a, f) => ({
+                    tratos: a.tratos + f.tratos, cuali: a.cuali + f.cuali,
+                    f1: a.f1+f.f1, f2: a.f2+f.f2, f3: a.f3+f.f3, f4: a.f4+f.f4,
+                    won: a.won+f.won, wonc: a.wonc+f.wonc, valor: a.valor+f.valor
+                }), { tratos:0,cuali:0,f1:0,f2:0,f3:0,f4:0,won:0,wonc:0,valor:0 });
+                const tyv = TY.tratos > 0 ? Math.round(TY.won  / TY.tratos * 100) : 0;
+                const tyq = TY.tratos > 0 ? Math.round(TY.cuali/ TY.tratos * 100) : 0;
+                cuerpoYtd += `<tr style="background:${TEAL_TINT};border-top:2px solid ${TEAL}">
+                    <td></td>
+                    <td class="cell-strong" style="color:${TEAL}">TOTAL · ${ytdFilas.length} vendedores</td>
+                    <td class="num" style="font-weight:800;color:${TEAL}">${nf0(TY.tratos)}</td>
+                    <td class="num" style="font-weight:800;color:${TEAL}">${TY.cuali}</td>
+                    <td class="num" style="font-weight:800">${TY.f1}</td>
+                    <td class="num" style="font-weight:800">${TY.f2}</td>
+                    <td class="num" style="font-weight:800">${TY.f3}</td>
+                    <td class="num" style="font-weight:800">${TY.f4}</td>
+                    <td class="num cell-win" style="font-weight:800">${TY.won}</td>
+                    <td class="num" style="font-weight:800;color:${TEAL_SOFT}">${TY.wonc}</td>
+                    <td class="num" style="font-weight:800;color:var(--green)">${tyv}%</td>
+                    <td class="num" style="font-weight:800;color:${TEAL}">${tyq}%</td>
+                    <td class="num" style="font-weight:800;color:${TEAL}">${eur0(TY.valor)}</td></tr>`;
+
+                tablaAcumHtml = `<div class="section" style="border-top:3px solid ${TEAL};margin-top:4px">
+                    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;color:${TEAL}">
+                        <span>📊 Acumulado del año ${new Date().getFullYear()}</span>
+                        <span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">
+                            Desde <b>01/01/${new Date().getFullYear()}</b> hasta <b>${fmtDate(ytdTo)}</b> · Independiente del filtro de fechas · Sin paciente modelo
+                        </span>
+                    </div>
+                    <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px">
+                        Este cuadro muestra el rendimiento de cada vendedor en lo que llevamos de <strong>${new Date().getFullYear()}</strong> completo,
+                        sin importar qué periodo tengas seleccionado arriba. Útil para comparar el ritmo anual de cada persona.
+                    </p>
+                    <div class="table-wrap"><table class="table">
+                        <thead style="background:rgba(0,111,116,0.1)"><tr>
+                            <th>#</th><th>Vendedor</th>
+                            <th style="color:${TEAL}" title="Leads asignados a este vendedor desde el 1 de enero.">Tratos</th>
+                            <th style="color:${TEAL}" title="Tratos del año que llegaron AL MENOS a Fase 2.">Cualificados (F2+)</th>
+                            <th style="color:var(--slate)">F1</th>
+                            <th style="color:${TEAL}">F2</th>
+                            <th style="color:${TEAL_SOFT}">F3</th>
+                            <th style="color:var(--gold)">F4</th>
+                            <th style="color:var(--green)" title="Ventas firmadas en lo que va de año (fecha de ganado).">Ventas (fecha de ganado)</th>
+                            <th style="color:${TEAL_SOFT}" title="De los leads del año asignados a este vendedor, los ya ganados.">Ventas (fecha de creado)</th>
+                            <th style="color:var(--green)">% Venta</th>
+                            <th style="color:${TEAL}">% Cualifica</th>
+                            <th style="color:${TEAL}">Facturación</th>
+                        </tr></thead>
+                        <tbody>${cuerpoYtd}</tbody></table></div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:8px">
+                        Acumulado 01/01/${new Date().getFullYear()} — ${fmtDate(ytdTo)} · Los % se calculan sobre los tratos del año asignados a cada vendedor.
+                    </div></div>`;
+            }
 
             // ── PODIO ESTILO F1: quién más ventas (fecha de ganado) cerró en el periodo ──
             const podioArr = filas.filter(f => f.won > 0).sort((a, b) => b.won - a.won || b.valor - a.valor);
@@ -693,7 +817,7 @@
             }
 
             document.getElementById('dashboardContent').innerHTML =
-                `<div class="cards-grid">${cards}</div>` + podioHtml + tablaHtml + semanaHtml + ownerChartsHtml;
+                `<div class="cards-grid">${cards}</div>` + podioHtml + tablaHtml + tablaAcumHtml + semanaHtml + ownerChartsHtml;
 
             if (ownerChartsHtml) {
                 const dias = diasDelRango(params.from, params.to);
