@@ -97,6 +97,14 @@ const DAY_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', ye
 const dayES = v => { try { return DAY_FMT.format(new Date(v)); } catch (_) { return String(v).slice(0, 10); } };
 
 async function acGet(key, path, params = {}) {
+  // ⚠️ ORDEN ESTABLE OBLIGATORIO en /deals. Sin `orders[...]` AC no garantiza el orden entre
+  // páginas: devuelve ventanas SOLAPADAS (la página 2 repite filas de la 1) y OMITE otras, así que
+  // al paginar llegan meta.total filas pero menos ids únicos. Auditoría 27-jul-2026: julio salía
+  // 528 tratos en vez de 551 (-4%) y el scan de ganados 844 de 879. El dedupe por id quita los
+  // duplicados que llegan, pero NO recupera los que AC nunca devolvió: el arreglo es este.
+  if (path === '/deals' && !Object.keys(params).some(k => k.startsWith('orders['))) {
+    params = { ...params, 'orders[id]': 'ASC' };
+  }
   const qs = new URLSearchParams(params).toString();
   try {
     const r = await fetch(`${AC_BASE}${path}${qs ? ('?' + qs) : ''}`, { headers: { Accept: 'application/json', 'Api-Token': key } });
@@ -135,6 +143,7 @@ export default async function handler(req, res) {
       if (us.length < 100) break;
     }
 
+    const integridad = {};   // {scan: {esperados, obtenidos}} — si no cuadran, el front avisa
     const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {}, f2_by_date = {}, paid_by_date = {}, all_by_date = {};
     // Series diarias POR VENDEDOR (hoja "Equipo de ventas"): {vendedor: {YYYY-MM-DD: n}}
     const creados_owner_by_date = {}, f2_owner_by_date = {};
@@ -208,6 +217,13 @@ export default async function handler(req, res) {
     const CUALI_STAGES = new Set(['34', '36', '37']);
     let cuali_total = 0;
     const cuali_por_owner = {}, cuali_by_date = {}, cuali_owner_by_date = {};
+    // Reparto por ETAPA de todos los creados: lo que el embudo F1-F4 no enseña (Eventos, Para
+    // Contactar, TRASH, perdidos). Auditoría 27-jul: 94 de 551 tratos vivían fuera del embudo.
+    const creados_por_etapa = {};
+    // Tratos creados por PAÍS: para que el cuadro por país/región cuente lo mismo que la tarjeta.
+    const creados_por_pais = {};
+    const sinPaisCreados = [];   // {contact} → país por teléfono, igual que el embudo
+    const ETIQUETA_ETAPA = { '1': 'Para contactar', '12': 'TRASH', '33': 'Fase 1', '34': 'Fase 2', '36': 'Fase 3', '37': 'Fase 4', '87': 'No contestan', '95': 'Eventos' };
     {
       const seenC = new Set();   // dedupe por id (paginación paralela, ver arriba)
       const proc = (resp) => {
@@ -230,6 +246,15 @@ export default async function handler(req, res) {
             addDia(creados_owner_by_date, ownerNameC, day);
             if (esCuali) { cuali_by_date[day] = (cuali_by_date[day] || 0) + 1; addDia(cuali_owner_by_date, ownerNameC, day); }
           }
+          // Dónde vive HOY cada trato creado (para explicar los que quedan fuera del embudo F1-F4)
+          const et = String(d.status) === '1' ? 'Ganados'
+                   : (String(d.status) === '2' ? 'Perdidos'
+                   : (ETIQUETA_ETAPA[String(d.stage)] || ('Etapa ' + d.stage)));
+          creados_por_etapa[et] = (creados_por_etapa[et] || 0) + 1;
+          // País del trato creado (mismo criterio que el embudo: campo 40 y, si falta, teléfono)
+          const pvC = c[M_PAIS];
+          if (pvC && String(pvC).trim()) { const k = normPais(pvC); creados_por_pais[k] = (creados_por_pais[k] || 0) + 1; }
+          else sinPaisCreados.push(d.contact);
           const utm = normUtm(c[M_UTM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
@@ -246,6 +271,8 @@ export default async function handler(req, res) {
         const r = await Promise.all(offsC.slice(i, i + 10).map(o => acGet(KEY, '/deals', { ...base, include: 'dealCustomFieldData', limit: 100, offset: o })));
         r.forEach(proc);
       }
+      // Control de integridad: si tras paginar faltan ids respecto a meta.total, el informe lo dice.
+      integridad.creados = { esperados: totalC, obtenidos: seenC.size };
     }
 
     // Completar "Sin país": inferir por el prefijo del teléfono del contacto (solo los que no tienen país)
@@ -263,6 +290,13 @@ export default async function handler(req, res) {
       if (inf) { add(by_pais, inf, x.sk); pais_recuperados++; }
       else add(by_pais, 'Sin país', x.sk);
     });
+    // Mismo reparto para los tratos CREADOS (columna Tratos del cuadro por país), reutilizando
+    // los teléfonos ya consultados; los que no se resolvieron caen en "Sin país".
+    sinPaisCreados.forEach(cid => {
+      const inf = cid && phonePais[cid];
+      const k = inf || 'Sin país';
+      creados_por_pais[k] = (creados_por_pais[k] || 0) + 1;
+    });
 
     // Mapa deal_id -> vendedor de TODOS los ganados. El front lo cruza con won_deals del proxy
     // (= ganados EN el periodo por fecha de cierre) para que el Won cuadre con el funnel (14).
@@ -272,14 +306,22 @@ export default async function handler(req, res) {
     const won_title = {};  // id -> título del trato
     const won_conocio = {};   // id -> "¿Cómo has conocido EIMEC?" (cf9): atribución de respaldo cuando falta el utm
     const won_campana = {};   // id -> utm_campaign (cf11) del ganado, para el desglose por campaña
-    const pmWonIds = [];   // ids de ganados que son "paciente modelo" → el front los excluye
+    // pmWonIds = ganados que el front debe EXCLUIR. Criterio duro: todo lo que no sea el pipeline de
+    // formación (group 1) fuera — el proxy WP devuelve ganados de TODOS los pipelines y la regex de
+    // "paciente modelo" no los pilla todos (auditoría 27-jul: 99 ganados de group 4 se le escapaban).
+    const pmWonIds = [];
+    const won_group = {};   // id -> pipeline del trato ganado
     {
+      const seenW = new Set();   // dedupe por id (paginación paralela)
       const grab = async (off) => {
         const d = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', limit: 100, offset: off });
         const cf = {};
         (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
         (d.deals || []).forEach(x => {
+          if (seenW.has(x.id)) return;
+          seenW.add(x.id);
           const ownerName = ownerMap[x.owner] || 'Sin asignar';
+          won_group[x.id] = String(x.group || '');
           won_owner[x.id] = ownerName;
           const pmCamp = cf[x.id] && cf[x.id][M_PM_CAMPAIGN] && String(cf[x.id][M_PM_CAMPAIGN]).trim();
           const utm = normUtm(cf[x.id] && cf[x.id][M_UTM]);
@@ -290,7 +332,7 @@ export default async function handler(req, res) {
           // Importe (AC lo guarda en CÉNTIMOS) y título, para el listado de ventas de administración
           won_value[x.id] = x.value ? Number(x.value) : 0;
           won_title[x.id] = x.title || '';
-          if (isPM(pmCamp, ownerName)) pmWonIds.push(x.id);
+          if (String(x.group || '') !== GROUP || isPM(pmCamp, ownerName)) pmWonIds.push(x.id);
         });
         return d;
       };
@@ -299,6 +341,7 @@ export default async function handler(req, res) {
       const offs = []; for (let o = 100; o < total; o += 100) offs.push(o);
       const B = 10;
       for (let i = 0; i < offs.length; i += B) { await Promise.all(offs.slice(i, i + B).map(o => grab(o))); }
+      integridad.ganados = { esperados: total, obtenidos: seenW.size };
     }
 
     // GANADOS CREADOS EN EL PERIODO (cohorte): de los tratos que ENTRARON en estas fechas, cuántos ya se ganaron.
@@ -360,6 +403,7 @@ export default async function handler(req, res) {
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
       cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
+      creados_por_etapa, creados_por_pais, won_group, integridad,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
