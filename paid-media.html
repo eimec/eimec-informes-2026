@@ -421,7 +421,10 @@
                 else { const t = new Date(); fromDate = new Date(t.getFullYear(), t.getMonth(), 1); toDate = t; }   // "Este mes"
             }
             currentRange = { from: fromDate, to: toDate };
-            const params = { from: fromDate.toISOString().split('T')[0], to: toDate.toISOString().split('T')[0] };
+            // ymd LOCAL (no toISOString): en Madrid (UTC+2) el 1 de julio a las 00:00 se convertía a
+            // "2026-06-30" en UTC y el informe pedía un día de más al CRM y a las plataformas.
+            const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const params = { from: ymd(fromDate), to: ymd(toDate) };
             const query = new URLSearchParams(params).toString();
             document.getElementById('metaLine').innerHTML = 'Calculando…';
             document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando inversión, tratos y ventas del periodo… puede tardar unos segundos la primera vez.</div>';

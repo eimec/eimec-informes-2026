@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Mismas variables y componentes que index.html / paid-media.html — mismo look ejecutivo. */
         :root {
@@ -185,6 +186,52 @@
         .table td.num { text-align: center; }
         .rank-badge { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:6px; background:var(--brand-tint); color:var(--brand); font-size:10px; font-weight:700; margin-right:8px; }
 
+        /* ---------- PODIO ESTILO F1 ---------- */
+        .podio-wrap {
+            background: linear-gradient(160deg, #131C36 0%, #1F2A4E 55%, #24365F 100%);
+            border-radius: var(--radius); padding: 26px 24px 30px; margin-bottom: 22px;
+            box-shadow: var(--shadow-lg); position: relative; overflow: hidden;
+        }
+        .podio-wrap::after {
+            content:""; position:absolute; inset:0; pointer-events:none;
+            background: radial-gradient(600px 260px at 50% -30%, rgba(217,164,65,.28), transparent 65%);
+        }
+        .podio-title {
+            font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1.4px;
+            text-align: center; margin-bottom: 4px;
+        }
+        .podio-sub { font-size: 11.5px; color: rgba(255,255,255,.6); text-align: center; margin-bottom: 22px; }
+        .podio {
+            display: flex; align-items: flex-end; justify-content: center; gap: 14px; position: relative; z-index: 1; flex-wrap: wrap;
+        }
+        .podio-col { display: flex; flex-direction: column; align-items: center; width: 168px; max-width: 32%; }
+        .podio-trofeo { font-size: 34px; line-height: 1; margin-bottom: 6px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); }
+        .podio-col.p1 .podio-trofeo { font-size: 46px; animation: brinca 2.4s ease-in-out infinite; }
+        @keyframes brinca { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+        .podio-nombre { color: #fff; font-weight: 700; font-size: 13.5px; text-align: center; line-height: 1.25; margin-bottom: 2px; }
+        .podio-ventas { color: #FFE1A6; font-size: 11.5px; font-weight: 600; margin-bottom: 8px; }
+        .podio-caja {
+            width: 100%; border-radius: 10px 10px 0 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-start; padding-top: 12px; color: #131C36;
+            box-shadow: inset 0 -14px 24px -18px rgba(0,0,0,.6), 0 10px 30px -14px rgba(0,0,0,.7);
+        }
+        .podio-caja .puesto { font-size: 30px; font-weight: 900; line-height: 1; opacity: .85; }
+        .podio-caja .euros { font-size: 12px; font-weight: 700; margin-top: 6px; }
+        .p1 .podio-caja { background: linear-gradient(180deg, #F5D27E 0%, #D9A441 100%); height: 132px; }
+        .p2 .podio-caja { background: linear-gradient(180deg, #E4E8EE 0%, #B9C2CE 100%); height: 100px; }
+        .p3 .podio-caja { background: linear-gradient(180deg, #E4B48A 0%, #B87F4F 100%); height: 78px; }
+        .podio-resto {
+            margin-top: 18px; text-align: center; color: rgba(255,255,255,.62); font-size: 11.5px; position: relative; z-index: 1;
+        }
+        .podio-resto b { color: rgba(255,255,255,.9); }
+
+        /* ---------- GRÁFICOS POR VENDEDOR ---------- */
+        .owner-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+        .owner-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 10px; background: #fff; }
+        .owner-card h4 { font-size: 13px; font-weight: 700; color: var(--brand-dark); margin-bottom: 2px; }
+        .owner-card .sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+        .owner-chart { position: relative; height: 190px; }
+
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
         .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
         .footer .brand-foot { color: var(--brand); font-weight: 600; }
@@ -263,6 +310,7 @@
         // GATE: MISMA contraseña y MISMA clave de sesión que index.html → una sola sesión para todo el informe.
         const PASSWORD = 'eimec2026';
         let currentRange = null;
+        let charts = {};   // instancias Chart.js (se destruyen antes de re-crear)
 
         function checkPassword() {
             const input = document.getElementById('passwordInput');
@@ -324,7 +372,10 @@
                 else { const t = new Date(); fromDate = new Date(t.getFullYear(), t.getMonth(), 1); toDate = t; }
             }
             currentRange = { from: fromDate, to: toDate };
-            const params = { from: fromDate.toISOString().split('T')[0], to: toDate.toISOString().split('T')[0] };
+            // ymd LOCAL (no toISOString): en Madrid (UTC+2) el 1 de julio a las 00:00 se convertía a
+            // "2026-06-30" en UTC y el informe pedía un día de más al CRM (557 tratos en vez de 528).
+            const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const params = { from: ymd(fromDate), to: ymd(toDate) };
             const query = new URLSearchParams(params).toString();
             document.getElementById('metaLine').innerHTML = 'Calculando…';
             document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando tratos, fases y ventas por vendedor… puede tardar unos segundos la primera vez.</div>';
@@ -446,8 +497,162 @@
                 <tbody>${cuerpo}</tbody></table></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:8px">Los % se calculan sobre los tratos que entraron en el periodo: un vendedor puede firmar más ventas que tratos nuevos tenga (leads de meses anteriores), en ese caso el % Venta supera el 100%.</div></div>`;
 
+            // ── PODIO ESTILO F1: quién más ventas (fecha de ganado) cerró en el periodo ──
+            const podioArr = filas.filter(f => f.won > 0).sort((a, b) => b.won - a.won || b.valor - a.valor);
+            let podioHtml = '';
+            if (podioArr.length) {
+                const col = (f, puesto) => {
+                    if (!f) return '';
+                    const trofeo = puesto === 1 ? '🏆' : (puesto === 2 ? '🥈' : '🥉');
+                    return `<div class="podio-col p${puesto}">
+                        <div class="podio-trofeo">${trofeo}</div>
+                        <div class="podio-nombre">${f.owner}</div>
+                        <div class="podio-ventas">${f.won} ${f.won === 1 ? 'venta' : 'ventas'}</div>
+                        <div class="podio-caja"><div class="puesto">${puesto}</div><div class="euros">${f.valor > 0 ? eur0(f.valor) : '—'}</div></div>
+                    </div>`;
+                };
+                const resto = podioArr.slice(3);
+                podioHtml = `<div class="podio-wrap">
+                    <div class="podio-title">🏁 Podio del periodo · ventas cerradas</div>
+                    <div class="podio-sub">Ventas firmadas (fecha de ganado) entre ${fmtDate(params.from)} y ${fmtDate(params.to)}</div>
+                    <div class="podio">${col(podioArr[1], 2)}${col(podioArr[0], 1)}${col(podioArr[2], 3)}</div>
+                    ${resto.length ? `<div class="podio-resto">También en carrera: ${resto.map(r => `<b>${r.owner}</b> (${r.won})`).join(' · ')}</div>` : ''}
+                </div>`;
+            }
+
+            // ── CUADRO POR SEMANA (para la reunión de ventas) ──
+            // Semanas ISO (lunes a domingo) recortadas al filtro. Tratos creados y F2 salen de las series
+            // diarias del CRM; las ventas, del día de cierre de cada trato ganado.
+            const cobd = extra.creados_owner_by_date || {};
+            const f2obd = extra.f2_owner_by_date || {};
+            const sumaDias = obj => { const o = {}; Object.values(obj).forEach(m => Object.entries(m).forEach(([d, v]) => { o[d] = (o[d] || 0) + v; })); return o; };
+            const creadosDia = Object.keys(cobd).length ? sumaDias(cobd) : (extra.creados_by_date || {});
+            const f2Dia = Object.keys(f2obd).length ? sumaDias(f2obd) : (extra.f2_by_date || {});
+            const ventasDia = {};
+            wonClean.forEach(wd => { const d = String(wd.date || '').slice(0, 10); if (d) ventasDia[d] = (ventasDia[d] || 0) + 1; });
+            const valorDia = {};
+            wonClean.forEach(wd => { const d = String(wd.date || '').slice(0, 10); if (d) valorDia[d] = (valorDia[d] || 0) + (Number(wonValue[wd.id]) || 0) / 100; });
+
+            const lunesDe = iso => {   // lunes de la semana de esa fecha (ISO: lunes = inicio)
+                const [y, m, d] = iso.split('-').map(Number);
+                const dt = new Date(y, m - 1, d);
+                const dow = (dt.getDay() + 6) % 7;   // 0 = lunes
+                dt.setDate(dt.getDate() - dow);
+                return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+            };
+            const semanaISO = iso => {   // número de semana ISO 8601
+                const [y, m, d] = iso.split('-').map(Number);
+                const dt = new Date(Date.UTC(y, m - 1, d));
+                const dn = (dt.getUTCDay() + 6) % 7;
+                dt.setUTCDate(dt.getUTCDate() - dn + 3);              // jueves de esa semana
+                const jueves1 = new Date(Date.UTC(dt.getUTCFullYear(), 0, 4));
+                const dn1 = (jueves1.getUTCDay() + 6) % 7;
+                jueves1.setUTCDate(jueves1.getUTCDate() - dn1 + 3);
+                return 1 + Math.round((dt - jueves1) / 604800000);
+            };
+            const sem = {};
+            const semDe = k => sem[k] || (sem[k] = { tratos: 0, f2: 0, won: 0, valor: 0 });
+            const meterEn = (bucket, campo) => Object.entries(bucket).forEach(([d, v]) => {
+                if (d < params.from || d > params.to) return;   // el filtro manda
+                semDe(lunesDe(d))[campo] += Number(v) || 0;
+            });
+            meterEn(creadosDia, 'tratos'); meterEn(f2Dia, 'f2'); meterEn(ventasDia, 'won'); meterEn(valorDia, 'valor');
+
+            let semanaHtml = '';
+            const semKeys = Object.keys(sem).sort();
+            if (semKeys.length) {
+                const maxSem = Math.max(...semKeys.map(k => sem[k].tratos), 1);
+                let cuerpoS = '';
+                const TS = { tratos: 0, f2: 0, won: 0, valor: 0 };
+                semKeys.forEach(k => {
+                    const s = sem[k];
+                    TS.tratos += s.tratos; TS.f2 += s.f2; TS.won += s.won; TS.valor += s.valor;
+                    const [y, m, d] = k.split('-').map(Number);
+                    const fin = new Date(y, m - 1, d + 6);
+                    const finStr = `${String(fin.getDate()).padStart(2, '0')}/${String(fin.getMonth() + 1).padStart(2, '0')}`;
+                    const iniStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+                    const qPct = s.tratos > 0 ? Math.round(s.f2 / s.tratos * 100) : 0;
+                    const vPct = s.tratos > 0 ? Math.round(s.won / s.tratos * 100) : 0;
+                    const heat = (0.08 + 0.42 * (s.tratos / maxSem)).toFixed(2);
+                    cuerpoS += `<tr>
+                        <td class="cell-strong">Semana ${semanaISO(k)}</td>
+                        <td style="color:var(--muted)">${iniStr} — ${finStr}</td>
+                        <td class="cell-total" style="background:rgba(31,42,78,${heat})">${nf0(s.tratos)}</td>
+                        ${s.f2 ? `<td class="num" style="font-weight:700;color:var(--brand)">${s.f2}</td>` : `<td class="cell-zero">·</td>`}
+                        <td class="num" style="font-weight:600;color:${qPct > 0 ? 'var(--brand)' : '#D6D1DA'}">${qPct}%</td>
+                        <td class="num ${s.won ? 'cell-win' : 'cell-zero'}">${s.won || 0}</td>
+                        <td class="num" style="font-weight:600;color:${vPct > 0 ? 'var(--green)' : '#D6D1DA'}">${vPct}%</td>
+                        ${s.valor > 0 ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(s.valor)}</td>` : `<td class="cell-zero">—</td>`}</tr>`;
+                });
+                const tq = TS.tratos > 0 ? Math.round(TS.f2 / TS.tratos * 100) : 0;
+                const tvv = TS.tratos > 0 ? Math.round(TS.won / TS.tratos * 100) : 0;
+                cuerpoS += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                    <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
+                    <td style="color:var(--muted)">${semKeys.length} ${semKeys.length === 1 ? 'semana' : 'semanas'}</td>
+                    <td class="num" style="font-weight:800;color:var(--brand-dark)">${nf0(TS.tratos)}</td>
+                    <td class="num" style="font-weight:800;color:var(--brand)">${TS.f2}</td>
+                    <td class="num" style="font-weight:800;color:var(--brand)">${tq}%</td>
+                    <td class="num cell-win" style="font-weight:800">${TS.won}</td>
+                    <td class="num" style="font-weight:800;color:var(--green)">${tvv}%</td>
+                    <td class="num" style="font-weight:800;color:var(--brand)">${eur0(TS.valor)}</td></tr>`;
+                semanaHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Semana a semana</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Semanas de lunes a domingo dentro del filtro · La primera y la última pueden salir cortadas si el filtro empieza o acaba a media semana</span></div><div class="table-wrap"><table class="table">
+                    <thead><tr><th>Semana</th><th>Fechas</th><th style="color:var(--brand)" title="Leads que entraron esa semana (cualquier etapa, sin paciente modelo).">Tratos creados</th><th style="color:var(--brand)" title="De los tratos creados esa semana, los que HOY están en Fase 2 o superior no: exactamente los que hoy están en Fase 2.">Pasaron a F2</th><th style="color:var(--brand)" title="Pasaron a F2 ÷ tratos creados esa semana.">% Cualifica</th><th style="color:var(--green)" title="Ventas firmadas esa semana (fecha de ganado). El lead pudo entrar antes.">Ventas</th><th style="color:var(--green)" title="Ventas de la semana ÷ tratos creados esa semana.">% Venta</th><th style="color:var(--brand)" title="Importe de las ventas firmadas esa semana.">Facturación</th></tr></thead>
+                    <tbody>${cuerpoS}</tbody></table></div></div>`;
+            }
+
+            // ── GRÁFICOS POR VENDEDOR: tratos asignados y pasados a F2, día a día ──
+            let ownerChartsHtml = '';
+            const chartOwners = filas.filter(f => f.tratos > 0).map(f => f.owner);
+            if (chartOwners.length && (Object.keys(cobd).length || Object.keys(f2obd).length)) {
+                ownerChartsHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Actividad diaria por vendedor</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Barras = tratos asignados ese día · Línea = de esos tratos, los que hoy están en Fase 2</span></div>
+                    <div class="owner-grid">${chartOwners.map((o, i) => `<div class="owner-card"><h4>${o}</h4><div class="sub">${nf0(creadosOwner[o] || 0)} tratos · ${nf0((byOwner[o] || {}).f2 || 0)} en F2 · ${nf0(ventasPorOwner[o] || 0)} ventas</div><div class="owner-chart"><canvas id="ownerChart${i}"></canvas></div></div>`).join('')}</div></div>`;
+            }
+
             document.getElementById('dashboardContent').innerHTML =
-                `<div class="cards-grid">${cards}</div>` + tablaHtml;
+                `<div class="cards-grid">${cards}</div>` + podioHtml + tablaHtml + semanaHtml + ownerChartsHtml;
+
+            if (ownerChartsHtml) pintaOwnerCharts(chartOwners, cobd, f2obd, params);
+        }
+
+        // Serie diaria ANCLADA al filtro: eje completo de from→to con 0 en los días sin datos.
+        function diasDelRango(from, to) {
+            const dias = [];
+            const [y1, m1, d1] = from.split('-').map(Number);
+            const [y2, m2, d2] = to.split('-').map(Number);
+            const d = new Date(y1, m1 - 1, d1), end = new Date(y2, m2 - 1, d2);
+            for (let g = 0; d <= end && g < 400; g++) {
+                dias.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                d.setDate(d.getDate() + 1);
+            }
+            return dias;
+        }
+        function pintaOwnerCharts(owners, cobd, f2obd, params) {
+            const dias = diasDelRango(params.from, params.to);
+            const etiquetas = dias.map(k => k.slice(8) + '/' + k.slice(5, 7));
+            owners.forEach((o, i) => {
+                const el = document.getElementById('ownerChart' + i);
+                if (!el) return;
+                if (charts['owner' + i]) charts['owner' + i].destroy();
+                const serieT = dias.map(k => (cobd[o] && cobd[o][k]) || 0);
+                const serieF2 = dias.map(k => (f2obd[o] && f2obd[o][k]) || 0);
+                charts['owner' + i] = new Chart(el, {
+                    data: {
+                        labels: etiquetas,
+                        datasets: [
+                            { type: 'bar', label: 'Tratos asignados', data: serieT, backgroundColor: 'rgba(31,42,78,.85)', borderRadius: 3, maxBarThickness: 14, order: 2 },
+                            { type: 'line', label: 'Pasaron a F2', data: serieF2, borderColor: '#0B8C8C', backgroundColor: '#0B8C8C', borderWidth: 2.2, tension: .35, pointRadius: 2, order: 1 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { labels: { font: { family: 'Montserrat', size: 11 }, color: '#667085', usePointStyle: true, boxWidth: 8, padding: 10 } } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { font: { family: 'Montserrat', size: 9 }, color: '#9A93A2', maxRotation: 60, autoSkip: true, maxTicksLimit: 16 } },
+                            y: { beginAtZero: true, grid: { color: '#EDF0F4' }, ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9A93A2', precision: 0 } }
+                        }
+                    }
+                });
+            });
         }
 
         if (sessionStorage.getItem('authenticated') === 'true') { showDashboard(); loadData(); }

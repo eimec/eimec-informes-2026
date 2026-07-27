@@ -136,6 +136,9 @@ export default async function handler(req, res) {
     }
 
     const by_owner = {}, by_pais = {}, by_curso = {}, by_campaign = {}, created_by_date = {}, f2_by_date = {}, paid_by_date = {}, all_by_date = {};
+    // Series diarias POR VENDEDOR (hoja "Equipo de ventas"): {vendedor: {YYYY-MM-DD: n}}
+    const creados_owner_by_date = {}, f2_owner_by_date = {};
+    const addDia = (b, owner, day) => { if (!b[owner]) b[owner] = {}; b[owner][day] = (b[owner][day] || 0) + 1; };
     const by_campana_fases = {};   // utm_campaign (cf11) -> {f1..f4}: fases comerciales por CAMPAÑA (cuadro de Paid Media)
     const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
@@ -171,7 +174,7 @@ export default async function handler(req, res) {
           // (created_by_date queda intacto para no cambiar nada de lo que ya consume el informe.)
           all_by_date[day] = (all_by_date[day] || 0) + 1;
           // F2 por día de CREACIÓN, desde la MISMA fuente que el resto (evita el desfase horario del proxy WP)
-          if (sk === 'f2') f2_by_date[day] = (f2_by_date[day] || 0) + 1;
+          if (sk === 'f2') { f2_by_date[day] = (f2_by_date[day] || 0) + 1; addDia(f2_owner_by_date, ownerName, day); }
         }
       });
     };
@@ -213,7 +216,7 @@ export default async function handler(req, res) {
           if (isPM(pmCamp, ownerNameC)) return;   // paciente modelo fuera, como siempre
           creados_total++;
           creados_por_owner[ownerNameC] = (creados_por_owner[ownerNameC] || 0) + 1;   // hoja "Equipo de ventas"
-          if (d.cdate) { const day = dayES(d.cdate); creados_by_date[day] = (creados_by_date[day] || 0) + 1; }
+          if (d.cdate) { const day = dayES(d.cdate); creados_by_date[day] = (creados_by_date[day] || 0) + 1; addDia(creados_owner_by_date, ownerNameC, day); }
           const utm = normUtm(c[M_UTM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
@@ -342,6 +345,7 @@ export default async function handler(req, res) {
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
+      creados_owner_by_date, f2_owner_by_date,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',

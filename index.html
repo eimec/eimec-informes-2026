@@ -377,7 +377,10 @@
                 else { const _t=new Date(); const _f=new Date(); _f.setDate(_t.getDate()-30); fromDate=_f; toDate=_t; }
             }
             currentRange = { from: fromDate, to: toDate };   // recordar el rango para TODO (refrescos, re-render)
-            const params = { from: fromDate.toISOString().split('T')[0], to: toDate.toISOString().split('T')[0] };
+            // ymd LOCAL (no toISOString): en Madrid (UTC+2) el 1 de julio a las 00:00 se convertía a
+            // "2026-06-30" en UTC y el informe pedía un día de más al CRM (557 tratos en vez de 528).
+            const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const params = { from: ymd(fromDate), to: ymd(toDate) };
             const query = new URLSearchParams(params).toString();
             document.getElementById('metaLine').innerHTML = 'Calculando…';
             document.getElementById('dashboardContent').innerHTML = '<div class="loading">Calculando TODO el periodo (embudo · país · curso · vendedor)… puede tardar unos segundos la primera vez.</div>';
@@ -389,7 +392,7 @@
                     // que compara mes natural y año natural, independiente del filtro).
                     const _hoy = new Date();
                     const _y0 = `${_hoy.getFullYear()}-01-01`;
-                    const _hoyStr = _hoy.toISOString().split('T')[0];
+                    const _hoyStr = ymd(_hoy);
                     const [dataRes, extraRes, ytdRes, movesRes, stockRes] = await Promise.all([
                         fetch(`/api/ac-data?${query}`),
                         fetch(`/api/ac-extra?${query}`).catch(()=>null),
