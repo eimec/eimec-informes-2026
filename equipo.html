@@ -225,12 +225,8 @@
         }
         .podio-resto b { color: rgba(255,255,255,.9); }
 
-        /* ---------- GRÁFICOS POR VENDEDOR ---------- */
-        .owner-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
-        .owner-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 10px; background: #fff; }
-        .owner-card h4 { font-size: 13px; font-weight: 700; color: var(--brand-dark); margin-bottom: 2px; }
-        .owner-card .sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
-        .owner-chart { position: relative; height: 190px; }
+        /* ---------- GRÁFICOS COMPARATIVOS (una línea por vendedor) ---------- */
+        .comp-chart { position: relative; height: 300px; margin-top: 10px; }
 
         .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
         .footer { max-width: 1440px; margin: 0 auto; padding: 0 32px 40px; color: var(--muted); font-size: 12px; text-align: center; }
@@ -600,18 +596,70 @@
                     <tbody>${cuerpoS}</tbody></table></div></div>`;
             }
 
-            // ── GRÁFICOS POR VENDEDOR: tratos asignados y pasados a F2, día a día ──
+            // ── TRES GRÁFICOS COMPARATIVOS: una línea por vendedor en cada uno ──
+            const chartOwners = filas.filter(f => f.tratos > 0 || f.won > 0).map(f => f.owner);
+            // Ventas por vendedor y día (fecha de cierre), para el tercer gráfico
+            const wonObd = {};
+            wonClean.forEach(wd => {
+                const d = String(wd.date || '').slice(0, 10);
+                const o = wonOwner[wd.id] || 'Sin asignar';
+                if (!d) return;
+                if (!wonObd[o]) wonObd[o] = {};
+                wonObd[o][d] = (wonObd[o][d] || 0) + 1;
+            });
+
             let ownerChartsHtml = '';
-            const chartOwners = filas.filter(f => f.tratos > 0).map(f => f.owner);
-            if (chartOwners.length && (Object.keys(cobd).length || Object.keys(f2obd).length)) {
-                ownerChartsHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Actividad diaria por vendedor</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Barras = tratos asignados ese día · Línea = de esos tratos, los que hoy están en Fase 2</span></div>
-                    <div class="owner-grid">${chartOwners.map((o, i) => `<div class="owner-card"><h4>${o}</h4><div class="sub">${nf0(creadosOwner[o] || 0)} tratos · ${nf0((byOwner[o] || {}).f2 || 0)} en F2 · ${nf0(ventasPorOwner[o] || 0)} ventas</div><div class="owner-chart"><canvas id="ownerChart${i}"></canvas></div></div>`).join('')}</div></div>`;
+            if (chartOwners.length) {
+                const bloque = (id, titulo, nota) => `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>${titulo}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${nota}</span></div><div class="comp-chart"><canvas id="${id}"></canvas></div></div>`;
+                ownerChartsHtml =
+                    bloque('chartTratos', 'Tratos recibidos por día', 'Una línea por vendedor · leads que se le asignaron ese día') +
+                    bloque('chartF2', 'Pasaron a Fase 2 por día', 'Una línea por vendedor · tratos que HOY están en Fase 2, colocados en su día de entrada') +
+                    bloque('chartWon', 'Ventas cerradas por día', 'Una línea por vendedor · por fecha de ganado');
             }
 
             document.getElementById('dashboardContent').innerHTML =
                 `<div class="cards-grid">${cards}</div>` + podioHtml + tablaHtml + semanaHtml + ownerChartsHtml;
 
-            if (ownerChartsHtml) pintaOwnerCharts(chartOwners, cobd, f2obd, params);
+            if (ownerChartsHtml) {
+                const dias = diasDelRango(params.from, params.to);
+                pintaComparativa('chartTratos', chartOwners, cobd, dias, 'Tratos');
+                pintaComparativa('chartF2', chartOwners, f2obd, dias, 'F2');
+                pintaComparativa('chartWon', chartOwners, wonObd, dias, 'Ventas');
+            }
+        }
+
+        // Un color fijo por vendedor, el mismo en los tres gráficos.
+        const COLORES_OWNER = ['#1F2A4E', '#0B8C8C', '#D9A441', '#B4474C', '#7FA8C4', '#6B4E9B', '#3A5C94'];
+        function pintaComparativa(id, owners, porOwner, dias, etiqueta) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (charts[id]) charts[id].destroy();
+            const etiquetas = dias.map(k => k.slice(8) + '/' + k.slice(5, 7));
+            const datasets = owners.map((o, i) => {
+                const color = COLORES_OWNER[i % COLORES_OWNER.length];
+                return {
+                    label: o,
+                    data: dias.map(k => (porOwner[o] && porOwner[o][k]) || 0),
+                    borderColor: color, backgroundColor: color,
+                    borderWidth: 2.2, tension: .35, pointRadius: 2, pointHoverRadius: 4, fill: false
+                };
+            });
+            charts[id] = new Chart(el, {
+                type: 'line',
+                data: { labels: etiquetas, datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { font: { family: 'Montserrat', size: 11.5 }, color: '#667085', usePointStyle: true, boxWidth: 8, padding: 14 } },
+                        tooltip: { callbacks: { title: it => `${etiqueta} · ${it[0].label}` } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9A93A2', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 } },
+                        y: { beginAtZero: true, grid: { color: '#EDF0F4' }, ticks: { font: { family: 'Montserrat', size: 11 }, color: '#9A93A2', precision: 0 } }
+                    }
+                }
+            });
         }
 
         // Serie diaria ANCLADA al filtro: eje completo de from→to con 0 en los días sin datos.
@@ -626,35 +674,6 @@
             }
             return dias;
         }
-        function pintaOwnerCharts(owners, cobd, f2obd, params) {
-            const dias = diasDelRango(params.from, params.to);
-            const etiquetas = dias.map(k => k.slice(8) + '/' + k.slice(5, 7));
-            owners.forEach((o, i) => {
-                const el = document.getElementById('ownerChart' + i);
-                if (!el) return;
-                if (charts['owner' + i]) charts['owner' + i].destroy();
-                const serieT = dias.map(k => (cobd[o] && cobd[o][k]) || 0);
-                const serieF2 = dias.map(k => (f2obd[o] && f2obd[o][k]) || 0);
-                charts['owner' + i] = new Chart(el, {
-                    data: {
-                        labels: etiquetas,
-                        datasets: [
-                            { type: 'bar', label: 'Tratos asignados', data: serieT, backgroundColor: 'rgba(31,42,78,.85)', borderRadius: 3, maxBarThickness: 14, order: 2 },
-                            { type: 'line', label: 'Pasaron a F2', data: serieF2, borderColor: '#0B8C8C', backgroundColor: '#0B8C8C', borderWidth: 2.2, tension: .35, pointRadius: 2, order: 1 }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { labels: { font: { family: 'Montserrat', size: 11 }, color: '#667085', usePointStyle: true, boxWidth: 8, padding: 10 } } },
-                        scales: {
-                            x: { grid: { display: false }, ticks: { font: { family: 'Montserrat', size: 9 }, color: '#9A93A2', maxRotation: 60, autoSkip: true, maxTicksLimit: 16 } },
-                            y: { beginAtZero: true, grid: { color: '#EDF0F4' }, ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9A93A2', precision: 0 } }
-                        }
-                    }
-                });
-            });
-        }
-
         if (sessionStorage.getItem('authenticated') === 'true') { showDashboard(); loadData(); }
         setInterval(() => { if (sessionStorage.getItem('authenticated') === 'true') loadData(); }, 5 * 60 * 1000);
     </script>
