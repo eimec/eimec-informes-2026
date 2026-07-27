@@ -445,6 +445,15 @@
 
             // ── TARJETAS: rendimiento total del periodo ──
             const card = (cls, label, value, foot) => `<div class="card ${cls}"><div class="card-label">${label}</div><div class="card-value">${value}</div>${foot ? `<div class="card-foot">${foot}</div>` : ''}</div>`;
+            // Dónde están los tratos que el embudo F1-F4 no enseña (Eventos, Para contactar, TRASH,
+            // perdidos): sin esto la suma de las fases nunca cuadra con "Tratos generados".
+            const porEtapa = extra.creados_por_etapa || {};
+            const DENTRO = new Set(['Fase 1', 'Fase 2', 'Fase 3', 'Fase 4', 'Ganados']);
+            const fuera = Object.entries(porEtapa).filter(([k]) => !DENTRO.has(k)).sort((a, b) => b[1] - a[1]);
+            const fueraTotal = fuera.reduce((a, [, v]) => a + v, 0);
+            const fueraEmbudoCard = fueraTotal > 0
+                ? card('', 'Fuera del embudo', nf0(fueraTotal), fuera.map(([k, v]) => `${k} ${v}`).join(' · '))
+                : '';
             const cards =
                 card('card--euro', 'Tratos generados', nf0(creadosTotal), 'Leads que entraron en el periodo, cualquier etapa') +
                 card('', 'Fase 1 · Solicitud', nf0(tot.f1), 'Abiertos, creados en el periodo') +
@@ -453,7 +462,8 @@
                 card('', 'Fase 4 · Facturación', nf0(tot.f4), 'Abiertos, creados en el periodo') +
                 card('card--win', 'Ventas (fecha de ganado)', nf0(wonClean.length), 'Se firmaron en el periodo') +
                 card('card--win', 'Ventas (fecha de creado)', nf0(extra.won_creados || tot.wonc || 0), 'De los leads del periodo, ya ganados') +
-                card('card--euro', 'Facturación', eur0(facturacion), 'Importe de las ventas firmadas en el periodo');
+                card('card--euro', 'Facturación', eur0(facturacion), 'Importe de las ventas firmadas en el periodo') +
+                fueraEmbudoCard;
 
             // ── TABLA: rendimiento por vendedor (owner del trato) ──
             const owners = new Set([
@@ -596,10 +606,18 @@
                 semKeys.forEach(k => {
                     const s = sem[k];
                     TS.tratos += s.tratos; TS.f2 += s.f2; TS.won += s.won; TS.valor += s.valor;
+                    // Fechas REALES contadas: la primera y la última semana se recortan al filtro,
+                    // así que pintamos el tramo que de verdad entra (antes decía 29/06 contando desde el 01/07).
                     const [y, m, d] = k.split('-').map(Number);
-                    const fin = new Date(y, m - 1, d + 6);
-                    const finStr = `${String(fin.getDate()).padStart(2, '0')}/${String(fin.getMonth() + 1).padStart(2, '0')}`;
-                    const iniStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+                    const lunes = new Date(y, m - 1, d), domingo = new Date(y, m - 1, d + 6);
+                    const [fy, fm, fd] = params.from.split('-').map(Number);
+                    const [ty, tm, td] = params.to.split('-').map(Number);
+                    const ini = lunes < new Date(fy, fm - 1, fd) ? new Date(fy, fm - 1, fd) : lunes;
+                    const fin = domingo > new Date(ty, tm - 1, td) ? new Date(ty, tm - 1, td) : domingo;
+                    const dd = x => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
+                    const nDias = Math.round((fin - ini) / 86400000) + 1;
+                    const iniStr = dd(ini);
+                    const finStr = dd(fin) + (nDias < 7 ? ` <span style="color:var(--muted);font-style:italic">(${nDias} ${nDias === 1 ? 'día' : 'días'})</span>` : '');
                     const qPct = s.tratos > 0 ? Math.round(s.f2 / s.tratos * 100) : 0;
                     const vPct = s.tratos > 0 ? Math.round(s.won / s.tratos * 100) : 0;
                     const heat = (0.08 + 0.42 * (s.tratos / maxSem)).toFixed(2);

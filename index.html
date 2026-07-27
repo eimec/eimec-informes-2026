@@ -521,14 +521,19 @@
             // a los ya ganados). Así cada trato se cuenta UNA vez (en su fase actual o en Won) y cuadra con las tablas
             // de país/campaña/vendedor. Fallback al proxy si ac-extra no está disponible.
             const pf = _openF || { f1: p.f1, f2: p.f2, f3: p.f3, f4: p.f4 };
-            const t = pf.f1 + pf.f2 + pf.f3 + pf.f4 + w;   // total oportunidades del periodo (abiertos + ganados)
+            // "Entraron" = TODOS los tratos creados en el periodo (cualquier etapa), la misma cifra que
+            // usan Paid Media y Equipo de ventas. Sumar solo F1-F4+Won dejaba fuera Eventos, Para
+            // contactar, TRASH y perdidos: el mismo rótulo daba 465 aquí y 551 allí (auditoría 27-jul).
+            const creadosPeriodo = (extra && extra.ok && typeof extra.creados_total === 'number') ? extra.creados_total : null;
+            const t = creadosPeriodo !== null ? creadosPeriodo : (pf.f1 + pf.f2 + pf.f3 + pf.f4 + w);
             // EMBUDO HÍBRIDO (pedido por dirección):
             //  · F1 y F2 = CREADOS en el periodo del filtro (cohorte de los leads que entraron).
             //  · F3 y F4 = tratos que se MOVIERON a esa fase en el periodo (motor ac-moves, registro de actividad).
             //  · Venta = cerrados en el periodo.
             const hasMoves = !!(moves && moves.ok && !moves.partial && moves.moves);
-            const reachedF1 = pf.f1 + pf.f2 + pf.f3 + pf.f4 + w;   // F1 = creados en el periodo (base)
-            const reachedF2 = pf.f2 + pf.f3 + pf.f4 + w;           // F2 = creados que cualificaron (cohorte)
+            const reachedF1 = t;   // F1 = TODOS los creados en el periodo (misma base que las otras hojas)
+            // F2 = de esos creados, los que llegaron al menos a Fase 2 (hoy en F2/F3/F4 o ya ganados)
+            const reachedF2 = (extra && extra.ok && typeof extra.cuali_total === 'number') ? extra.cuali_total : (pf.f2 + pf.f3 + pf.f4 + w);
             const reachedF3 = hasMoves ? moves.moves.f3 : (pf.f3 + pf.f4 + w);   // F3 = movidos a F3 en el periodo
             const reachedF4 = hasMoves ? moves.moves.f4 : (pf.f4 + w);           // F4 = movidos a F4 en el periodo
             const m1 = reachedF1 > 0 ? Math.round(reachedF2 / reachedF1 * 100) : 0;   // F1→F2
@@ -766,7 +771,7 @@
             const SHOW_PODIO = false;
             if (SHOW_PODIO && extra && extra.ok) html += renderPodium(extra);
             // Gráfico de TRATOS CREADOS por día (en el medio)
-            if (extra && extra.ok && extra.created_by_date && Object.keys(extra.created_by_date).length) {
+            if (extra && extra.ok && ((extra.creados_by_date && Object.keys(extra.creados_by_date).length) || (extra.created_by_date && Object.keys(extra.created_by_date).length))) {
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Tratos creados por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Todas las oportunidades nuevas · por su <b>fecha de creación</b></span></div><div class="chart-container" style="height:280px"><canvas id="createdByDateChart"></canvas></div></div>`;
             }
 
@@ -932,7 +937,7 @@
 
             // ── Tabla EXTRA: Rendimiento por vendedor (ac-extra, del periodo, dato fiable) ──
             if (extra && extra.ok && extra.by_owner && Object.keys(extra.by_owner).length) {
-                html += renderOwnerTable(extra.by_owner);
+                html += renderOwnerTable(extra.by_owner, extra.creados_por_owner);
                 // Aviso de calidad de dato con los números REALES del periodo (antes describía una arquitectura que ya no existe).
                 const dq = [];
                 if (extra.sin_pais) dq.push(`<b>${extra.sin_pais}</b> trato${extra.sin_pais!==1?'s':''} sin País${extra.pais_recuperados?` (otros <b>${extra.pais_recuperados}</b> los recuperamos por el prefijo del teléfono)`:''}`);
@@ -980,11 +985,18 @@
             renderCharts(data, extra);
         }
 
-        function bdRows(obj){
-            return Object.entries(obj||{}).map(([k,c])=>({
-                k, f1:c.f1||0, f2:c.f2||0, f3:c.f3||0, f4:c.f4||0, won:c.won||0,
-                total:c.total||((c.f1||0)+(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0))
-            })).sort((a,b)=>b.total-a.total);
+        // `totales` (opcional): mapa clave → tratos CREADOS en el periodo. Cuando llega, manda sobre
+        // la suma de fases, para que "Tratos" signifique lo mismo aquí que en las otras hojas.
+        function bdRows(obj, totales){
+            const claves = new Set([...Object.keys(obj||{}), ...Object.keys(totales||{})]);
+            return [...claves].map(k=>{
+                const c = (obj||{})[k] || {};
+                const sumaFases = (c.f1||0)+(c.f2||0)+(c.f3||0)+(c.f4||0)+(c.won||0);
+                return {
+                    k, f1:c.f1||0, f2:c.f2||0, f3:c.f3||0, f4:c.f4||0, won:c.won||0,
+                    total: (totales && totales[k] !== undefined) ? totales[k] : (c.total || sumaFases)
+                };
+            }).sort((a,b)=>b.total-a.total);
         }
         function bdTable(title, note, colLabel, rows, rateLabel){
             if(!rows.length) return '';
@@ -1008,17 +1020,21 @@
         function renderTop10Paises(obj){
             return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta');
         }
-        function renderOwnerTable(obj){
+        function renderOwnerTable(obj, creadosOwner){
             // Owners que NO son vendedores comerciales → se agrupan en "Otros" (el TOTAL sigue cuadrando con país)
             const NON_SELLER = ['Pacientes modelo EIMEC Formación','EIMEC Formación','Maykel Sanchez','Sin asignar'];
-            const grouped = {};
+            const clave = k => NON_SELLER.includes(k) ? 'Otros / no comercial' : k;
+            const grouped = {}, totales = {};
             Object.entries(obj||{}).forEach(([k,v])=>{
-                const key = NON_SELLER.includes(k) ? 'Otros / no comercial' : k;
+                const key = clave(k);
                 if(!grouped[key]) grouped[key]={f1:0,f2:0,f3:0,f4:0,won:0,total:0};
                 ['f1','f2','f3','f4','won','total'].forEach(m=>grouped[key][m]+=(v[m]||0));
             });
-            if (grouped['Otros / no comercial'] && grouped['Otros / no comercial'].total===0) delete grouped['Otros / no comercial'];
-            return bdTable('Rendimiento por vendedor', 'Tratos creados en el periodo · <b>% Venta</b> = ventas ÷ tratos', 'Vendedor', bdRows(grouped), '% Venta');
+            // "Tratos" = leads que entraron en el periodo (cualquier etapa), igual que en Equipo de ventas
+            Object.entries(creadosOwner||{}).forEach(([k,v])=>{ const key = clave(k); totales[key] = (totales[key]||0) + (v||0); });
+            if (grouped['Otros / no comercial'] && grouped['Otros / no comercial'].total===0 && !totales['Otros / no comercial']) delete grouped['Otros / no comercial'];
+            const hayCreados = Object.keys(totales).length > 0;
+            return bdTable('Rendimiento por vendedor', 'Tratos = leads que <b>entraron</b> en el periodo (cualquier etapa) · F1-F4 = los que hoy siguen abiertos en esa fase · <b>% Venta</b> = ventas ÷ tratos', 'Vendedor', bdRows(grouped, hayCreados ? totales : null), '% Venta');
         }
         function renderCursoTable(obj){
             return bdTable('Tratos por curso', 'Tratos creados en el periodo · ordenado por volumen', 'Curso', bdRows(obj), '% Venta');
@@ -1128,13 +1144,16 @@
         }
 
         function renderCharts(data, extra) {
-            // Tratos creados por día (ac-extra)
-            if (extra && extra.created_by_date && document.getElementById('createdByDateChart')) {
+            // Tratos creados por día. Usamos creados_by_date (TODOS los creados, cualquier etapa) y no
+            // created_by_date (solo F1-F4 abiertos), que sumaba 448 en vez de 551 pese al rótulo
+            // "todas las oportunidades nuevas" (auditoría 27-jul).
+            const serieCreados = (extra && (extra.creados_by_date || extra.created_by_date)) || null;
+            if (serieCreados && document.getElementById('createdByDateChart')) {
                 if (charts.createdByDate) charts.createdByDate.destroy();
                 const ctxC = document.getElementById('createdByDateChart').getContext('2d');
                 const gradC = ctxC.createLinearGradient(0,0,0,280);
                 gradC.addColorStop(0,'rgba(31,42,78,.28)'); gradC.addColorStop(1,'rgba(31,42,78,0)');
-                const cbdR = serieRango(extra.created_by_date);
+                const cbdR = serieRango(serieCreados);
                 charts.createdByDate = new Chart(ctxC, {
                     type:'line',
                     data:{ labels:Object.keys(cbdR), datasets:[{ label:'Tratos creados', data:Object.values(cbdR), borderColor:'#1F2A4E', backgroundColor:gradC, fill:true, tension:.35, pointRadius:2, pointBackgroundColor:'#1F2A4E', borderWidth:2.5 }] },
