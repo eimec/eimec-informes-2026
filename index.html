@@ -284,6 +284,7 @@
                 <a class="navtab active" href="/">Informe de ventas</a>
                 <a class="navtab" href="/paid-media.html">Paid Media</a>
                 <a class="navtab" href="/social">Social Media</a>
+                <a class="navtab" href="/equipo.html">Equipo de ventas</a>
             </div>
         </nav>
 
@@ -1101,6 +1102,28 @@
             }, extra||{});
         }
 
+        // Serie diaria ANCLADA al filtro: eje completo de from→to con 0 en los días sin datos
+        // (antes el eje solo tenía los días con valor y el gráfico "moría" en el último día con datos).
+        // Las claves fuera del rango (desfases horarios residuales) se pliegan al borde más cercano.
+        function serieRango(bucket) {
+            if (!currentRange || !bucket) return bucket || {};
+            const dias = [];
+            const d = new Date(currentRange.from.getFullYear(), currentRange.from.getMonth(), currentRange.from.getDate());
+            const end = new Date(currentRange.to.getFullYear(), currentRange.to.getMonth(), currentRange.to.getDate());
+            for (let g = 0; d <= end && g < 400; g++) {
+                dias.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                d.setDate(d.getDate() + 1);
+            }
+            if (!dias.length) return bucket;
+            const out = {};
+            dias.forEach(k => { out[k] = 0; });
+            Object.entries(bucket).forEach(([k, v]) => {
+                const kk = k < dias[0] ? dias[0] : (k > dias[dias.length - 1] ? dias[dias.length - 1] : k);
+                out[kk] += Number(v) || 0;
+            });
+            return out;
+        }
+
         function renderCharts(data, extra) {
             // Tratos creados por día (ac-extra)
             if (extra && extra.created_by_date && document.getElementById('createdByDateChart')) {
@@ -1108,9 +1131,10 @@
                 const ctxC = document.getElementById('createdByDateChart').getContext('2d');
                 const gradC = ctxC.createLinearGradient(0,0,0,280);
                 gradC.addColorStop(0,'rgba(31,42,78,.28)'); gradC.addColorStop(1,'rgba(31,42,78,0)');
+                const cbdR = serieRango(extra.created_by_date);
                 charts.createdByDate = new Chart(ctxC, {
                     type:'line',
-                    data:{ labels:Object.keys(extra.created_by_date), datasets:[{ label:'Tratos creados', data:Object.values(extra.created_by_date), borderColor:'#1F2A4E', backgroundColor:gradC, fill:true, tension:.35, pointRadius:2, pointBackgroundColor:'#1F2A4E', borderWidth:2.5 }] },
+                    data:{ labels:Object.keys(cbdR), datasets:[{ label:'Tratos creados', data:Object.values(cbdR), borderColor:'#1F2A4E', backgroundColor:gradC, fill:true, tension:.35, pointRadius:2, pointBackgroundColor:'#1F2A4E', borderWidth:2.5 }] },
                     options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#EDF0F4'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
             }
@@ -1119,10 +1143,9 @@
             const _wonClean = (data.won_deals||[]).filter(d => !_pmSet.has(d.id));
             const cursoData = {};
             _wonClean.forEach(d => { const c = d.curso || 'Sin curso'; cursoData[c]=(cursoData[c]||0)+1; });
-            const wonByDateSorted = {};
             const _wbd = {};
             _wonClean.forEach(d => { const dt = (d.date||'').slice(0,10); if(dt) _wbd[dt]=(_wbd[dt]||0)+1; });
-            Object.keys(_wbd).sort().forEach(k=>{ wonByDateSorted[k]=_wbd[k]; });
+            const wonByDateSorted = serieRango(_wbd);
 
             if (document.getElementById('wonByCursoChart')) {
                 if (charts.wonByCurso) charts.wonByCurso.destroy();
@@ -1144,7 +1167,8 @@
                 });
             }
             // F2 por día: preferimos ac-extra (misma fuente que el resto y sin el desfase horario del proxy WP)
-            const f2bd = (extra && extra.f2_by_date && Object.keys(extra.f2_by_date).length) ? extra.f2_by_date : (data.f2_by_date || null);
+            const f2bdRaw = (extra && extra.f2_by_date && Object.keys(extra.f2_by_date).length) ? extra.f2_by_date : (data.f2_by_date || null);
+            const f2bd = f2bdRaw ? serieRango(f2bdRaw) : null;
             if (f2bd && document.getElementById('f2ByDateChart')) {
                 if (charts.f2ByDate) charts.f2ByDate.destroy();
                 charts.f2ByDate = new Chart(document.getElementById('f2ByDateChart'), {

@@ -91,6 +91,11 @@ function countryFromPhone(phone) {
   return '';
 }
 
+// Día YYYY-MM-DD en hora de MADRID. AC devuelve cdate con offset americano (-05:00), y cortar el
+// string a pelo metía tratos de la madrugada del día 1 en el día anterior (barra "30/06" con filtro julio).
+const DAY_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' });
+const dayES = v => { try { return DAY_FMT.format(new Date(v)); } catch (_) { return String(v).slice(0, 10); } };
+
 async function acGet(key, path, params = {}) {
   const qs = new URLSearchParams(params).toString();
   try {
@@ -149,12 +154,12 @@ export default async function handler(req, res) {
         const utm = normUtm(c[M_UTM]); add(by_campaign, utm || 'Sin dato', sk);
         if (pmCamp) add(by_campana_fases, pmCamp.slice(0, 80), sk);   // fases F1-F4 por utm_campaign
         // Tratos con origen publicitario, por día de CREACIÓN (para el gráfico diario de Paid Media)
-        if (d.cdate && isPaid(utm)) { const pd = String(d.cdate).slice(0, 10); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
+        if (d.cdate && isPaid(utm)) { const pd = dayES(d.cdate); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
         if (d.cdate) {
-          const day = String(d.cdate).slice(0, 10);
+          const day = dayES(d.cdate);
           created_by_date[day] = (created_by_date[day] || 0) + 1;
           // TODOS los tratos de la cohorte por día: aquí los abiertos; los ya ganados se suman en grabWC.
           // (created_by_date queda intacto para no cambiar nada de lo que ya consume el informe.)
@@ -187,17 +192,19 @@ export default async function handler(req, res) {
     // y dejaba fuera "Para Contactar", "Eventos" (etapa 95), TRASH y perdidos — hoy 20 reales vs 11
     // mostrados. Este contador es la verdad de "entraron"; el embudo F1-F4 de arriba no cambia.
     let creados_total = 0;
-    const creados_by_date = {}, creados_por_utm = {}, creados_por_campana = {};
+    const creados_by_date = {}, creados_por_utm = {}, creados_por_campana = {}, creados_por_owner = {};
     {
       const proc = (resp) => {
         const cf = {};
         (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
         (resp.deals || []).forEach(d => {
           const c = cf[d.id] || {};
+          const ownerNameC = ownerMap[d.owner] || 'Sin asignar';
           const pmCamp = c[M_PM_CAMPAIGN] && String(c[M_PM_CAMPAIGN]).trim();
-          if (isPM(pmCamp, ownerMap[d.owner] || 'Sin asignar')) return;   // paciente modelo fuera, como siempre
+          if (isPM(pmCamp, ownerNameC)) return;   // paciente modelo fuera, como siempre
           creados_total++;
-          if (d.cdate) { const day = String(d.cdate).slice(0, 10); creados_by_date[day] = (creados_by_date[day] || 0) + 1; }
+          creados_por_owner[ownerNameC] = (creados_por_owner[ownerNameC] || 0) + 1;   // hoja "Equipo de ventas"
+          if (d.cdate) { const day = dayES(d.cdate); creados_by_date[day] = (creados_by_date[day] || 0) + 1; }
           const utm = normUtm(c[M_UTM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
@@ -292,8 +299,8 @@ export default async function handler(req, res) {
           addWonc(by_campaign, utmWC || 'Sin dato');
           // También cuentan en el gráfico diario: son tratos CREADOS en el periodo (ya ganados),
           // igual que la tarjeta "Tratos generados" (total + wonc). Sin esto, gráfico y tarjeta no cuadran.
-          if (x.cdate && isPaid(utmWC)) { const pd = String(x.cdate).slice(0, 10); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
-          if (x.cdate) { const da = String(x.cdate).slice(0, 10); all_by_date[da] = (all_by_date[da] || 0) + 1; }
+          if (x.cdate && isPaid(utmWC)) { const pd = dayES(x.cdate); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
+          if (x.cdate) { const da = dayES(x.cdate); all_by_date[da] = (all_by_date[da] || 0) + 1; }
           const pv = c[M_PAIS];
           addWonc(by_pais, (pv && String(pv).trim()) ? normPais(pv) : 'Sin país');
         });
@@ -322,7 +329,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
-      creados_total, creados_by_date, creados_por_utm, creados_por_campana, won_campana, by_campana_fases,
+      creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
