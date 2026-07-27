@@ -202,6 +202,12 @@ export default async function handler(req, res) {
     // mostrados. Este contador es la verdad de "entraron"; el embudo F1-F4 de arriba no cambia.
     let creados_total = 0;
     const creados_by_date = {}, creados_por_utm = {}, creados_por_campana = {}, creados_por_owner = {};
+    // CUALIFICADOS (F2+): tratos del periodo que llegaron AL MENOS a Fase 2 — hoy están en F2/F3/F4
+    // o ya se ganaron. El snapshot "hoy en F2" subestima el trabajo del comercial: los que avanzaron
+    // a F3/F4/ganado ya no aparecen ahí (Marta: 3 en F2 pero 10 pasaron por F2).
+    const CUALI_STAGES = new Set(['34', '36', '37']);
+    let cuali_total = 0;
+    const cuali_por_owner = {}, cuali_by_date = {}, cuali_owner_by_date = {};
     {
       const seenC = new Set();   // dedupe por id (paginación paralela, ver arriba)
       const proc = (resp) => {
@@ -216,7 +222,14 @@ export default async function handler(req, res) {
           if (isPM(pmCamp, ownerNameC)) return;   // paciente modelo fuera, como siempre
           creados_total++;
           creados_por_owner[ownerNameC] = (creados_por_owner[ownerNameC] || 0) + 1;   // hoja "Equipo de ventas"
-          if (d.cdate) { const day = dayES(d.cdate); creados_by_date[day] = (creados_by_date[day] || 0) + 1; addDia(creados_owner_by_date, ownerNameC, day); }
+          const esCuali = CUALI_STAGES.has(String(d.stage)) || String(d.status) === '1';
+          if (esCuali) { cuali_total++; cuali_por_owner[ownerNameC] = (cuali_por_owner[ownerNameC] || 0) + 1; }
+          if (d.cdate) {
+            const day = dayES(d.cdate);
+            creados_by_date[day] = (creados_by_date[day] || 0) + 1;
+            addDia(creados_owner_by_date, ownerNameC, day);
+            if (esCuali) { cuali_by_date[day] = (cuali_by_date[day] || 0) + 1; addDia(cuali_owner_by_date, ownerNameC, day); }
+          }
           const utm = normUtm(c[M_UTM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
@@ -346,6 +359,7 @@ export default async function handler(req, res) {
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
+      cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',

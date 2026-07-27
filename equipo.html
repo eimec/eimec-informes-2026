@@ -448,7 +448,7 @@
             const cards =
                 card('card--euro', 'Tratos generados', nf0(creadosTotal), 'Leads que entraron en el periodo, cualquier etapa') +
                 card('', 'Fase 1 · Solicitud', nf0(tot.f1), 'Abiertos, creados en el periodo') +
-                card('', 'Fase 2 · Cualificado', nf0(tot.f2), 'Abiertos, creados en el periodo') +
+                card('', 'Cualificados (F2+)', nf0(extra.cuali_total || tot.f2), 'Llegaron al menos a Fase 2') +
                 card('', 'Fase 3 · Propuesta', nf0(tot.f3), 'Abiertos, creados en el periodo') +
                 card('', 'Fase 4 · Facturación', nf0(tot.f4), 'Abiertos, creados en el periodo') +
                 card('card--win', 'Ventas (fecha de ganado)', nf0(wonClean.length), 'Se firmaron en el periodo') +
@@ -462,6 +462,9 @@
                 ...Object.keys(ventasPorOwner)
             ]);
             owners.delete('Sin dato');
+            // Cualificados (F2+) = tratos del periodo que llegaron AL MENOS a Fase 2 (hoy en F2/F3/F4
+            // o ya ganados). El snapshot "hoy en F2" se queda corto: los que avanzaron ya no están ahí.
+            const cualiOwner = extra.cuali_por_owner || {};
             const filas = [...owners].map(o => {
                 const b = byOwner[o] || { f1: 0, f2: 0, f3: 0, f4: 0 };
                 const tratos = creadosOwner[o] || ((b.total || 0) + (b.wonc || 0));
@@ -469,6 +472,7 @@
                     owner: o,
                     tratos,
                     f1: b.f1 || 0, f2: b.f2 || 0, f3: b.f3 || 0, f4: b.f4 || 0,
+                    cuali: cualiOwner[o] || 0,
                     won: ventasPorOwner[o] || 0,
                     wonc: b.wonc || 0,
                     valor: valorPorOwner[o] || 0
@@ -481,12 +485,13 @@
             let cuerpo = '';
             filas.forEach((f, i) => {
                 const vPct = f.tratos > 0 ? Math.round(f.won / f.tratos * 100) : 0;
-                const qPct = f.tratos > 0 ? Math.round(f.f2 / f.tratos * 100) : 0;
+                const qPct = f.tratos > 0 ? Math.round(f.cuali / f.tratos * 100) : 0;
                 const heat = (0.08 + 0.42 * (f.tratos / maxTratos)).toFixed(2);
                 cuerpo += `<tr>
                     <td><span class="rank-badge">${i + 1}</span></td>
                     <td class="cell-strong">${f.owner}</td>
                     <td class="cell-total" style="background:rgba(31,42,78,${heat})">${nf0(f.tratos)}</td>
+                    <td class="num" style="font-weight:700;color:${f.cuali ? 'var(--brand)' : '#D6D1DA'}">${f.cuali}</td>
                     ${zz(f.f1)}${zz(f.f2)}${zz(f.f3)}${zz(f.f4)}
                     <td class="num ${f.won ? 'cell-win' : 'cell-zero'}">${f.won}</td>
                     <td class="num" style="font-weight:700;color:${f.wonc ? 'var(--brand-soft)' : '#D6D1DA'}">${f.wonc}</td>
@@ -495,15 +500,16 @@
                     ${f.valor > 0 ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(f.valor)}</td>` : `<td class="cell-zero">—</td>`}</tr>`;
             });
             const T = filas.reduce((a, f) => ({
-                tratos: a.tratos + f.tratos, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4,
+                tratos: a.tratos + f.tratos, cuali: a.cuali + f.cuali, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4,
                 won: a.won + f.won, wonc: a.wonc + f.wonc, valor: a.valor + f.valor
-            }), { tratos: 0, f1: 0, f2: 0, f3: 0, f4: 0, won: 0, wonc: 0, valor: 0 });
+            }), { tratos: 0, cuali: 0, f1: 0, f2: 0, f3: 0, f4: 0, won: 0, wonc: 0, valor: 0 });
             const tv = T.tratos > 0 ? Math.round(T.won / T.tratos * 100) : 0;
-            const tq = T.tratos > 0 ? Math.round(T.f2 / T.tratos * 100) : 0;
+            const tq = T.tratos > 0 ? Math.round(T.cuali / T.tratos * 100) : 0;
             cuerpo += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                 <td></td>
                 <td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${filas.length} vendedores</td>
                 <td class="num" style="font-weight:800;color:var(--brand-dark)">${nf0(T.tratos)}</td>
+                <td class="num" style="font-weight:800;color:var(--brand)">${T.cuali}</td>
                 <td class="num" style="font-weight:800">${T.f1}</td>
                 <td class="num" style="font-weight:800">${T.f2}</td>
                 <td class="num" style="font-weight:800">${T.f3}</td>
@@ -515,7 +521,7 @@
                 <td class="num" style="font-weight:800;color:var(--brand)">${eur0(T.valor)}</td></tr>`;
 
             const tablaHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por vendedor</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0"><b>Tratos</b> = leads que entraron en el periodo asignados a cada vendedor · <b>Ventas (fecha de ganado)</b> = firmadas en el periodo, aunque el lead entrara antes · Sin paciente modelo</span></div><div class="table-wrap"><table class="table">
-                <thead><tr><th>#</th><th>Vendedor</th><th style="color:var(--brand)" title="Leads que ENTRARON en el periodo asignados a este vendedor (cualquier etapa, incluidas Para Contactar, Eventos y TRASH).">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — abiertos, creados en el periodo">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — abiertos, creados en el periodo">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas por este vendedor en estas fechas. El lead pudo entrar antes.">Ventas (fecha de ganado)</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas asignados a este vendedor, los que ya se han ganado.">Ventas (fecha de creado)</th><th style="color:var(--green)" title="Ventas (fecha de ganado) ÷ tratos del periodo.">% Venta</th><th style="color:var(--brand)" title="Qué % de sus tratos del periodo llegó a cualificar (Fase 2).">% Cualifica</th><th style="color:var(--brand)" title="Importe de las ventas firmadas en el periodo por este vendedor.">Facturación</th></tr></thead>
+                <thead><tr><th>#</th><th>Vendedor</th><th style="color:var(--brand)" title="Leads que ENTRARON en el periodo asignados a este vendedor (cualquier etapa, incluidas Para Contactar, Eventos y TRASH).">Tratos</th><th style="color:var(--brand)" title="Tratos del periodo que llegaron AL MENOS a Fase 2: hoy están en F2, F3, F4 o ya se ganaron. Es el trabajo real de cualificación — la columna F2 sola no los ve porque los que avanzaron ya no están ahí.">Cualificados (F2+)</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — abiertos, creados en el periodo">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — abiertos, creados en el periodo">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas por este vendedor en estas fechas. El lead pudo entrar antes.">Ventas (fecha de ganado)</th><th style="color:var(--brand-soft)" title="De los leads que ENTRARON en estas fechas asignados a este vendedor, los que ya se han ganado.">Ventas (fecha de creado)</th><th style="color:var(--green)" title="Ventas (fecha de ganado) ÷ tratos del periodo.">% Venta</th><th style="color:var(--brand)" title="Cualificados (F2+) ÷ tratos del periodo.">% Cualifica</th><th style="color:var(--brand)" title="Importe de las ventas firmadas en el periodo por este vendedor.">Facturación</th></tr></thead>
                 <tbody>${cuerpo}</tbody></table></div>
                 <div style="font-size:11px;color:var(--muted);margin-top:8px">Los % se calculan sobre los tratos que entraron en el periodo: un vendedor puede firmar más ventas que tratos nuevos tenga (leads de meses anteriores), en ese caso el % Venta supera el 100%.</div></div>`;
 
@@ -547,9 +553,10 @@
             // diarias del CRM; las ventas, del día de cierre de cada trato ganado.
             const cobd = extra.creados_owner_by_date || {};
             const f2obd = extra.f2_owner_by_date || {};
+            const cualiObd = extra.cuali_owner_by_date || {};
             const sumaDias = obj => { const o = {}; Object.values(obj).forEach(m => Object.entries(m).forEach(([d, v]) => { o[d] = (o[d] || 0) + v; })); return o; };
             const creadosDia = Object.keys(cobd).length ? sumaDias(cobd) : (extra.creados_by_date || {});
-            const f2Dia = Object.keys(f2obd).length ? sumaDias(f2obd) : (extra.f2_by_date || {});
+            const f2Dia = extra.cuali_by_date || (Object.keys(f2obd).length ? sumaDias(f2obd) : (extra.f2_by_date || {}));
             const ventasDia = {};
             wonClean.forEach(wd => { const d = String(wd.date || '').slice(0, 10); if (d) ventasDia[d] = (ventasDia[d] || 0) + 1; });
             const valorDia = {};
@@ -618,7 +625,7 @@
                     <td class="num" style="font-weight:800;color:var(--green)">${tvv}%</td>
                     <td class="num" style="font-weight:800;color:var(--brand)">${eur0(TS.valor)}</td></tr>`;
                 semanaHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Semana a semana</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Semanas de lunes a domingo dentro del filtro · La primera y la última pueden salir cortadas si el filtro empieza o acaba a media semana</span></div><div class="table-wrap"><table class="table">
-                    <thead><tr><th>Semana</th><th>Fechas</th><th style="color:var(--brand)" title="Leads que entraron esa semana (cualquier etapa, sin paciente modelo).">Tratos creados</th><th style="color:var(--brand)" title="De los tratos creados esa semana, los que HOY están en Fase 2 o superior no: exactamente los que hoy están en Fase 2.">Pasaron a F2</th><th style="color:var(--brand)" title="Pasaron a F2 ÷ tratos creados esa semana.">% Cualifica</th><th style="color:var(--green)" title="Ventas firmadas esa semana (fecha de ganado). El lead pudo entrar antes.">Ventas</th><th style="color:var(--green)" title="Ventas de la semana ÷ tratos creados esa semana.">% Venta</th><th style="color:var(--brand)" title="Importe de las ventas firmadas esa semana.">Facturación</th></tr></thead>
+                    <thead><tr><th>Semana</th><th>Fechas</th><th style="color:var(--brand)" title="Leads que entraron esa semana (cualquier etapa, sin paciente modelo).">Tratos creados</th><th style="color:var(--brand)" title="De los tratos creados esa semana, los que llegaron al menos a Fase 2 (hoy en F2, F3, F4 o ya ganados).">Cualificados (F2+)</th><th style="color:var(--brand)" title="Cualificados ÷ tratos creados esa semana.">% Cualifica</th><th style="color:var(--green)" title="Ventas firmadas esa semana (fecha de ganado). El lead pudo entrar antes.">Ventas</th><th style="color:var(--green)" title="Ventas de la semana ÷ tratos creados esa semana.">% Venta</th><th style="color:var(--brand)" title="Importe de las ventas firmadas esa semana.">Facturación</th></tr></thead>
                     <tbody>${cuerpoS}</tbody></table></div></div>`;
             }
 
@@ -639,9 +646,9 @@
             if (chartOwners.length) {
                 const iniciales = n => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase();
                 const fichas = chartOwners.map((o, i) => {
-                    const f = filas.find(x => x.owner === o) || { tratos: 0, f2: 0, won: 0, valor: 0 };
+                    const f = filas.find(x => x.owner === o) || { tratos: 0, f2: 0, cuali: 0, won: 0, valor: 0 };
                     const color = COLORES_OWNER[i % COLORES_OWNER.length];
-                    const qPct = f.tratos > 0 ? Math.round(f.f2 / f.tratos * 100) : 0;
+                    const qPct = f.tratos > 0 ? Math.round(f.cuali / f.tratos * 100) : 0;
                     const vPct = f.tratos > 0 ? Math.round(f.won / f.tratos * 100) : 0;
                     return `<div class="vend">
                         <div class="vend-head">
@@ -652,14 +659,14 @@
                             </div>
                             <div class="vend-kpis">
                                 <div class="vend-kpi"><div class="k">Tratos</div><div class="v">${nf0(f.tratos)}</div></div>
-                                <div class="vend-kpi"><div class="k">Fase 2</div><div class="v">${nf0(f.f2)}</div></div>
+                                <div class="vend-kpi"><div class="k">Cualificados</div><div class="v">${nf0(f.cuali)}</div></div>
                                 <div class="vend-kpi"><div class="k">Ventas</div><div class="v win">${nf0(f.won)}</div></div>
                                 <div class="vend-kpi"><div class="k">Facturación</div><div class="v">${f.valor > 0 ? eur0(f.valor) : '—'}</div></div>
                             </div>
                         </div>
                         <div class="vend-body">
                             <div class="vend-panel"><div class="t">Tratos recibidos</div><div class="n" style="color:${color}">${nf0(f.tratos)}</div><div class="vend-chart"><canvas id="vc${i}_t"></canvas></div></div>
-                            <div class="vend-panel"><div class="t">Pasaron a Fase 2</div><div class="n" style="color:var(--brand)">${nf0(f.f2)}</div><div class="vend-chart"><canvas id="vc${i}_f"></canvas></div></div>
+                            <div class="vend-panel"><div class="t">Cualificados (Fase 2+)</div><div class="n" style="color:var(--brand)">${nf0(f.cuali)}</div><div class="vend-chart"><canvas id="vc${i}_f"></canvas></div></div>
                             <div class="vend-panel"><div class="t">Ventas cerradas</div><div class="n" style="color:var(--green)">${nf0(f.won)}</div><div class="vend-chart"><canvas id="vc${i}_w"></canvas></div></div>
                         </div>
                     </div>`;
@@ -675,7 +682,7 @@
                 chartOwners.forEach((o, i) => {
                     const color = COLORES_OWNER[i % COLORES_OWNER.length];
                     pintaMini(`vc${i}_t`, dias, cobd[o] || {}, color, 'Tratos');
-                    pintaMini(`vc${i}_f`, dias, f2obd[o] || {}, '#3A5C94', 'Fase 2');
+                    pintaMini(`vc${i}_f`, dias, cualiObd[o] || {}, '#3A5C94', 'Cualificados');
                     pintaMini(`vc${i}_w`, dias, wonObd[o] || {}, '#0B8C8C', 'Ventas');
                 });
             }
