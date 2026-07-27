@@ -140,11 +140,17 @@ export default async function handler(req, res) {
     const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
+    // Dedupe por id: si un trato cambia de posición mientras paginamos en paralelo, AC puede devolverlo
+    // en dos páginas y se contaba dos veces (visto 27-jul: 573 tratos vs 551 reales). Cada scan lleva su Set.
+    const seenFunnel = new Set();
+
     // Procesa una respuesta de /deals?include=dealCustomFieldData
     const process = (resp, sk) => {
       const cf = {};
       (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
       (resp.deals || []).forEach(d => {
+        if (seenFunnel.has(d.id)) return;
+        seenFunnel.add(d.id);
         const c = cf[d.id] || {};
         const ownerName = ownerMap[d.owner] || 'Sin asignar';
         const pmCamp = c[M_PM_CAMPAIGN] && String(c[M_PM_CAMPAIGN]).trim();
@@ -194,10 +200,13 @@ export default async function handler(req, res) {
     let creados_total = 0;
     const creados_by_date = {}, creados_por_utm = {}, creados_por_campana = {}, creados_por_owner = {};
     {
+      const seenC = new Set();   // dedupe por id (paginación paralela, ver arriba)
       const proc = (resp) => {
         const cf = {};
         (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
         (resp.deals || []).forEach(d => {
+          if (seenC.has(d.id)) return;
+          seenC.add(d.id);
           const c = cf[d.id] || {};
           const ownerNameC = ownerMap[d.owner] || 'Sin asignar';
           const pmCamp = c[M_PM_CAMPAIGN] && String(c[M_PM_CAMPAIGN]).trim();
@@ -282,11 +291,14 @@ export default async function handler(req, res) {
     const addWonc = (b, k) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k].wonc = (b[k].wonc || 0) + 1; };
     let won_creados = 0;
     {
+      const seenWC = new Set();   // dedupe por id (paginación paralela, ver arriba)
       const grabWC = async (off) => {
         const d = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', ...dateParams, limit: 100, offset: off });
         const cf = {};
         (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
         (d.deals || []).forEach(x => {
+          if (seenWC.has(x.id)) return;
+          seenWC.add(x.id);
           if (String(x.group) !== GROUP) return;   // solo el pipeline de ventas
           const c = cf[x.id] || {};
           const ownerName = ownerMap[x.owner] || 'Sin asignar';
