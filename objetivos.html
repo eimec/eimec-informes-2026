@@ -417,6 +417,61 @@
                     ].join('');
                 }));
 
+            // ── UNA TABLA POR CANAL, PAÍSES DENTRO (formato pedido por dirección) ──
+            // Inversión y clics salen de la plataforma; tratos y ganados, del CRM cruzando el
+            // utm_source con el país del trato. Ordenado por inversión, como en la hoja de cálculo.
+            const paisCanal = extra.creados_pais_canal || { meta: {}, google: {} };
+            const wonPais = extra.won_pais || {};
+            const wonCampaign = extra.won_campaign || {};
+            const ganadosCanalPais = { meta: {}, google: {} };
+            wonClean.forEach(w => {
+                const nk = normKey(wonCampaign[w.id]);
+                const can = RE_META.test(nk) ? 'meta' : (RE_GOOGLE.test(nk) ? 'google' : null);
+                if (!can) return;
+                const p = wonPais[w.id] || w.pais || 'Sin país';
+                ganadosCanalPais[can][p] = (ganadosCanalPais[can][p] || 0) + 1;
+            });
+
+            [['google', 'Google Ads'], ['meta', 'Meta Ads']].forEach(([can, titulo]) => {
+                const inv = (bc[can] && bc[can].by_country) || {};
+                const tratos = paisCanal[can] || {};
+                const gan = ganadosCanalPais[can] || {};
+                const claves = [...new Set([...Object.keys(inv), ...Object.keys(tratos), ...Object.keys(gan)])]
+                    .filter(p => (Number(inv[p]) || 0) > 0.005 || (tratos[p] || 0) > 0 || (gan[p] || 0) > 0)
+                    .sort((a, b) => (Number(inv[b]) || 0) - (Number(inv[a]) || 0) || (tratos[b] || 0) - (tratos[a] || 0));
+                if (!claves.length) return;
+                const T = { inv: 0, tratos: 0, gan: 0 };
+                const filas = claves.map(p => {
+                    const i = Number(inv[p]) || 0, t = tratos[p] || 0, g = gan[p] || 0;
+                    T.inv += i; T.tratos += t; T.gan += g;
+                    return [
+                        `<td class="cell-strong">${p}</td>`,
+                        i > 0 ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur2(i)}</td>` : `<td class="cell-zero">·</td>`,
+                        t > 0 ? `<td class="num" style="font-weight:800;color:var(--brand-dark)">${nf0(t)}</td>` : `<td class="cell-zero">·</td>`,
+                        (i > 0 && t > 0) ? `<td class="num">${eur2(i / t)}</td>` : `<td class="cell-zero">—</td>`,
+                        (i > 0 && g > 0) ? `<td class="num">${eur2(i / g)}</td>` : `<td class="cell-zero">—</td>`,
+                        g > 0 ? `<td class="num" style="font-weight:700;color:var(--green)">${g}</td>` : `<td class="cell-zero">·</td>`,
+                        (t > 0 && g > 0) ? `<td class="num" style="font-weight:700;color:var(--green)">${(g / t * 100).toFixed(2)}%</td>` : `<td class="cell-zero">—</td>`
+                    ].join('');
+                });
+                filas.push([
+                    `<td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>`,
+                    `<td class="num" style="font-weight:800;color:var(--brand-dark)">${eur2(T.inv)}</td>`,
+                    `<td class="num" style="font-weight:800;color:var(--brand-dark)">${nf0(T.tratos)}</td>`,
+                    T.tratos > 0 ? `<td class="num" style="font-weight:800">${eur2(T.inv / T.tratos)}</td>` : `<td class="cell-zero">—</td>`,
+                    T.gan > 0 ? `<td class="num" style="font-weight:800">${eur2(T.inv / T.gan)}</td>` : `<td class="cell-zero">—</td>`,
+                    `<td class="num" style="font-weight:800;color:var(--green)">${T.gan}</td>`,
+                    T.tratos > 0 ? `<td class="num" style="font-weight:800;color:var(--green)">${(T.gan / T.tratos * 100).toFixed(2)}%</td>` : `<td class="cell-zero">—</td>`
+                ].join(''));
+                const avisoCanal = can === 'google'
+                    ? ' ⚠️ Los tratos de Google llegan al CRM sin etiqueta de origen (arreglo del formulario web en curso): la columna Tratos está infravalorada y el CPL sale más alto de lo real.'
+                    : '';
+                html += bloqueTabla(titulo + ' · por país',
+                    `Inversión de la plataforma × tratos y ventas del CRM (origen utm) · <b>CPL</b> = inversión ÷ tratos · <b>CPA</b> = inversión ÷ ganados${avisoCanal}`,
+                    ['Ubicación', 'Inversión total', 'Tratos', 'CPL', 'CPA', 'Ganados', '% Rate'],
+                    filas);
+            });
+
             document.getElementById('dashboardContent').innerHTML = html;
         }
 

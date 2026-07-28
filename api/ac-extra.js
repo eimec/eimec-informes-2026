@@ -223,6 +223,12 @@ export default async function handler(req, res) {
     // Tratos creados por PAÍS: para que el cuadro por país/región cuente lo mismo que la tarjeta.
     const creados_por_pais = {};
     const creados_por_curso = {};   // leads por curso (hoja de Objetivos)
+    // Cruce PAÍS × CANAL: para el cuadro "una tabla por canal, países dentro" (formato pedido por
+    // dirección). {meta:{Spain:12,...}, google:{...}}. El canal sale del utm_source del trato.
+    const creados_pais_canal = { meta: {}, google: {} };
+    const sinPaisCanal = [];   // {contact, canal} → país por teléfono, igual que el resto
+    const CANAL_META = /meta/, CANAL_GOOGLE = /google/;
+    const canalDeUtm = v => { const k = normKey(v); if (!k) return null; return CANAL_META.test(k) ? 'meta' : (CANAL_GOOGLE.test(k) ? 'google' : null); };
     const sinPaisCreados = [];   // {contact} → país por teléfono, igual que el embudo
     const ETIQUETA_ETAPA = { '1': 'Para contactar', '12': 'TRASH', '33': 'Fase 1', '34': 'Fase 2', '36': 'Fase 3', '37': 'Fase 4', '87': 'No contestan', '95': 'Eventos' };
     {
@@ -259,6 +265,12 @@ export default async function handler(req, res) {
           const cuC = c[M_CURSO] && String(c[M_CURSO]).trim();
           const kc = cuC || 'Sin curso';
           creados_por_curso[kc] = (creados_por_curso[kc] || 0) + 1;
+          // País × canal (solo los tratos con origen Meta/Google)
+          const canC = canalDeUtm(c[M_UTM]);
+          if (canC) {
+            if (pvC && String(pvC).trim()) { const kp = normPais(pvC); creados_pais_canal[canC][kp] = (creados_pais_canal[canC][kp] || 0) + 1; }
+            else sinPaisCanal.push({ contact: d.contact, canal: canC });
+          }
           const utm = normUtm(c[M_UTM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
@@ -301,6 +313,10 @@ export default async function handler(req, res) {
       const k = inf || 'Sin país';
       creados_por_pais[k] = (creados_por_pais[k] || 0) + 1;
     });
+    sinPaisCanal.forEach(x => {
+      const k = (x.contact && phonePais[x.contact]) || 'Sin país';
+      creados_pais_canal[x.canal][k] = (creados_pais_canal[x.canal][k] || 0) + 1;
+    });
 
     // Mapa deal_id -> vendedor de TODOS los ganados. El front lo cruza con won_deals del proxy
     // (= ganados EN el periodo por fecha de cierre) para que el Won cuadre con el funnel (14).
@@ -310,6 +326,7 @@ export default async function handler(req, res) {
     const won_title = {};  // id -> título del trato
     const won_conocio = {};   // id -> "¿Cómo has conocido EIMEC?" (cf9): atribución de respaldo cuando falta el utm
     const won_campana = {};   // id -> utm_campaign (cf11) del ganado, para el desglose por campaña
+    const won_pais = {};      // id -> país normalizado del ganado (cuadro canal × país)
     // pmWonIds = ganados que el front debe EXCLUIR. Criterio duro: todo lo que no sea el pipeline de
     // formación (group 1) fuera — el proxy WP devuelve ganados de TODOS los pipelines y la regex de
     // "paciente modelo" no los pilla todos (auditoría 27-jul: 99 ganados de group 4 se le escapaban).
@@ -332,6 +349,10 @@ export default async function handler(req, res) {
           won_campaign[x.id] = utm || 'Sin dato';
           const conocio = cf[x.id] && cf[x.id]['9'] && String(cf[x.id]['9']).trim();
           if (conocio) won_conocio[x.id] = conocio;
+          // País del ganado normalizado (para el cuadro por canal × país). El proxy WP también
+          // manda el país, pero aquí sale del mismo campo y con la misma normalización que el resto.
+          const pvW = cf[x.id] && cf[x.id][M_PAIS];
+          won_pais[x.id] = (pvW && String(pvW).trim()) ? normPais(pvW) : 'Sin país';
           if (pmCamp) won_campana[x.id] = pmCamp.slice(0, 80);   // utm_campaign del ganado (desglose por campaña)
           // Importe (AC lo guarda en CÉNTIMOS) y título, para el listado de ventas de administración
           won_value[x.id] = x.value ? Number(x.value) : 0;
@@ -407,7 +428,7 @@ export default async function handler(req, res) {
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
       cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
-      creados_por_etapa, creados_por_pais, creados_por_curso, won_group, integridad,
+      creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, won_pais, won_group, integridad,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
