@@ -388,6 +388,35 @@
                     ].join('');
                 }));
 
+            // ── POR PAÍS — coste y ventas para decidir en qué países concretos poner el dinero ──
+            const leadsPais = extra.creados_por_pais || {};
+            const invPais = (ads && ads.by_pais) || {};
+            const ventasPais = {};
+            wonClean.forEach(w => { const p = w.pais || 'Sin país'; ventasPais[p] = (ventasPais[p] || 0) + 1; });
+            const facturaPais = {};
+            wonClean.forEach(w => { const p = w.pais || 'Sin país'; facturaPais[p] = (facturaPais[p] || 0) + (Number(wonValue[w.id]) || 0) / 100; });
+            const clavesPais = [...new Set([...Object.keys(leadsPais), ...Object.keys(invPais), ...Object.keys(ventasPais)])]
+                .filter(p => (leadsPais[p] || 0) > 0 || (invPais[p] || 0) > 0.5)
+                .sort((a, b) => (leadsPais[b] || 0) - (leadsPais[a] || 0) || (invPais[b] || 0) - (invPais[a] || 0));
+            const topPais = clavesPais.slice(0, 20);
+            html += bloqueTabla('Por país · coste y ventas', 'Top 20 por volumen de leads · CPL = inversión ÷ leads · CAC = inversión ÷ ventas · Sirve para decidir en qué países concretos crecer',
+                ['País', 'Región', 'Leads', 'Inversión', 'CPL', 'Ventas', '% Conv.', 'Facturación', 'CAC'],
+                topPais.map(p => {
+                    const l = leadsPais[p] || 0, inv = Number(invPais[p]) || 0, v = ventasPais[p] || 0, fac = facturaPais[p] || 0;
+                    const conv = l > 0 ? (v / l * 100) : null;
+                    return [
+                        `<td class="cell-strong">${p}</td>`,
+                        `<td style="color:var(--muted);font-size:12px">${regionOf(p)}</td>`,
+                        `<td class="num" style="font-weight:800;color:var(--brand-dark)">${nf0(l)}</td>`,
+                        inv > 0 ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(inv)}</td>` : `<td class="cell-zero">·</td>`,
+                        (inv > 0 && l > 0) ? `<td class="num">${eur2(inv / l)}</td>` : `<td class="cell-zero">—</td>`,
+                        v > 0 ? `<td class="num" style="font-weight:700;color:var(--green)">${v}</td>` : `<td class="cell-zero">·</td>`,
+                        conv !== null && v > 0 ? `<td class="num" style="font-weight:700;color:var(--green)">${conv.toFixed(1)}%</td>` : `<td class="cell-zero">—</td>`,
+                        fac > 0 ? `<td class="num" style="font-weight:700">${eur0(fac)}</td>` : `<td class="cell-zero">·</td>`,
+                        (inv > 0 && v > 0) ? `<td class="num">${eur0(inv / v)}</td>` : `<td class="cell-zero">—</td>`
+                    ].join('');
+                }));
+
             document.getElementById('dashboardContent').innerHTML = html;
         }
 

@@ -3,9 +3,10 @@
   "_regiones": "Latam, Europa, Norteamerica, Asia, Africa, Oceania (mismos grupos que el cuadro de Paid Media)",
 
   "2026-08": {
-    "nota": "Direccion, 28-jul-2026: 1.000 leads en el funnel (sin Eventos) y 29 ventas al mes.",
+    "nota": "Direccion, 28-jul-2026: 1.000 leads en el funnel (sin Eventos) y 29 ventas. Sin objetivo de facturacion por ahora.",
+    "_como_se_calculo_la_inversion": "Julio 1-27 real: 498 leads de funnel con 2.951 EUR. Proyectado a mes completo: ~572 leads con ~3.388 EUR. Para 1.000 faltan ~428 leads; al CPL de funnel de Meta (4,06 EUR) son 1.738 EUR mas = 5.126 EUR. Como el CPL sube al escalar la audiencia, se anade un 20% al tramo incremental -> ~5.500 EUR, y se fija el techo en 6.000 EUR. PROVISIONAL: pendiente del analisis por curso y region.",
     "global": {
-      "inversion": null,
+      "inversion": 6000,
       "leads": 1000,
       "ventas": 29,
       "facturacion": null
