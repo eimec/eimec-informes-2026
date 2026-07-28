@@ -1,0 +1,39 @@
+{
+  "_leeme": "Objetivos por mes para la pestana 'Objetivos del mes'. Editar SOLO los numeros. Clave del mes = AAAA-MM. Deja un valor en null si aun no hay objetivo: el informe mostrara 'sin objetivo' en vez de inventar un 0. 'leads' = leads que ENTRAN EN EL FUNNEL en el mes (excluye la etapa Eventos y TRASH). 'inversion' = euros de Meta + Google sin campanas de paciente modelo. 'ventas' = ventas firmadas en el mes (fecha de ganado). 'facturacion' = euros de esas ventas. Los bloques 'canal', 'curso' y 'region' son opcionales: si estan vacios, el informe solo ensena el cuadro global.",
+  "_regiones": "Latam, Europa, Norteamerica, Asia, Africa, Oceania (mismos grupos que el cuadro de Paid Media)",
+
+  "2026-08": {
+    "nota": "Direccion, 28-jul-2026: 1.000 leads en el funnel (sin Eventos) y 29 ventas al mes.",
+    "global": {
+      "inversion": null,
+      "leads": 1000,
+      "ventas": 29,
+      "facturacion": null
+    },
+    "canal": {
+      "Meta": { "inversion": null, "leads": null, "ventas": null },
+      "Google": { "inversion": null, "leads": null, "ventas": null }
+    },
+    "curso": {
+      "MEF": { "leads": null, "ventas": 9 },
+      "Master": { "leads": null, "ventas": 6 },
+      "Personalizado": { "leads": null, "ventas": 5 },
+      "Blefaroplastia": { "leads": null, "ventas": 2 },
+      "Cursos": { "leads": null, "ventas": 7 }
+    },
+    "region": {}
+  },
+
+  "2026-07": {
+    "nota": "Mes de referencia: sin objetivos formales, se usa para comparar.",
+    "global": {
+      "inversion": null,
+      "leads": null,
+      "ventas": null,
+      "facturacion": null
+    },
+    "canal": {},
+    "curso": {},
+    "region": {}
+  }
+}

@@ -222,6 +222,7 @@ export default async function handler(req, res) {
     const creados_por_etapa = {};
     // Tratos creados por PAÍS: para que el cuadro por país/región cuente lo mismo que la tarjeta.
     const creados_por_pais = {};
+    const creados_por_curso = {};   // leads por curso (hoja de Objetivos)
     const sinPaisCreados = [];   // {contact} → país por teléfono, igual que el embudo
     const ETIQUETA_ETAPA = { '1': 'Para contactar', '12': 'TRASH', '33': 'Fase 1', '34': 'Fase 2', '36': 'Fase 3', '37': 'Fase 4', '87': 'No contestan', '95': 'Eventos' };
     {
@@ -255,6 +256,9 @@ export default async function handler(req, res) {
           const pvC = c[M_PAIS];
           if (pvC && String(pvC).trim()) { const k = normPais(pvC); creados_por_pais[k] = (creados_por_pais[k] || 0) + 1; }
           else sinPaisCreados.push(d.contact);
+          const cuC = c[M_CURSO] && String(c[M_CURSO]).trim();
+          const kc = cuC || 'Sin curso';
+          creados_por_curso[kc] = (creados_por_curso[kc] || 0) + 1;
           const utm = normUtm(c[M_UTM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
@@ -403,7 +407,7 @@ export default async function handler(req, res) {
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
       cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
-      creados_por_etapa, creados_por_pais, won_group, integridad,
+      creados_por_etapa, creados_por_pais, creados_por_curso, won_group, integridad,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',
