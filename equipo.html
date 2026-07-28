@@ -208,6 +208,12 @@
         .podio-trofeo { font-size: 34px; line-height: 1; margin-bottom: 6px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); }
         .podio-col.p1 .podio-trofeo { font-size: 46px; animation: brinca 2.4s ease-in-out infinite; }
         @keyframes brinca { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+        .podio-foto {
+            width: 62px; height: 62px; border-radius: 50%; object-fit: cover; margin-bottom: 8px;
+            border: 2.5px solid rgba(255,255,255,.85); box-shadow: 0 8px 20px -6px rgba(0,0,0,.55); background: #EEF3F8;
+        }
+        .podio-foto--ini { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 20px; letter-spacing: .5px; }
+        .p1 .podio-foto { width: 76px; height: 76px; border-color: #F5D27E; }
         .podio-nombre { color: #fff; font-weight: 700; font-size: 13.5px; text-align: center; line-height: 1.25; margin-bottom: 2px; }
         .podio-ventas { color: #FFE1A6; font-size: 11.5px; font-weight: 600; margin-bottom: 8px; }
         .podio-caja {
@@ -239,6 +245,7 @@
             color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .5px; flex: none;
             box-shadow: 0 8px 18px -8px rgba(31,42,78,.65);
         }
+        .vend-avatar--foto { object-fit: cover; border: 1.5px solid var(--line); background: var(--brand-tint); }
         .vend-nombre { font-size: 16px; font-weight: 800; color: var(--brand-dark); line-height: 1.15; }
         .vend-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
         .vend-kpis { margin-left: auto; display: flex; gap: 26px; flex-wrap: wrap; }
@@ -659,6 +666,19 @@
                     </div></div>`;
             }
 
+            // ── FOTOS DEL EQUIPO ──
+            // Solo fotos corporativas propias (las de eimec.com o las que aporte dirección), guardadas
+            // en /img/equipo. Quien no tenga foto sigue con sus iniciales sobre su color: nunca se
+            // coge la imagen de nadie de sus perfiles personales.
+            const FOTOS = { 'paula pifarre': 'img/equipo/paula-pifarre.jpg' };
+            const claveFoto = n => String(n || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z ]/g, '').trim();
+            const fotoDe = n => FOTOS[claveFoto(n)] || null;
+            const iniciales = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+            // Un color fijo por vendedor, el mismo en el podio y en su ficha
+            const COLOR_DE = {};
+            filas.forEach((f, i) => { COLOR_DE[f.owner] = COLORES_OWNER[i % COLORES_OWNER.length]; });
+            const colorDe = n => COLOR_DE[n] || COLORES_OWNER[0];
+
             // ── PODIO ESTILO F1: quién más ventas (fecha de ganado) cerró en el periodo ──
             const podioArr = filas.filter(f => f.won > 0).sort((a, b) => b.won - a.won || b.valor - a.valor);
             let podioHtml = '';
@@ -666,8 +686,14 @@
                 const col = (f, puesto) => {
                     if (!f) return '';
                     const trofeo = puesto === 1 ? '🏆' : (puesto === 2 ? '🥈' : '🥉');
+                    const color = colorDe(f.owner);
+                    const foto = fotoDe(f.owner);
+                    const cara = foto
+                        ? `<img class="podio-foto" src="${foto}" alt="${f.owner}">`
+                        : `<div class="podio-foto podio-foto--ini" style="background:linear-gradient(140deg,${color},${color}CC)">${iniciales(f.owner)}</div>`;
                     return `<div class="podio-col p${puesto}">
                         <div class="podio-trofeo">${trofeo}</div>
+                        ${cara}
                         <div class="podio-nombre">${f.owner}</div>
                         <div class="podio-ventas">${f.won} ${f.won === 1 ? 'venta' : 'ventas'}</div>
                         <div class="podio-caja"><div class="puesto">${puesto}</div><div class="euros">${f.valor > 0 ? eur0(f.valor) : '—'}</div></div>
@@ -786,15 +812,16 @@
             // Una FICHA por vendedor: cabecera con sus KPIs + sus tres gráficos (tratos, F2, ventas).
             let ownerChartsHtml = '';
             if (chartOwners.length) {
-                const iniciales = n => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase();
                 const fichas = chartOwners.map((o, i) => {
                     const f = filas.find(x => x.owner === o) || { tratos: 0, f2: 0, cuali: 0, won: 0, valor: 0 };
-                    const color = COLORES_OWNER[i % COLORES_OWNER.length];
+                    const color = colorDe(o);
                     const qPct = f.tratos > 0 ? Math.round(f.cuali / f.tratos * 100) : 0;
                     const vPct = f.tratos > 0 ? Math.round(f.won / f.tratos * 100) : 0;
                     return `<div class="vend">
                         <div class="vend-head">
-                            <div class="vend-avatar" style="background:linear-gradient(140deg,${color},${color}CC)">${iniciales(o)}</div>
+                            ${fotoDe(o)
+                                ? `<img class="vend-avatar vend-avatar--foto" src="${fotoDe(o)}" alt="${o}">`
+                                : `<div class="vend-avatar" style="background:linear-gradient(140deg,${color},${color}CC)">${iniciales(o)}</div>`}
                             <div>
                                 <div class="vend-nombre">${o}</div>
                                 <div class="vend-sub">${nf0(f.tratos)} tratos · ${qPct}% cualifica · ${vPct}% venta</div>
