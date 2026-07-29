@@ -775,12 +775,8 @@
                 html += `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Tratos creados por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Todas las oportunidades nuevas · por su <b>fecha de creación</b></span></div><div class="chart-container" style="height:280px"><canvas id="createdByDateChart"></canvas></div></div>`;
             }
 
-            // Charts row
+            // Charts row  (los graficos "Ventas por curso" y "Ventas por dia" se retiraron el 29-jul-2026 a peticion de direccion)
             html += `
-                <div class="grid-2" style="margin-bottom:22px">
-                    <div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Ventas por curso</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Ventas <b>cerradas en el periodo</b></span></div><div class="chart-container"><canvas id="wonByCursoChart"></canvas></div></div>
-                    <div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Ventas por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Por su <b>fecha de cierre</b> (el día que se ganó)</span></div><div class="chart-container"><canvas id="wonByDateChart"></canvas></div></div>
-                </div>
                 <div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Leads cualificados (F2) por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Tratos que <b>hoy están en Fase 2</b>, colocados en su <b>día de creación</b> (no es el día en que cualificaron)</span></div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
             `;
 
