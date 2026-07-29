@@ -844,7 +844,7 @@
             }
 
             document.getElementById('dashboardContent').innerHTML =
-                `<div class="cards-grid">${cards}</div>` + podioHtml + tablaHtml + tablaAcumHtml + semanaHtml + ownerChartsHtml;
+                `<div class="cards-grid">${cards}</div>` + tablaHtml + tablaAcumHtml + semanaHtml + ownerChartsHtml;
 
             if (ownerChartsHtml) {
                 const dias = diasDelRango(params.from, params.to);
