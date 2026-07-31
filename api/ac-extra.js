@@ -96,6 +96,27 @@ function countryFromPhone(phone) {
 const DAY_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' });
 const dayES = v => { try { return DAY_FMT.format(new Date(v)); } catch (_) { return String(v).slice(0, 10); } };
 
+// ⚠️ VALOR DE UN CAMPO PERSONALIZADO en el listado masivo (/deals?include=dealCustomFieldData).
+// AC parte el valor en columnas por TIPO: los campos de texto van en `custom_field_text_value`, pero
+// las FECHAS van en `custom_field_date_value` ("2026-03-15 00:00:00") y los números en el suyo.
+// Leer solo el de texto devolvía null en "Fecha de ganado" (campo 5) y "Fecha de cierre prevista",
+// y por eso se creía que AC no daba la fecha de ganado en el listado masivo: sí la da, en otra columna.
+function valorCF(x) {
+  const t = x.custom_field_text_value;
+  if (t !== null && t !== undefined && String(t) !== '') return t;
+  if (x.custom_field_date_value) return String(x.custom_field_date_value).slice(0, 10);
+  const n = x.custom_field_number_value;
+  if (n !== null && n !== undefined && String(n) !== '') return String(n);
+  if (x.custom_field_text_blob) return x.custom_field_text_blob;
+  return t;
+}
+// Mapa deal_id -> {campo: valor} de una respuesta con include=dealCustomFieldData
+function mapaCF(resp) {
+  const cf = {};
+  (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = valorCF(x); });
+  return cf;
+}
+
 async function acGet(key, path, params = {}) {
   // ⚠️ ORDEN ESTABLE OBLIGATORIO en /deals. Sin `orders[...]` AC no garantiza el orden entre
   // páginas: devuelve ventanas SOLAPADAS (la página 2 repite filas de la 1) y OMITE otras, así que
@@ -158,8 +179,7 @@ export default async function handler(req, res) {
 
     // Procesa una respuesta de /deals?include=dealCustomFieldData
     const process = (resp, sk) => {
-      const cf = {};
-      (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
+      const cf = mapaCF(resp);
       (resp.deals || []).forEach(d => {
         if (seenFunnel.has(d.id)) return;
         seenFunnel.add(d.id);
@@ -234,8 +254,7 @@ export default async function handler(req, res) {
     {
       const seenC = new Set();   // dedupe por id (paginación paralela, ver arriba)
       const proc = (resp) => {
-        const cf = {};
-        (resp.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
+        const cf = mapaCF(resp);
         (resp.deals || []).forEach(d => {
           if (seenC.has(d.id)) return;
           seenC.add(d.id);
@@ -332,13 +351,10 @@ export default async function handler(req, res) {
     // pipeline de formación cuya "Fecha de ganado" (cf5) cae dentro del rango. El 29-jul-2026 la
     // ruta /eimec/v1/ac del WP desaparecio (404) y el informe se quedo sin ventas en TODOS los
     // cuadros; con esto el informe sigue funcionando aunque el proxy no vuelva.
+    // La fecha sale del MISMO listado masivo (ver valorCF: las fechas viajan en custom_field_date_value),
+    // así que es exacta para cualquier rango y no cuesta ni una llamada extra.
     const won_periodo = [];
-    const wonCandidatos = [];
-    // Margen alrededor del periodo para preseleccionar por edate (cf5 y edate suelen ir juntos;
-    // el margen cubre los tratos re-editados y los que cerraron justo en el borde).
-    const desplaza = (f, dias) => { const [y, m, d] = String(f).split('-').map(Number); const t = new Date(Date.UTC(y, m - 1, d + dias)); return t.toISOString().slice(0, 10); };
-    const margenIni = from ? desplaza(from, -120) : '0000-01-01';
-    const margenFin = to ? desplaza(to, 30) : '9999-12-31';
+    let won_sin_fecha = 0;   // ganados de formación a los que el comercial no puso "Fecha de ganado"
     // pmWonIds = ganados que el front debe EXCLUIR. Criterio duro: todo lo que no sea el pipeline de
     // formación (group 1) fuera — el proxy WP devuelve ganados de TODOS los pipelines y la regex de
     // "paciente modelo" no los pilla todos (auditoría 27-jul: 99 ganados de group 4 se le escapaban).
@@ -348,8 +364,7 @@ export default async function handler(req, res) {
       const seenW = new Set();   // dedupe por id (paginación paralela)
       const grab = async (off) => {
         const d = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', limit: 100, offset: off });
-        const cf = {};
-        (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
+        const cf = mapaCF(d);
         (d.deals || []).forEach(x => {
           if (seenW.has(x.id)) return;
           seenW.add(x.id);
@@ -367,14 +382,16 @@ export default async function handler(req, res) {
           won_pais[x.id] = (pvW && String(pvW).trim()) ? normPais(pvW) : 'Sin país';
           const cuW = cf[x.id] && cf[x.id][M_CURSO] && String(cf[x.id][M_CURSO]).trim();
           if (cuW) won_curso[x.id] = cuW;
-          // CANDIDATOS a venta del periodo. La fecha buena es cf5 ("Fecha de ganado"), pero AC NO la
-          // devuelve en el listado masivo, y `edate` no sirve como sustituto: se mueve cada vez que
-          // se edita el trato, así que arrastra ganados viejos al periodo (julio: 37 en vez de 21).
-          // Preseleccionamos por edate con margen y consultamos cf5 uno a uno solo de estos.
+          // VENTA DEL PERIODO: la fecha buena es cf5 ("Fecha de ganado"), NO `edate` (edate se mueve
+          // cada vez que se edita el trato: arrastraba ganados viejos al periodo y, al revés, dejaba
+          // fuera ventas antiguas re-editadas — marzo salía con 2 ventas en vez de 24).
+          const f5 = cf[x.id] && cf[x.id]['5'];
+          const fechaGanado = f5 ? String(f5).slice(0, 10) : '';
           if (String(x.group || '') === GROUP && !isPM(pmCamp, ownerName)) {
-            const e = x.edate ? String(x.edate).slice(0, 10) : null;
-            if (!from || !to || !e || (e >= margenIni && e <= margenFin)) {
-              wonCandidatos.push({ id: x.id, curso: cuW || 'Sin curso', pais: won_pais[x.id], valor: x.value ? Number(x.value) / 100 : 0 });
+            if (!fechaGanado) won_sin_fecha++;
+            else if ((!from || fechaGanado >= String(from)) && (!to || fechaGanado <= String(to))) {
+              won_periodo.push({ id: x.id, curso: cuW || 'Sin curso', pais: won_pais[x.id],
+                                 valor: x.value ? Number(x.value) / 100 : 0, date: fechaGanado });
             }
           }
           if (pmCamp) won_campana[x.id] = pmCamp.slice(0, 80);   // utm_campaign del ganado (desglose por campaña)
@@ -391,26 +408,8 @@ export default async function handler(req, res) {
       const B = 10;
       for (let i = 0; i < offs.length; i += B) { await Promise.all(offs.slice(i, i + B).map(o => grab(o))); }
       integridad.ganados = { esperados: total, obtenidos: seenW.size };
-    }
-
-    // FECHA DE GANADO REAL (cf5) de los candidatos, uno a uno: es el único sitio donde AC la da.
-    // Con esto el informe reproduce las ventas que daba el proxy de WordPress sin depender de él.
-    if (from && to && wonCandidatos.length) {
-      const lote = wonCandidatos.slice(0, 500);
-      for (let i = 0; i < lote.length; i += 12) {
-        if (Date.now() - start > 48000) { integridad.won_periodo_incompleto = true; break; }
-        const trozo = lote.slice(i, i + 12);
-        const rs = await Promise.all(trozo.map(c => acGet(KEY, `/deals/${c.id}/dealCustomFieldData`, { limit: 100 })));
-        rs.forEach((r, j) => {
-          const filas = r.dealCustomFieldData || [];
-          const f5 = filas.find(z => String(z.customFieldId || z.custom_field_id) === '5');
-          const fecha = f5 && String(f5.fieldValue || f5.custom_field_text_value || '').slice(0, 10);
-          if (fecha && fecha >= String(from) && fecha <= String(to)) {
-            won_periodo.push({ ...trozo[j], date: fecha });
-          }
-        });
-      }
-      integridad.won_candidatos = wonCandidatos.length;
+      integridad.won_sin_fecha = won_sin_fecha;   // ganados de formación sin "Fecha de ganado" puesta
+      won_periodo.sort((a, b) => String(b.date).localeCompare(String(a.date)));
     }
 
     // GANADOS CREADOS EN EL PERIODO (cohorte): de los tratos que ENTRARON en estas fechas, cuántos ya se ganaron.
@@ -422,8 +421,7 @@ export default async function handler(req, res) {
       const seenWC = new Set();   // dedupe por id (paginación paralela, ver arriba)
       const grabWC = async (off) => {
         const d = await acGet(KEY, '/deals', { 'filters[status]': 1, include: 'dealCustomFieldData', ...dateParams, limit: 100, offset: off });
-        const cf = {};
-        (d.dealCustomFieldData || []).forEach(x => { (cf[x.deal_id] = cf[x.deal_id] || {})[x.custom_field_id] = x.custom_field_text_value; });
+        const cf = mapaCF(d);
         (d.deals || []).forEach(x => {
           if (seenWC.has(x.id)) return;
           seenWC.add(x.id);
