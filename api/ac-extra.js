@@ -361,8 +361,11 @@ export default async function handler(req, res) {
           won_pais[x.id] = (pvW && String(pvW).trim()) ? normPais(pvW) : 'Sin país';
           const cuW = cf[x.id] && cf[x.id][M_CURSO] && String(cf[x.id][M_CURSO]).trim();
           if (cuW) won_curso[x.id] = cuW;
-          // ¿Se ganó DENTRO del periodo? cf5 = "Fecha de ganado" (formato YYYY-MM-DD)
-          const fGan = cf[x.id] && cf[x.id]['5'] && String(cf[x.id]['5']).slice(0, 10);
+          // ¿Se ganó DENTRO del periodo? Preferimos cf5 ("Fecha de ganado", el campo que usaba el
+          // proxy), pero AC NO lo devuelve en el listado masivo: caemos a `edate`, la fecha real de
+          // cierre del trato, que además va al día (cf5 la escribe una automatización 24 h después).
+          const fGan = (cf[x.id] && cf[x.id]['5'] && String(cf[x.id]['5']).slice(0, 10))
+                    || (x.edate ? String(x.edate).slice(0, 10) : null);
           const dentro = fGan && (!from || fGan >= String(from)) && (!to || fGan <= String(to));
           if (dentro && String(x.group || '') === GROUP && !isPM(pmCamp, ownerName)) {
             won_periodo.push({
