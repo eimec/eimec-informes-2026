@@ -333,6 +333,12 @@ export default async function handler(req, res) {
     // ruta /eimec/v1/ac del WP desaparecio (404) y el informe se quedo sin ventas en TODOS los
     // cuadros; con esto el informe sigue funcionando aunque el proxy no vuelva.
     const won_periodo = [];
+    const wonCandidatos = [];
+    // Margen alrededor del periodo para preseleccionar por edate (cf5 y edate suelen ir juntos;
+    // el margen cubre los tratos re-editados y los que cerraron justo en el borde).
+    const desplaza = (f, dias) => { const [y, m, d] = String(f).split('-').map(Number); const t = new Date(Date.UTC(y, m - 1, d + dias)); return t.toISOString().slice(0, 10); };
+    const margenIni = from ? desplaza(from, -120) : '0000-01-01';
+    const margenFin = to ? desplaza(to, 30) : '9999-12-31';
     // pmWonIds = ganados que el front debe EXCLUIR. Criterio duro: todo lo que no sea el pipeline de
     // formación (group 1) fuera — el proxy WP devuelve ganados de TODOS los pipelines y la regex de
     // "paciente modelo" no los pilla todos (auditoría 27-jul: 99 ganados de group 4 se le escapaban).
@@ -361,17 +367,15 @@ export default async function handler(req, res) {
           won_pais[x.id] = (pvW && String(pvW).trim()) ? normPais(pvW) : 'Sin país';
           const cuW = cf[x.id] && cf[x.id][M_CURSO] && String(cf[x.id][M_CURSO]).trim();
           if (cuW) won_curso[x.id] = cuW;
-          // ¿Se ganó DENTRO del periodo? Preferimos cf5 ("Fecha de ganado", el campo que usaba el
-          // proxy), pero AC NO lo devuelve en el listado masivo: caemos a `edate`, la fecha real de
-          // cierre del trato, que además va al día (cf5 la escribe una automatización 24 h después).
-          const fGan = (cf[x.id] && cf[x.id]['5'] && String(cf[x.id]['5']).slice(0, 10))
-                    || (x.edate ? String(x.edate).slice(0, 10) : null);
-          const dentro = fGan && (!from || fGan >= String(from)) && (!to || fGan <= String(to));
-          if (dentro && String(x.group || '') === GROUP && !isPM(pmCamp, ownerName)) {
-            won_periodo.push({
-              id: x.id, date: fGan, curso: cuW || 'Sin curso',
-              pais: won_pais[x.id], valor: x.value ? Number(x.value) / 100 : 0
-            });
+          // CANDIDATOS a venta del periodo. La fecha buena es cf5 ("Fecha de ganado"), pero AC NO la
+          // devuelve en el listado masivo, y `edate` no sirve como sustituto: se mueve cada vez que
+          // se edita el trato, así que arrastra ganados viejos al periodo (julio: 37 en vez de 21).
+          // Preseleccionamos por edate con margen y consultamos cf5 uno a uno solo de estos.
+          if (String(x.group || '') === GROUP && !isPM(pmCamp, ownerName)) {
+            const e = x.edate ? String(x.edate).slice(0, 10) : null;
+            if (!from || !to || !e || (e >= margenIni && e <= margenFin)) {
+              wonCandidatos.push({ id: x.id, curso: cuW || 'Sin curso', pais: won_pais[x.id], valor: x.value ? Number(x.value) / 100 : 0 });
+            }
           }
           if (pmCamp) won_campana[x.id] = pmCamp.slice(0, 80);   // utm_campaign del ganado (desglose por campaña)
           // Importe (AC lo guarda en CÉNTIMOS) y título, para el listado de ventas de administración
@@ -387,6 +391,26 @@ export default async function handler(req, res) {
       const B = 10;
       for (let i = 0; i < offs.length; i += B) { await Promise.all(offs.slice(i, i + B).map(o => grab(o))); }
       integridad.ganados = { esperados: total, obtenidos: seenW.size };
+    }
+
+    // FECHA DE GANADO REAL (cf5) de los candidatos, uno a uno: es el único sitio donde AC la da.
+    // Con esto el informe reproduce las ventas que daba el proxy de WordPress sin depender de él.
+    if (from && to && wonCandidatos.length) {
+      const lote = wonCandidatos.slice(0, 500);
+      for (let i = 0; i < lote.length; i += 12) {
+        if (Date.now() - start > 48000) { integridad.won_periodo_incompleto = true; break; }
+        const trozo = lote.slice(i, i + 12);
+        const rs = await Promise.all(trozo.map(c => acGet(KEY, `/deals/${c.id}/dealCustomFieldData`, { limit: 100 })));
+        rs.forEach((r, j) => {
+          const filas = r.dealCustomFieldData || [];
+          const f5 = filas.find(z => String(z.customFieldId || z.custom_field_id) === '5');
+          const fecha = f5 && String(f5.fieldValue || f5.custom_field_text_value || '').slice(0, 10);
+          if (fecha && fecha >= String(from) && fecha <= String(to)) {
+            won_periodo.push({ ...trozo[j], date: fecha });
+          }
+        });
+      }
+      integridad.won_candidatos = wonCandidatos.length;
     }
 
     // GANADOS CREADOS EN EL PERIODO (cohorte): de los tratos que ENTRARON en estas fechas, cuántos ya se ganaron.
