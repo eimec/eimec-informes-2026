@@ -440,6 +440,12 @@
             try { if (extraRes) { const j = await extraRes.json(); if (j && j.ok) extra = j; } } catch(_) {}
             try { if (dataRes) { const j = await dataRes.json(); if (j && j.ok) data = j; } } catch(_) {}
 
+            // RESPALDO SIN WORDPRESS (aquí y no en render()): si el proxy WP no responde, las ventas
+            // del periodo salen de ac-extra. Tiene que estar ANTES de pedir las asistidas, porque esa
+            // llamada necesita los ids de las ventas: con el proxy caído (404 desde el 29-jul) la
+            // columna "Asistidas" se quedaba en "—" para siempre.
+            data = conRespaldoVentas(data, extra);
+
             // Ventas ASISTIDAS por canal: necesita los ids de las ventas del periodo (won_deals),
             // por eso se pide DESPUÉS y no en paralelo. Si falla → null y el cuadro muestra "—".
             let asistidas = null;
@@ -459,14 +465,19 @@
             render(ads, extra, data, params, asistidas);
         }
 
-        function render(ads, extra, data, params, asistidas) {
-            // RESPALDO SIN WORDPRESS: si el proxy WP no responde, las ventas del periodo salen de
-            // ac-extra (consulta directa a ActiveCampaign). Sin esto el informe muestra 0 ventas.
+        // RESPALDO SIN WORDPRESS: si el proxy WP no responde (404 desde el 29-jul-2026), las ventas del
+        // periodo salen de ac-extra (consulta directa a ActiveCampaign). Sin esto el informe muestra 0 ventas.
+        function conRespaldoVentas(data, extra) {
             if ((!data || !Array.isArray(data.won_deals) || !data.won_deals.length) && extra && Array.isArray(extra.won_periodo)) {
-                data = Object.assign({ ok: true, _sinProxy: true }, data || {}, {
+                return Object.assign({ ok: true, _sinProxy: true }, data || {}, {
                     won_deals: extra.won_periodo, won_count: extra.won_periodo.length
                 });
             }
+            return data;
+        }
+
+        function render(ads, extra, data, params, asistidas) {
+            data = conRespaldoVentas(data, extra);   // idempotente: loadData ya lo aplicó
             document.getElementById('metaLine').innerHTML =
                 `Periodo analizado: <strong>${fmtDate(params.from)} — ${fmtDate(params.to)}</strong>`;
 
@@ -711,7 +722,7 @@
                         <th style="color:var(--brand)" title="Leads del periodo que entraron por este canal (según el origen utm que graba el CRM): los que siguen abiertos más los ya ganados.">Tratos</th>
                         <th title="Inversión ÷ tratos del canal: lo que costó de media cada lead de este canal.">CPL</th>
                         <th style="color:var(--green)" title="Ventas cerradas en estas fechas cuyo trato entró por este canal.">Ventas</th>
-                        <th style="color:var(--brand-soft)" title="Ventas cerradas en estas fechas en las que este canal PARTICIPÓ sin ser el origen directo: la persona tiene otro trato que entró por este canal.">Asistidas</th>
+                        <th style="color:var(--brand-soft)" title="Ventas cerradas en estas fechas en las que este canal PARTICIPÓ sin ser el origen directo del trato ganado. Se cuenta si la persona tiene OTRO trato entrado por este canal, o si su ficha de contacto guarda el utm/gclid de este canal (el trato lo pierde cuando el comercial lo crea a mano).">Asistidas</th>
                         <th title="Inversión ÷ ventas del periodo del canal: coste de cada venta atribuida directamente.">CPA</th>
                         <th title="Inversión ÷ (ventas del periodo + asistidas): coste por venta contando también las que el canal ayudó a cerrar.">CPA asist.</th>
                         <th style="color:var(--slate)" title="Fase 1 · Solicitud">F1</th>

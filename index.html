@@ -417,6 +417,20 @@
                     }
                     let ytd = null;
                     try { if (ytdRes) { const j = await ytdRes.json(); if (j && j.ok) ytd = j; } } catch(_) {}
+                    // RESPALDO SIN WORDPRESS para el cuadro "Objetivo vs Real": el bloque anual vive de
+                    // los cierres del AÑO, que también venían del proxy caído. Segunda llamada a ac-extra
+                    // con el rango del año (el servidor la cachea 10 min; ~14s la primera vez).
+                    if (!ytd || !Array.isArray(ytd.won_deals)) {
+                        try {
+                            const er = await fetch(`/api/ac-extra?from=${_y0}&to=${_hoyStr}`).catch(()=>null);
+                            if (er) {
+                                const ej = await er.json();
+                                if (ej && ej.ok && Array.isArray(ej.won_periodo)) {
+                                    ytd = { ok: true, _sinProxy: true, won_deals: ej.won_periodo, won_count: ej.won_periodo.length };
+                                }
+                            }
+                        } catch(_) {}
+                    }
                     // Movimientos de fase precalculados (fichero estático que actualiza una rutina diaria).
                     // Se suman aquí para el rango del filtro; si el fichero no cubre el rango -> partial (fallback cohorte).
                     let moves = null;
