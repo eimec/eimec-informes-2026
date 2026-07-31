@@ -460,6 +460,13 @@
         }
 
         function render(ads, extra, data, params, asistidas) {
+            // RESPALDO SIN WORDPRESS: si el proxy WP no responde, las ventas del periodo salen de
+            // ac-extra (consulta directa a ActiveCampaign). Sin esto el informe muestra 0 ventas.
+            if ((!data || !Array.isArray(data.won_deals) || !data.won_deals.length) && extra && Array.isArray(extra.won_periodo)) {
+                data = Object.assign({ ok: true, _sinProxy: true }, data || {}, {
+                    won_deals: extra.won_periodo, won_count: extra.won_periodo.length
+                });
+            }
             document.getElementById('metaLine').innerHTML =
                 `Periodo analizado: <strong>${fmtDate(params.from)} — ${fmtDate(params.to)}</strong>`;
 

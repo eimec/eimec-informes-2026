@@ -327,6 +327,12 @@ export default async function handler(req, res) {
     const won_conocio = {};   // id -> "¿Cómo has conocido EIMEC?" (cf9): atribución de respaldo cuando falta el utm
     const won_campana = {};   // id -> utm_campaign (cf11) del ganado, para el desglose por campaña
     const won_pais = {};      // id -> país normalizado del ganado (cuadro canal × país)
+    const won_curso = {};     // id -> curso (cf3) del ganado
+    // VENTAS DEL PERIODO calculadas AQUÍ, sin depender del proxy de WordPress: los ganados del
+    // pipeline de formación cuya "Fecha de ganado" (cf5) cae dentro del rango. El 29-jul-2026 la
+    // ruta /eimec/v1/ac del WP desaparecio (404) y el informe se quedo sin ventas en TODOS los
+    // cuadros; con esto el informe sigue funcionando aunque el proxy no vuelva.
+    const won_periodo = [];
     // pmWonIds = ganados que el front debe EXCLUIR. Criterio duro: todo lo que no sea el pipeline de
     // formación (group 1) fuera — el proxy WP devuelve ganados de TODOS los pipelines y la regex de
     // "paciente modelo" no los pilla todos (auditoría 27-jul: 99 ganados de group 4 se le escapaban).
@@ -353,6 +359,17 @@ export default async function handler(req, res) {
           // manda el país, pero aquí sale del mismo campo y con la misma normalización que el resto.
           const pvW = cf[x.id] && cf[x.id][M_PAIS];
           won_pais[x.id] = (pvW && String(pvW).trim()) ? normPais(pvW) : 'Sin país';
+          const cuW = cf[x.id] && cf[x.id][M_CURSO] && String(cf[x.id][M_CURSO]).trim();
+          if (cuW) won_curso[x.id] = cuW;
+          // ¿Se ganó DENTRO del periodo? cf5 = "Fecha de ganado" (formato YYYY-MM-DD)
+          const fGan = cf[x.id] && cf[x.id]['5'] && String(cf[x.id]['5']).slice(0, 10);
+          const dentro = fGan && (!from || fGan >= String(from)) && (!to || fGan <= String(to));
+          if (dentro && String(x.group || '') === GROUP && !isPM(pmCamp, ownerName)) {
+            won_periodo.push({
+              id: x.id, date: fGan, curso: cuW || 'Sin curso',
+              pais: won_pais[x.id], valor: x.value ? Number(x.value) / 100 : 0
+            });
+          }
           if (pmCamp) won_campana[x.id] = pmCamp.slice(0, 80);   // utm_campaign del ganado (desglose por campaña)
           // Importe (AC lo guarda en CÉNTIMOS) y título, para el listado de ventas de administración
           won_value[x.id] = x.value ? Number(x.value) : 0;
@@ -428,7 +445,8 @@ export default async function handler(req, res) {
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
       cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
-      creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, won_pais, won_group, integridad,
+      creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, won_pais, won_curso, won_group, integridad,
+      won_periodo, won_periodo_total: won_periodo.length,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
       utm_title: UTM_TITLE[M_UTM] || 'UTM', utm_title_pl: UTM_TITLE_PL[M_UTM] || 'UTM',

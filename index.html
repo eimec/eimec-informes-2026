@@ -400,9 +400,21 @@
                         fetch(`/data/moves-daily.json?v=${Date.now()}`).catch(()=>null),
                         fetch(`/api/ac-stock`).catch(()=>null)   // stock total del pipeline (no depende del filtro)
                     ]);
-                    const data = await dataRes.json();
+                    let data = await dataRes.json();
                     let extra = null;
                     try { if (extraRes) { const e = await extraRes.json(); if (e && e.ok) extra = e; } } catch(_) {}
+                    // RESPALDO SIN WORDPRESS: si el proxy WP no responde (el 29-jul-2026 su ruta
+                    // /eimec/v1/ac desaparecio y el informe se quedo sin NINGUNA venta), reconstruimos
+                    // lo esencial desde ac-extra, que consulta ActiveCampaign directamente.
+                    if ((!data || !data.ok || !Array.isArray(data.won_deals)) && extra && Array.isArray(extra.won_periodo)) {
+                        const pf = extra.totals || {};
+                        data = Object.assign({ ok: true, _sinProxy: true }, data && data.ok ? data : {}, {
+                            won_deals: extra.won_periodo,
+                            won_count: extra.won_periodo.length,
+                            pipeline: { f1: pf.f1 || 0, f2: pf.f2 || 0, f3: pf.f3 || 0, f4: pf.f4 || 0, trash: 0 },
+                            period: { from: params.from, to: params.to }
+                        });
+                    }
                     let ytd = null;
                     try { if (ytdRes) { const j = await ytdRes.json(); if (j && j.ok) ytd = j; } } catch(_) {}
                     // Movimientos de fase precalculados (fichero estático que actualiza una rutina diaria).

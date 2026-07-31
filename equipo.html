@@ -435,6 +435,13 @@
                 return;
             }
 
+            // RESPALDO SIN WORDPRESS: si el proxy WP no responde, las ventas del periodo salen de
+            // ac-extra (consulta directa a ActiveCampaign). Sin esto la hoja muestra 0 ventas.
+            if ((!data || !Array.isArray(data.won_deals) || !data.won_deals.length) && extra && Array.isArray(extra.won_periodo)) {
+                data = Object.assign({ ok: true, _sinProxy: true }, data || {}, {
+                    won_deals: extra.won_periodo, won_count: extra.won_periodo.length
+                });
+            }
             const tot = extra.totals || { f1: 0, f2: 0, f3: 0, f4: 0, wonc: 0 };
             const pmSet = new Set(extra.pm_won_ids || []);
 
