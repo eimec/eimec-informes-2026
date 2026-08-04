@@ -240,6 +240,11 @@ export default async function handler(req, res) {
     // Reparto por ETAPA de todos los creados: lo que el embudo F1-F4 no enseña (Eventos, Para
     // Contactar, TRASH, perdidos). Auditoría 27-jul: 94 de 551 tratos vivían fuera del embudo.
     const creados_por_etapa = {};
+    // PERDIDOS por campaña: de los tratos creados en el periodo, los que HOY estan marcados como
+    // perdidos (status=2) en AC. Es la contrapartida de "Ventas" en el cuadro de Paid Media: sin
+    // esto, la campana solo ensena lo que sigue vivo y lo ganado, y el resto desaparece del cuadro.
+    // OJO: TRASH y "No contestan" son ETAPAS, no status, y no cuentan aqui (ver creados_por_etapa).
+    const perdidos_por_campana = {};
     // Tratos creados por PAÍS: para que el cuadro por país/región cuente lo mismo que la tarjeta.
     const creados_por_pais = {};
     const creados_por_curso = {};   // leads por curso (hoja de Objetivos)
@@ -294,7 +299,11 @@ export default async function handler(req, res) {
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
           const camp = pmCamp;   // cf11 es el mismo campo M_PM_CAMPAIGN (utm_campaign)
-          if (camp) { const k = camp.slice(0, 80); creados_por_campana[k] = (creados_por_campana[k] || 0) + 1; }
+          if (camp) {
+            const k = camp.slice(0, 80);
+            creados_por_campana[k] = (creados_por_campana[k] || 0) + 1;
+            if (String(d.status) === '2') perdidos_por_campana[k] = (perdidos_por_campana[k] || 0) + 1;
+          }
         });
       };
       const base = { 'filters[group]': GROUP, ...dateParams };
@@ -467,7 +476,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       ok: true, by_owner, by_pais, by_curso, by_campaign, won_owner, won_campaign, won_conocio, created_by_date: cbd, f2_by_date: f2bd, paid_by_date: pbd, all_by_date: abd, totals: tot,
-      creados_total, creados_by_date, creados_por_utm, creados_por_campana, creados_por_owner, won_campana, by_campana_fases,
+      creados_total, creados_by_date, creados_por_utm, creados_por_campana, perdidos_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
       cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
       creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, won_pais, won_curso, won_group, integridad,
