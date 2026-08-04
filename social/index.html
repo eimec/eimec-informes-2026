@@ -284,6 +284,13 @@
     <p class="sub" style="margin:12px 0 0" id="brandNote"></p>
   </div>
 
+  <h2 class="sec"><span class="prio">8</span>Resumen mensual <small id="mesSub">mes a mes de una red, para seguimiento</small></h2>
+  <div class="panel">
+    <div class="filters" id="mesChips" style="margin:0 0 14px"></div>
+    <div class="tblwrap"><div id="mesTable"></div></div>
+    <p class="sub" style="margin:12px 0 0" id="mesNote"></p>
+  </div>
+
   <footer id="foot">EIMEC · Informe Social Media · datos reales de Metricool</footer>
 </div>
 
@@ -331,7 +338,7 @@ function orderedBrands(){
     .concat(keys.filter(function(k){return BRAND_ORDER.indexOf(k)<0;}));
 }
 var DATA=null, DAYS=[], IDX={}, N=0, END=0;
-var state={brand:'eimec.es', period:30, custom:null, gal:{net:'all',fmt:'all',sort:'inter',limit:12}};
+var state={brand:'eimec.es', period:30, custom:null, gal:{net:'all',fmt:'all',sort:'inter',limit:12}, mesNet:'ig'};
 
 function currentWindow(){
   if(state.period==='custom'&&state.custom) return state.custom;
@@ -910,6 +917,120 @@ function renderBrandTable(f,t){
     +' Nota: eimec.es y eimec.global comparten el mismo canal de YouTube; aparece en ambas filas pero en el total del grupo se cuenta una sola vez.';
 }
 
+// ---------------- resumen mensual (formato de seguimiento pedido por dirección) ----------------
+var MESES_LARGO=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+// Bloques [f,t] de índices por mes natural, hasta END (el informe nunca usa el día en curso)
+function monthBlocks(){
+  var out=[], cur=null;
+  for(var i=0;i<=END;i++){
+    var m=DAYS[i].slice(0,7);
+    if(!cur||cur.m!==m){cur={m:m,f:i,t:i}; out.push(cur);}
+    else cur.t=i;
+  }
+  return out;
+}
+// Un mes es parcial si al snapshot le falta su primer día natural o su último
+function mesParcial(x){
+  var y=parseInt(x.m.slice(0,4),10), mm=parseInt(x.m.slice(5),10);
+  var ultimo=new Date(y,mm,0).getDate();
+  return DAYS[x.f].slice(8)!=='01' || parseInt(DAYS[x.t].slice(8),10)!==ultimo;
+}
+/* assemble.py rellena TODOS los días de todas las series (los que Metricool no tiene
+   quedan a 0 y los seguidores se arrastran). Para el resumen mensual eso no vale: un mes
+   anterior a la conexión de la cuenta se pintaría como 0 y se leería como "no llegamos a
+   nadie", que es falso. Un día cuenta como día CON DATO si la cuenta reportó algo ese día. */
+function diasConDato(Nt,f,t){
+  var n=0;
+  for(var i=f;i<=t;i++){
+    if(nz(Nt.reach&&Nt.reach[i])!==0||nz(Nt.views&&Nt.views[i])!==0||nz(Nt.follows&&Nt.follows[i])!==0) n++;
+  }
+  return n;
+}
+function erDe(posts){
+  var pi=0, pr=0;
+  posts.forEach(function(p){pi+=nz(p.inter); pr+=pReach(p);});
+  return pr>0?pi/pr*100:null;
+}
+function renderMonthly(B){
+  var nets=netsOrdered(B);
+  var cont=document.getElementById('mesTable');
+  if(!nets.length){cont.innerHTML=''; document.getElementById('mesChips').innerHTML=''; return;}
+  var net=state.mesNet;
+  if(nets.indexOf(net)<0){net=nets[0]; state.mesNet=net;}
+
+  var chips='<span class="lbl">Red</span>';
+  nets.forEach(function(n){
+    chips+='<span class="chip'+(n===net?' on':'')+'" onclick="setMesNet(\''+n+'\')">'+NETMETA[n].name+'</span>';
+  });
+  document.getElementById('mesChips').innerHTML=chips;
+
+  var Nt=B.nets[net], ms=monthBlocks();
+  var hayReels=Nt.posts.some(function(p){return p.fmt==='Reel';});
+  var hayStories=(Nt.stories||[]).some(function(v){return v>0;});
+
+  var html='<table class="data" style="min-width:'+(250+ms.length*86)+'px"><thead><tr>'
+    +'<th>'+esc(state.brand)+' · '+NETMETA[net].name+'</th>';
+  ms.forEach(function(x){
+    html+='<th class="num">'+MESES_LARGO[parseInt(x.m.slice(5),10)-1]+(mesParcial(x)?'*':'')+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+
+  function fila(nombre, fn, opts){
+    opts=opts||{};
+    var r='<tr'+(opts.total?' class="total"':'')+'><td>'+nombre+'</td>';
+    ms.forEach(function(x){
+      var v=fn(x);
+      r+='<td class="num'+(opts.cls&&v!=null?' '+opts.cls(v):'')+'">'+(v==null?'—':opts.fmt(v))+'</td>';
+    });
+    return r+'</tr>';
+  }
+  var pctFmt=function(v){return fmtPct(v);};
+  var dcd={};
+  ms.forEach(function(x){dcd[x.m]=diasConDato(Nt,x.f,x.t);});
+  html+=fila(NETMETA[net].folLbl, function(x){
+    return dcd[x.m]?folAt(Nt,x.t):null;
+  }, {fmt:fmtInt});
+  html+=fila('Nuevos '+NETMETA[net].folLbl.toLowerCase(), function(x){
+    return dcd[x.m]?netFollows(Nt,x.f,x.t):null;
+  }, {fmt:fmtSigned, cls:cls});
+  html+=fila('Engagement publicaciones (%)', function(x){
+    return erDe(Nt.posts.filter(function(p){return p.day>=x.f&&p.day<=x.t&&p.fmt!=='Reel';}));
+  }, {fmt:pctFmt});
+  if(hayReels) html+=fila('Engagement reels (%)', function(x){
+    return erDe(Nt.posts.filter(function(p){return p.day>=x.f&&p.day<=x.t&&p.fmt==='Reel';}));
+  }, {fmt:pctFmt});
+  if(hayStories) html+=fila('Contenido total (con stories)', function(x){
+    return Nt.posts.filter(function(p){return p.day>=x.f&&p.day<=x.t;}).length+Math.round(sumR(Nt.stories,x.f,x.t));
+  }, {fmt:fmtInt});
+  html+=fila('Publicaciones', function(x){
+    return Nt.posts.filter(function(p){return p.day>=x.f&&p.day<=x.t;}).length;
+  }, {fmt:fmtInt});
+  // media sobre los días CON dato, no sobre los días naturales del mes
+  html+=fila('Alcance medio diario', function(x){
+    return dcd[x.m]?Math.round(netReach(Nt,x.f,x.t)/dcd[x.m]):null;
+  }, {fmt:fmtInt});
+  html+=fila('Visualizaciones', function(x){
+    return dcd[x.m]?netImp(Nt,x.f,x.t):null;
+  }, {fmt:fmtBig, total:true});
+  html+='</tbody></table>';
+  cont.innerHTML=html;
+
+  var parciales=ms.filter(mesParcial).map(function(x){return MESES_LARGO[parseInt(x.m.slice(5),10)-1];});
+  // Primer día con datos diarios de esta cuenta: si no es el inicio del histórico, hay que decirlo
+  var desde=null;
+  for(var q=0;q<=END;q++){
+    if(diasConDato(Nt,q,q)){desde=DAYS[q]; break;}
+  }
+  if(desde===DAYS[0]) desde=null;
+  document.getElementById('mesSub').textContent='mes a mes de '+state.brand+' en '+NETMETA[net].name+' · no depende del periodo elegido arriba';
+  document.getElementById('mesNote').innerHTML=
+    'Engagement = interacciones ÷ alcance de las publicaciones de ese mes (misma metodología que el resto del informe y que Metricool). '
+    +'«Alcance medio diario» divide entre los días del mes con datos.'
+    +(parciales.length?' <b>'+parciales.join(' y ')+(parciales.length>1?' son meses incompletos':' es un mes incompleto')+'</b> (marcados con *): el histórico empieza el '+fmtDayStr(DAYS[0])+' y el informe nunca usa el día en curso.':'')
+    +(desde?' Un guion (—) significa que Metricool no tiene ese dato, no que valga cero: esta cuenta empieza a devolver datos diarios el <b>'+fmtDayStr(desde)+'</b>, así que los meses anteriores solo pueden rellenarse a mano desde la app.':'')
+    +' <b>Clics en el enlace de la bio y CTR no aparecen</b> porque Meta retiró esa métrica de la API: Metricool la marca como obsoleta y solo puede consultarse a mano en Instagram.';
+}
+
 // ---------------- render principal ----------------
 function renderAll(){
   var key=state.brand, B=DATA.brands[key];
@@ -967,10 +1088,12 @@ function renderAll(){
 
   renderNetCards(B,st);
   renderBrandTable(f,t);
+  renderMonthly(B);
 }
 
 // ---------------- interacción ----------------
 function setBrand(k){state.brand=k; state.gal={net:'all',fmt:'all',sort:'inter',limit:12}; renderAll();}
+function setMesNet(n){state.mesNet=n; renderMonthly(DATA.brands[state.brand]);}
 function setPeriod(p){
   state.period=p;
   if(p==='custom'){
