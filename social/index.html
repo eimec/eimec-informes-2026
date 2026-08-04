@@ -100,7 +100,14 @@
   .ins .tag{font-size:10px; text-transform:uppercase; letter-spacing:.1em; font-weight:800; color:var(--ic)}
 
   .gal-filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
-  .gal-filters .sep{width:1px; height:20px; background:var(--line); margin:0 4px}
+  .gal-filters .sep,.filters .sep{width:1px; height:20px; background:var(--line); margin:0 4px}
+  .mesgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:22px; margin-top:22px}
+  .gtitle{font-size:12.5px; font-weight:700; color:var(--ink); margin-bottom:6px}
+  .gtitle small{display:block; font-weight:400; font-size:11px; color:var(--muted); margin-top:2px}
+  /* marca las filas cuyo dato no viene de la API sino de manual.json */
+  .manu{font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+    border:1px solid var(--line); border-radius:4px; padding:1px 5px; margin-left:7px; font-weight:600;
+    vertical-align:middle; white-space:nowrap}
   .gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:12px}
   .gallery .empty{grid-column:1/-1; text-align:center; color:var(--muted); font-size:13px; padding:30px 0}
   a.post{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;
@@ -288,6 +295,11 @@
   <div class="panel">
     <div class="filters" id="mesChips" style="margin:0 0 14px"></div>
     <div class="tblwrap"><div id="mesTable"></div></div>
+    <div class="mesgrid">
+      <div id="mesG1"></div>
+      <div id="mesG2"></div>
+    </div>
+    <p class="sub" style="margin:6px 0 0" id="mesGNote"></p>
     <p class="sub" style="margin:12px 0 0" id="mesNote"></p>
   </div>
 
@@ -338,6 +350,7 @@ function orderedBrands(){
     .concat(keys.filter(function(k){return BRAND_ORDER.indexOf(k)<0;}));
 }
 var DATA=null, DAYS=[], IDX={}, N=0, END=0;
+var MANUAL=null;   // social/manual.json: lo que la API ya no da (clics en el enlace de la bio)
 var state={brand:'eimec.es', period:30, custom:null, gal:{net:'all',fmt:'all',sort:'inter',limit:12}, mesNet:'ig'};
 
 function currentWindow(){
@@ -951,6 +964,49 @@ function erDe(posts){
   posts.forEach(function(p){pi+=nz(p.inter); pr+=pReach(p);});
   return pr>0?pi/pr*100:null;
 }
+/* Gráfico mensual: barras + línea con escalas independientes (son unidades distintas).
+   labels = meses, bars/line = arrays con null donde no hay dato (la línea se corta ahí). */
+function svgMesCombo(labels, bars, line, colBar, colLine){
+  var W=480, H=190, L=6, R=6, TOP=18, BOT=30;
+  var n=labels.length; if(!n) return '';
+  var bw=(W-L-R)/n, inner=Math.min(26,bw*0.52);
+  var maxB=Math.max.apply(null,bars.map(function(v){return v==null?0:Math.abs(v);}))||1;
+  var maxL=Math.max.apply(null,line.map(function(v){return v==null?0:v;}))||1;
+  var plot=H-TOP-BOT, out='';
+  // rejilla horizontal
+  [0,0.5,1].forEach(function(q){
+    var y=TOP+plot*(1-q);
+    out+='<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+(W-R)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1"/>';
+  });
+  // barras
+  bars.forEach(function(v,i){
+    if(v==null) return;
+    var h=Math.abs(v)/maxB*plot, x=L+i*bw+(bw-inner)/2, y=TOP+plot-h;
+    out+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+inner.toFixed(1)+'" height="'+Math.max(1,h).toFixed(1)+'" rx="3" fill="'+colBar+'" opacity=".85"><title>'+esc(labels[i])+': '+fmtInt(v)+'</title></rect>';
+  });
+  // línea (se parte en los tramos sin dato)
+  var seg=[], pts=[];
+  line.forEach(function(v,i){
+    if(v==null){ if(pts.length)seg.push(pts); pts=[]; return; }
+    pts.push([L+i*bw+bw/2, TOP+plot-(v/maxL*plot)]);
+  });
+  if(pts.length) seg.push(pts);
+  seg.forEach(function(s){
+    out+='<polyline fill="none" stroke="'+colLine+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" points="'
+      +s.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join(' ')+'"/>';
+  });
+  line.forEach(function(v,i){
+    if(v==null) return;
+    var cx=L+i*bw+bw/2, cy=TOP+plot-(v/maxL*plot);
+    out+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="3.2" fill="var(--card)" stroke="'+colLine+'" stroke-width="2"><title>'+esc(labels[i])+': '+fmtInt(v)+'</title></circle>';
+  });
+  // meses
+  labels.forEach(function(lb,i){
+    out+='<text x="'+(L+i*bw+bw/2).toFixed(1)+'" y="'+(H-10)+'" font-size="10.5" fill="var(--muted)" text-anchor="middle">'+esc(lb)+'</text>';
+  });
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img">'+out+'</svg>';
+}
+
 function renderMonthly(B){
   var nets=netsOrdered(B);
   var cont=document.getElementById('mesTable');
@@ -958,7 +1014,11 @@ function renderMonthly(B){
   var net=state.mesNet;
   if(nets.indexOf(net)<0){net=nets[0]; state.mesNet=net;}
 
-  var chips='<span class="lbl">Red</span>';
+  var chips='<span class="lbl">Perfil</span>';
+  orderedBrands().forEach(function(k){
+    chips+='<span class="chip'+(k===state.brand?' on':'')+'" onclick="setBrand(\''+esc(jsq(k))+'\')">'+esc(k)+'</span>';
+  });
+  chips+='<span class="sep"></span><span class="lbl">Red</span>';
   nets.forEach(function(n){
     chips+='<span class="chip'+(n===net?' on':'')+'" onclick="setMesNet(\''+n+'\')">'+NETMETA[n].name+'</span>';
   });
@@ -1011,9 +1071,43 @@ function renderMonthly(B){
   }, {fmt:fmtInt});
   html+=fila('Visualizaciones', function(x){
     return dcd[x.m]?netImp(Nt,x.f,x.t):null;
-  }, {fmt:fmtBig, total:true});
+  }, {fmt:fmtBig});
+  // Clics en el enlace de la bio: la API de Meta ya no los da, se anotan en manual.json
+  var bio=(MANUAL&&MANUAL.bioClicks&&MANUAL.bioClicks[state.brand]&&MANUAL.bioClicks[state.brand][net])||null;
+  var bioDe=function(x){var v=bio?bio[x.m]:undefined; return (v==null?null:v);};
+  html+=fila('Clics en el enlace de la bio <span class="manu" title="Dato anotado a mano en social/manual.json: Meta retiró esta métrica de la API.">a mano</span>',
+             bioDe, {fmt:fmtInt});
+  html+=fila('CTR (clics ÷ visualizaciones)', function(x){
+    var c=bioDe(x); if(c==null||!dcd[x.m])return null;
+    var v=netImp(Nt,x.f,x.t); return v>0?c/v*100:null;
+  }, {fmt:function(v){return v.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';}, total:true});
   html+='</tbody></table>';
   cont.innerHTML=html;
+
+  // ---- gráficas del mismo bloque ----
+  var lbl=ms.map(function(x){return MESES[parseInt(x.m.slice(5),10)-1];});
+  var nuevos=ms.map(function(x){return dcd[x.m]?netFollows(Nt,x.f,x.t):null;});
+  var comunidad=ms.map(function(x){return dcd[x.m]?folAt(Nt,x.t):null;});
+  var pubs=ms.map(function(x){return Nt.posts.filter(function(p){return p.day>=x.f&&p.day<=x.t;}).length;});
+  var alcMed=ms.map(function(x){return dcd[x.m]?Math.round(netReach(Nt,x.f,x.t)/dcd[x.m]):null;});
+  var g1=document.getElementById('mesG1'), g2=document.getElementById('mesG2');
+  g1.innerHTML='<div class="gtitle">Comunidad <small>barras: altas netas del mes · línea: '+NETMETA[net].folLbl.toLowerCase()+' acumulados</small></div>'
+    +svgMesCombo(lbl,nuevos,comunidad,NETMETA[net].color,'var(--teal)');
+  g2.innerHTML='<div class="gtitle">Volumen y rendimiento <small>barras: publicaciones · línea: alcance medio diario</small></div>'
+    +svgMesCombo(lbl,pubs,alcMed,'var(--teal-soft)','var(--ink)');
+
+  // lectura automática del contraste volumen/rendimiento (lo que se pierde al mirar solo totales)
+  var validos=ms.map(function(x,i){return {m:lbl[i],p:pubs[i],a:alcMed[i]};})
+                .filter(function(o){return o.a!=null&&o.p>0;});
+  var g2note='';
+  if(validos.length>=2){
+    var masPubs=validos.slice().sort(function(a,b){return b.p-a.p;})[0];
+    var mejorAlc=validos.slice().sort(function(a,b){return b.a-a.a;})[0];
+    g2note=masPubs.m===mejorAlc.m
+      ? '<b>'+masPubs.m+'</b> fue a la vez el mes de más publicaciones ('+masPubs.p+') y el de mejor alcance medio ('+fmtInt(masPubs.a)+').'
+      : 'El mes de más publicaciones fue <b>'+masPubs.m+'</b> ('+masPubs.p+'), pero el de mejor alcance medio fue <b>'+mejorAlc.m+'</b> ('+fmtInt(mejorAlc.a)+' con '+mejorAlc.p+' publicaciones): publicar más no está trayendo más alcance por pieza.';
+  }
+  document.getElementById('mesGNote').innerHTML=g2note;
 
   var parciales=ms.filter(mesParcial).map(function(x){return MESES_LARGO[parseInt(x.m.slice(5),10)-1];});
   // Primer día con datos diarios de esta cuenta: si no es el inicio del histórico, hay que decirlo
@@ -1028,7 +1122,7 @@ function renderMonthly(B){
     +'«Alcance medio diario» divide entre los días del mes con datos.'
     +(parciales.length?' <b>'+parciales.join(' y ')+(parciales.length>1?' son meses incompletos':' es un mes incompleto')+'</b> (marcados con *): el histórico empieza el '+fmtDayStr(DAYS[0])+' y el informe nunca usa el día en curso.':'')
     +(desde?' Un guion (—) significa que Metricool no tiene ese dato, no que valga cero: esta cuenta empieza a devolver datos diarios el <b>'+fmtDayStr(desde)+'</b>, así que los meses anteriores solo pueden rellenarse a mano desde la app.':'')
-    +' <b>Clics en el enlace de la bio y CTR no aparecen</b> porque Meta retiró esa métrica de la API: Metricool la marca como obsoleta y solo puede consultarse a mano en Instagram.';
+    +' <b>Los clics en el enlace de la bio se anotan a mano</b> (fila marcada como tal): Meta retiró esa métrica de la API — comprobado, devuelve 0 donde el panel dice 69 — así que se copian de Instagram o de Metricool una vez al mes en <code>social/manual.json</code>. El CTR no se escribe: sale solo de clics ÷ visualizaciones.';
 }
 
 // ---------------- render principal ----------------
@@ -1129,6 +1223,10 @@ function setGal(field,val){
 
 // ---------------- carga + login ----------------
 function loadData(){
+  // manual.json es opcional: si falta o esta mal, el informe sigue funcionando sin esas filas
+  fetch('manual.json',{cache:'no-store'}).then(function(r){return r.ok?r.json():null;})
+    .then(function(m){ if(m){MANUAL=m; if(DATA)renderMonthly(DATA.brands[state.brand]);} })
+    .catch(function(){});
   return fetch('data.json',{cache:'no-store'}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
     return r.json();

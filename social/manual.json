@@ -1,0 +1,17 @@
+{
+  "_leeme": "Datos que la API de Metricool YA NO devuelve y hay que anotar a mano. Meta retiro la metrica de clics en el enlace de la bio (Metricool marca websiteClicks como obsoleta: comprobado el 3-ago-2026, devuelve 0 donde el panel dice 69). Se saca de Instagram > Perfil profesional > Estadisticas, o del panel de Metricool, y se anota aqui una vez al mes. El CTR NO se escribe: el informe lo calcula solo como clics / visualizaciones del mes.",
+  "_formato": "bioClicks -> nombre de la marca (igual que la pestana del informe) -> red (ig/fb/tt/yt/li) -> AAAA-MM: numero de clics. Si un mes no esta, la tabla muestra un guion.",
+  "bioClicks": {
+    "eimec.clinic": {
+      "ig": {
+        "2026-01": 0,
+        "2026-02": 28,
+        "2026-03": 15,
+        "2026-04": 14,
+        "2026-05": 36,
+        "2026-06": 69,
+        "2026-07": 27
+      }
+    }
+  }
+}
