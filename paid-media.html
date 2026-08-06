@@ -916,14 +916,18 @@
                         const a = bc[ch] && bc[ch].source === 'api' ? bc[ch] : null;
                         if (a && a.by_campaign) Object.entries(a.by_campaign).forEach(([n, v]) => {
                             const k = normKey(n); if (!k) return;
-                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0, conv: 0 };
+                            // conv arranca en null: Meta no reporta conversiones por campaña y pintar un 0
+                            // haría creer que esa campaña no convirtió. null se pinta como "—".
+                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0, conv: null };
                             spendRows[k].inv += Number(v) || 0;
                         });
                         // Conversiones únicas por campaña (Google): respaldo provisional mientras el CRM pierda el utm
                         if (a && a.conversions_by_campaign) Object.entries(a.conversions_by_campaign).forEach(([n, v]) => {
                             const k = normKey(n); if (!k) return;
-                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0, conv: 0 };
-                            spendRows[k].conv += Number(v) || 0;
+                            // conv arranca en null: Meta no reporta conversiones por campaña y pintar un 0
+                            // haría creer que esa campaña no convirtió. null se pinta como "—".
+                            if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0, conv: null };
+                            spendRows[k].conv = (spendRows[k].conv || 0) + (Number(v) || 0);
                         });
                     });
                 }
@@ -969,13 +973,13 @@
                     const filas = keys.map(k => {
                         const s = spendRows[k], c = crmTratos[k], fs = crmFases[k] || { f1: 0, f2: 0, f3: 0, f4: 0 };
                         const tratosCrm = c ? c.tratos : 0;
-                        const conv = s ? Math.round(s.conv) : 0;
+                        const conv = (s && s.conv != null) ? Math.round(s.conv) : null;
                         return {
                             nombre: (s && s.nombre) || (c && c.nombre) || k,
                             canal: s ? s.canal : 'Solo CRM',
                             inv: s ? s.inv : null,
                             tratos: tratosCrm,   // SIEMPRE el CRM: una conversión de la plataforma no es un trato
-                            tratosCrm, conv: s ? conv : null,
+                            tratosCrm, conv,
                             ventas: crmVentas[k] || 0,
                             asis: asistCamp[k] || 0,
                             perd: crmPerdidos[k] || 0,
@@ -1032,12 +1036,12 @@
                             <td class="num" style="color:var(--muted)">${nf0(R2.perd)}</td>
                         </tr>`;
                     }
-                    const T2 = filas.reduce((a, f) => ({ inv: a.inv + (f.inv || 0), tratos: a.tratos + f.tratos, conv: a.conv + (f.conv || 0), ventas: a.ventas + f.ventas, asis: a.asis + f.asis, perd: a.perd + f.perd, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { inv: 0, tratos: 0, conv: 0, ventas: 0, asis: 0, perd: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
+                    const T2 = filas.reduce((a, f) => ({ inv: a.inv + (f.inv || 0), tratos: a.tratos + f.tratos, conv: (f.conv == null ? a.conv : (a.conv || 0) + f.conv), ventas: a.ventas + f.ventas, asis: a.asis + f.asis, perd: a.perd + f.perd, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { inv: 0, tratos: 0, conv: null, ventas: 0, asis: 0, perd: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
                     cuerpo += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                         <td></td><td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${activas.length} con gasto${R2.n ? ` + ${R2.n} sin gasto` : ''}</td><td></td>
                         <td class="num" style="font-weight:800;color:var(--brand-dark)">${eur0(T2.inv)}</td>
                         <td class="num" style="font-weight:800">${nf0(T2.tratos)}</td>
-                        <td class="num" style="font-weight:800;color:var(--muted)">${nf0(T2.conv)}</td>
+                        ${T2.conv == null ? D2 : `<td class="num" style="font-weight:800;color:var(--muted)">${nf0(T2.conv)}</td>`}
                         <td class="num" style="font-weight:800">${T2.tratos > 0 ? eur2(T2.inv / T2.tratos) : '—'}</td>
                         <td class="num" style="font-weight:800;color:var(--green)">${nf0(T2.ventas)}</td>
                         <td class="num" style="font-weight:800;color:var(--brand-soft)">${nf0(T2.asis)}</td>
