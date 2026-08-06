@@ -643,12 +643,13 @@
                     const inv = a ? (Number(a.total) || 0) : null;
                     const impr = a && a.impressions !== undefined ? Number(a.impressions) : null;
                     const clk = a && a.clicks !== undefined ? Number(a.clicks) : null;
-                    // PROVISIONAL (hasta arreglar la captura de utm en el formulario web): si la plataforma
-                    // reporta MÁS conversiones que tratos con utm en el CRM (caso Google: los utm se pierden
-                    // en la web), usamos sus conversiones como "Tratos" — marcado con * y tooltip honesto.
+                    // TRATOS = SIEMPRE los del CRM. Antes, cuando la plataforma reportaba más
+                    // conversiones que tratos con utm, se colaban las conversiones en esta columna;
+                    // una conversión de Google no es un trato (cuenta clics en el teléfono, envíos
+                    // repetidos, formularios que nunca llegaron al CRM...) y eso falseaba tratos, CPL
+                    // y trato→venta. Ahora las conversiones de la plataforma van en su propia columna.
                     const conv = a && a.conversions !== undefined ? Number(a.conversions) : null;
-                    const usaConv = conv !== null && conv > k.tratos;
-                    const tratosCanal = usaConv ? conv : k.tratos;
+                    const tratosCanal = k.tratos;
                     const cplC = (inv !== null && tratosCanal > 0) ? inv / tratosCanal : null;
                     const cpaC = (inv !== null && k.ventas > 0) ? inv / k.ventas : null;
                     const denomAsis = (asis !== null) ? (k.ventas + asis) : null;
@@ -657,20 +658,20 @@
                     // Pedido por dirección: en vez de ventas÷clics (ilegible), % de TRATOS del canal que acaban en VENTA
                     const trato2venta = (tratosCanal > 0) ? (k.ventas / tratosCanal * 100) : null;
                     const zz2 = v => v ? num(nf0(v)) : `<td class="cell-zero">·</td>`;
-                    const tratosCell = usaConv
-                        ? `<td class="num" style="font-weight:700" title="PROVISIONAL: conversiones únicas según ${k.nombre} entre el ${fmtDate(params.from)} y el ${fmtDate(params.to)} (formularios enviados que la plataforma atribuye a sus anuncios en las fechas del filtro). El CRM solo tiene ${k.tratos} tratos con utm de este canal porque el formulario web aún no guarda el origen — al arreglarlo, esta cifra volverá a salir del CRM.">${nf0(tratosCanal)}<span style="color:var(--brand-soft)">*</span></td>`
-                        : num(nf0(tratosCanal), 'font-weight:700');
+                    const tratosCell = num(nf0(tratosCanal), 'font-weight:700');
+                    // Conversiones que declara la plataforma: dato de contraste, NUNCA se mezcla con los tratos
+                    const convCell = conv === null ? D
+                        : `<td class="num" style="color:var(--muted)" title="Conversiones que declara ${k.nombre} en el periodo. NO son tratos: la plataforma cuenta también clics en el teléfono, envíos repetidos de la misma persona y formularios que no llegaron al CRM. Se enseña para contrastar: si se separa mucho de la columna Tratos, hay leads que no están llegando etiquetados al CRM.">${nf0(conv)}</td>`;
                     return `<tr>
                         <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente)</span>'}</td>
                         ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
                         ${tratosCell}
+                        ${convCell}
                         ${cplC !== null ? num(eur2(cplC), 'font-weight:600') : D}
-                        ${(usaConv || k.ventasEncuesta > 0)
+                        ${(k.ventasEncuesta > 0)
                             ? `<td class="num" style="font-weight:700;color:${k.ventas ? 'var(--green)' : '#B9B2C0'}" title="Ventas del periodo atribuidas a ${k.nombre} (${fmtDate(params.from)} — ${fmtDate(params.to)}): ${nf0(k.ventas - k.ventasEncuesta)} por utm + ${nf0(k.ventasEncuesta)} por la encuesta '¿Cómo has conocido EIMEC?' (respaldo mientras el formulario web pierde el utm). Aun así puede quedar alguna venta sin atribuir.">${nf0(k.ventas)}<span style="color:var(--brand-soft)">*</span></td>`
                             : (k.ventas ? num(nf0(k.ventas), 'font-weight:700;color:var(--green)') : `<td class="cell-zero">0</td>`)}
-                        ${usaConv && asis !== null
-                            ? `<td class="num" style="font-weight:600;color:var(--brand-soft)" title="Asistidas por ${k.nombre} según el utm del CRM — también infracontadas para este canal hasta arreglar el formulario web.">${nf0(asis)}<span style="color:var(--brand-soft)">*</span></td>`
-                            : (asis !== null ? num(nf0(asis), 'font-weight:600;color:var(--brand-soft)') : D)}
+                        ${asis !== null ? num(nf0(asis), 'font-weight:600;color:var(--brand-soft)') : D}
                         ${cpaC !== null ? num(eur2(cpaC), 'font-weight:600') : D}
                         ${cpaAsis !== null ? num(eur2(cpaAsis)) : D}
                         ${zz2(k.f1)}${zz2(k.f2)}${zz2(k.f3)}${zz2(k.f4)}
@@ -684,9 +685,10 @@
                 // Fila TOTAL (Meta + Google)
                 const tm = C.meta, tg = C.google, am = adsDe('meta'), ag = adsDe('google');
                 const invT = (am || ag) ? ((am ? Number(am.total) || 0 : 0) + (ag ? Number(ag.total) || 0 : 0)) : null;
-                // El TOTAL usa las mismas cifras que las filas (con el provisional de conversiones si aplica)
-                const dispTratos = (k, a) => { const c = a && a.conversions !== undefined ? Number(a.conversions) : null; return (c !== null && c > k.tratos) ? c : k.tratos; };
-                const tratosT = dispTratos(tm, am) + dispTratos(tg, ag), ventasT = tm.ventas + tg.ventas;
+                // El TOTAL usa las mismas cifras que las filas: tratos del CRM, conversiones aparte
+                const convDe = a => (a && a.conversions !== undefined) ? Number(a.conversions) : null;
+                const tratosT = tm.tratos + tg.tratos, ventasT = tm.ventas + tg.ventas;
+                const convT = (convDe(am) !== null || convDe(ag) !== null) ? (convDe(am) || 0) + (convDe(ag) || 0) : null;
                 const asisT = asisOk ? (asisDe('meta') + asisDe('google')) : null;
                 const imprT = (am && am.impressions !== undefined) || (ag && ag.impressions !== undefined)
                     ? ((am ? Number(am.impressions) || 0 : 0) + (ag ? Number(ag.impressions) || 0 : 0)) : null;
@@ -702,6 +704,7 @@
                     <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
                     ${invT !== null ? numB(eur0(invT), 'var(--brand-dark)') : D}
                     ${numB(nf0(tratosT))}
+                    ${convT !== null ? `<td class="num" style="font-weight:800;color:var(--muted)">${nf0(convT)}</td>` : D}
                     ${cplT !== null ? numB(eur2(cplT)) : D}
                     ${numB(nf0(ventasT), 'var(--green)')}
                     ${asisT !== null ? numB(nf0(asisT), 'var(--brand-soft)') : D}
@@ -719,8 +722,9 @@
                     <thead><tr>
                         <th>Canal</th>
                         <th style="color:var(--brand)" title="Gasto publicitario del canal en el periodo. Meta: sin campañas de paciente modelo (solo formación).">Inversión</th>
-                        <th style="color:var(--brand)" title="Leads del periodo que entraron por este canal (según el origen utm que graba el CRM): los que siguen abiertos más los ya ganados.">Tratos</th>
-                        <th title="Inversión ÷ tratos del canal: lo que costó de media cada lead de este canal.">CPL</th>
+                        <th style="color:var(--brand)" title="Leads REALES del periodo que entraron por este canal, según el origen utm que graba el CRM: los que siguen abiertos más los ya ganados. Es el dato del CRM, nunca el que declara la plataforma.">Tratos</th>
+                        <th style="color:var(--muted)" title="Conversiones que declara la propia plataforma (Meta / Google) en el periodo. NO son tratos: incluyen clics en el teléfono, envíos repetidos de la misma persona y formularios que no llegaron al CRM. Sirve de contraste: una diferencia grande contra la columna Tratos indica leads que no llegan etiquetados.">Conv. plataforma</th>
+                        <th title="Inversión ÷ tratos REALES del CRM: lo que costó de media cada lead de este canal.">CPL</th>
                         <th style="color:var(--green)" title="Ventas cerradas en estas fechas cuyo trato entró por este canal.">Ventas</th>
                         <th style="color:var(--brand-soft)" title="Ventas cerradas en estas fechas en las que este canal PARTICIPÓ sin ser el origen directo del trato ganado. Se cuenta si la persona tiene OTRO trato entrado por este canal, o si su ficha de contacto guarda el utm/gclid de este canal (el trato lo pierde cuando el comercial lo crea a mano).">Asistidas</th>
                         <th title="Inversión ÷ ventas del periodo del canal: coste de cada venta atribuida directamente.">CPA</th>
@@ -734,7 +738,7 @@
                         <th title="Clics ÷ impresiones: qué % de las veces que se vio el anuncio se hizo clic.">CTR</th>
                         <th style="color:var(--green)" title="Ventas ÷ tratos del canal: qué % de los leads que entraron por este canal acabó comprando.">Trato→venta</th>
                     </tr></thead><tbody>${fila('meta')}${fila('google')}${filaTotal}</tbody></table></div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados". <b>*</b> = cifra provisional mientras el formulario web no guarda el origen del anuncio en el CRM (arreglo en curso): los tratos salen de las conversiones de la propia plataforma y las ventas suman la atribución por la encuesta "¿Cómo has conocido EIMEC?".</div></div>`;
+                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los tratos por canal se cuentan por el origen utm que graba el CRM: la suma de Meta + Google no incluye los leads orgánicos o sin origen, por eso es menor que la tarjeta "Tratos generados". <b>Tratos son siempre los del CRM</b>, nunca las conversiones que declara la plataforma: esas van aparte, en la columna "Conv. plataforma", porque cuentan cosas que no son un lead (clics en el teléfono, envíos repetidos, formularios que no llegaron al CRM). Si esa columna se dispara respecto a Tratos, es señal de que hay leads llegando sin etiquetar. <b>*</b> en Ventas = incluye la atribución por la encuesta "¿Cómo has conocido EIMEC?".</div></div>`;
             }
 
             // ── CUADRO POR PAÍS — réplica del "Pipeline por país" del informe de ventas + Inversión y CPL ──
@@ -966,16 +970,12 @@
                         const s = spendRows[k], c = crmTratos[k], fs = crmFases[k] || { f1: 0, f2: 0, f3: 0, f4: 0 };
                         const tratosCrm = c ? c.tratos : 0;
                         const conv = s ? Math.round(s.conv) : 0;
-                        // PROVISIONAL (igual que el cuadro por canal): en campañas de Google, si la plataforma
-                        // reporta más conversiones únicas que tratos con utm en el CRM, usamos las de Google
-                        // (el formulario web pierde el utm — al arreglarlo, esta regla se apaga sola).
-                        const prov = s && s.canal === 'Google' && conv > tratosCrm;
                         return {
                             nombre: (s && s.nombre) || (c && c.nombre) || k,
                             canal: s ? s.canal : 'Solo CRM',
                             inv: s ? s.inv : null,
-                            tratos: prov ? conv : tratosCrm,
-                            tratosCrm, prov,
+                            tratos: tratosCrm,   // SIEMPRE el CRM: una conversión de la plataforma no es un trato
+                            tratosCrm, conv: s ? conv : null,
                             ventas: crmVentas[k] || 0,
                             asis: asistCamp[k] || 0,
                             perd: crmPerdidos[k] || 0,
@@ -998,9 +998,8 @@
                             <td class="cell-strong" style="max-width:340px;overflow:hidden;text-overflow:ellipsis" title="${f.nombre}">${f.nombre}${sinMatch ? ` <span style="font-weight:400;font-size:9.5px;color:#B8860B" title="EN LAS FECHAS DEL FILTRO (${fmtDate(params.from)} — ${fmtDate(params.to)}): esta campaña tiene gasto pero ningún trato creado en el periodo lleva su utm_campaign. Causas posibles: los leads llegan sin utm (formulario web, arreglo en curso), el nombre de la campaña no coincide con su utm, o no generó leads en este rango. En otro periodo puede tener match.">sin match en el periodo</span>` : ''}</td>
                             <td class="num" style="font-size:11px;color:var(--muted)">${f.canal}</td>
                             ${f.inv !== null ? `<td class="num" style="font-weight:700;color:var(--brand)">${eur0(f.inv)}</td>` : D2}
-                            ${f.prov
-                                ? `<td class="num" style="font-weight:700" title="PROVISIONAL: conversiones únicas según Google Ads para esta campaña en las fechas del filtro. El CRM solo tiene ${nf0(f.tratosCrm)} tratos con su utm_campaign porque el formulario web pierde el utm — al arreglarlo, la cifra volverá a salir del CRM.">${nf0(f.tratos)}<span style="color:var(--brand-soft)">*</span></td>`
-                                : (f.tratos ? `<td class="num" style="font-weight:700">${nf0(f.tratos)}</td>` : `<td class="cell-zero">·</td>`)}
+                            ${f.tratos ? `<td class="num" style="font-weight:700">${nf0(f.tratos)}</td>` : `<td class="cell-zero">·</td>`}
+                            ${f.conv === null ? D2 : `<td class="num" style="color:var(--muted)" title="Conversiones que declara la plataforma para esta campaña. No son tratos: se enseñan para contrastar con lo que llega al CRM.">${nf0(f.conv)}</td>`}
                             ${cpl !== null ? `<td class="num">${eur2(cpl)}</td>` : D2}
                             ${f.ventas ? `<td class="num" style="font-weight:700;color:var(--green)">${nf0(f.ventas)}</td>` : `<td class="cell-zero">·</td>`}
                             ${f.asis ? `<td class="num" style="font-weight:600;color:var(--brand-soft)">${nf0(f.asis)}</td>` : `<td class="cell-zero">·</td>`}
@@ -1022,6 +1021,7 @@
                             ${D2}
                             <td class="num" style="color:var(--muted)">${nf0(R2.tratos)}</td>
                             ${D2}
+                            ${D2}
                             <td class="num" style="color:var(--muted)">${nf0(R2.ventas)}</td>
                             <td class="num" style="color:var(--muted)">${nf0(R2.asis)}</td>
                             ${D2}
@@ -1032,11 +1032,12 @@
                             <td class="num" style="color:var(--muted)">${nf0(R2.perd)}</td>
                         </tr>`;
                     }
-                    const T2 = filas.reduce((a, f) => ({ inv: a.inv + (f.inv || 0), tratos: a.tratos + f.tratos, ventas: a.ventas + f.ventas, asis: a.asis + f.asis, perd: a.perd + f.perd, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { inv: 0, tratos: 0, ventas: 0, asis: 0, perd: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
+                    const T2 = filas.reduce((a, f) => ({ inv: a.inv + (f.inv || 0), tratos: a.tratos + f.tratos, conv: a.conv + (f.conv || 0), ventas: a.ventas + f.ventas, asis: a.asis + f.asis, perd: a.perd + f.perd, f1: a.f1 + f.f1, f2: a.f2 + f.f2, f3: a.f3 + f.f3, f4: a.f4 + f.f4 }), { inv: 0, tratos: 0, conv: 0, ventas: 0, asis: 0, perd: 0, f1: 0, f2: 0, f3: 0, f4: 0 });
                     cuerpo += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
                         <td></td><td class="cell-strong" style="color:var(--brand-dark)">TOTAL · ${activas.length} con gasto${R2.n ? ` + ${R2.n} sin gasto` : ''}</td><td></td>
                         <td class="num" style="font-weight:800;color:var(--brand-dark)">${eur0(T2.inv)}</td>
                         <td class="num" style="font-weight:800">${nf0(T2.tratos)}</td>
+                        <td class="num" style="font-weight:800;color:var(--muted)">${nf0(T2.conv)}</td>
                         <td class="num" style="font-weight:800">${T2.tratos > 0 ? eur2(T2.inv / T2.tratos) : '—'}</td>
                         <td class="num" style="font-weight:800;color:var(--green)">${nf0(T2.ventas)}</td>
                         <td class="num" style="font-weight:800;color:var(--brand-soft)">${nf0(T2.asis)}</td>
@@ -1047,7 +1048,7 @@
                         <td class="num" style="font-weight:800">${nf0(T2.f4)}</td>
                         <td class="num" style="font-weight:800;color:var(--red)">${nf0(T2.perd)}</td></tr>`;
                     campHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por campaña</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Gasto de la plataforma × tratos/ventas del CRM, casados por nombre de campaña (utm_campaign) · Solo campañas con gasto en las fechas del filtro (${top.length}${activas.length > top.length ? ` de ${activas.length}` : ''})</span></div><div class="table-wrap"><table class="table table--compact">
-                        <thead><tr><th>#</th><th>Campaña</th><th title="Plataforma del gasto. 'Solo CRM' = tratos con ese utm_campaign pero sin gasto en el periodo (campaña antigua o nombre distinto).">Canal</th><th style="color:var(--brand)" title="Gasto de la campaña en el periodo (sin paciente modelo).">Inversión</th><th title="Tratos del CRM creados en el periodo cuyo utm_campaign casa con la campaña.">Tratos</th><th title="Inversión ÷ tratos casados.">CPL</th><th style="color:var(--green)" title="Ventas cerradas en el periodo cuyo utm_campaign casa con la campaña.">Ventas</th><th style="color:var(--brand-soft)" title="Ventas del periodo en las que esta campaña PARTICIPÓ sin ser el origen: la persona de la venta tiene otro trato con este utm_campaign.">Asistidas</th><th title="Inversión ÷ ventas casadas.">CPA</th><th style="color:var(--slate)" title="Fase 1 · Solicitud">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--red)" title="Tratos creados en el periodo por esta campaña que HOY están en estado Perdido en el CRM. Es un estado del trato, no una etapa: TRASH, 'No contestan' y 'Para contactar' son etapas y NO cuentan aquí, por eso Tratos puede ser mayor que F1+F2+F3+F4+Ventas+Perdidos.">Perdidos</th></tr></thead><tbody>${cuerpo}</tbody></table></div>
+                        <thead><tr><th>#</th><th>Campaña</th><th title="Plataforma del gasto. 'Solo CRM' = tratos con ese utm_campaign pero sin gasto en el periodo (campaña antigua o nombre distinto).">Canal</th><th style="color:var(--brand)" title="Gasto de la campaña en el periodo (sin paciente modelo).">Inversión</th><th title="Tratos REALES del CRM creados en el periodo cuyo utm_campaign casa con la campaña. Nunca se sustituye por las conversiones de la plataforma.">Tratos</th><th style="color:var(--muted)" title="Conversiones que declara la plataforma para esta campaña. No son tratos: incluyen clics en el teléfono, envíos repetidos y formularios que no llegaron al CRM.">Conv. plat.</th><th title="Inversión ÷ tratos REALES del CRM.">CPL</th><th style="color:var(--green)" title="Ventas cerradas en el periodo cuyo utm_campaign casa con la campaña.">Ventas</th><th style="color:var(--brand-soft)" title="Ventas del periodo en las que esta campaña PARTICIPÓ sin ser el origen: la persona de la venta tiene otro trato con este utm_campaign.">Asistidas</th><th title="Inversión ÷ ventas casadas.">CPA</th><th style="color:var(--slate)" title="Fase 1 · Solicitud">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--red)" title="Tratos creados en el periodo por esta campaña que HOY están en estado Perdido en el CRM. Es un estado del trato, no una etapa: TRASH, 'No contestan' y 'Para contactar' son etapas y NO cuentan aquí, por eso Tratos puede ser mayor que F1+F2+F3+F4+Ventas+Perdidos.">Perdidos</th></tr></thead><tbody>${cuerpo}</tbody></table></div>
                         <div style="font-size:11px;color:var(--muted);margin-top:8px">"sin match" = campañas con gasto cuyos leads no llegan etiquetados al CRM (el formulario web pierde el utm — arreglo en curso). Por eso la suma de tratos por campaña es menor que el total real del canal. "Perdidos" es el estado del trato en el CRM; los que están en TRASH o "No contestan" siguen contando como abiertos.</div></div>`;
                 }
             }
