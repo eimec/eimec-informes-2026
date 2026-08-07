@@ -718,7 +718,13 @@
                     ${numB(nf0(tratosT))}
                     ${cplT !== null ? numB(eur2(cplT)) : D}
                     ${convT !== null ? `<td class="num" style="font-weight:800;color:var(--muted)">${nf0(convT)}</td>` : D}
-                    ${(invT !== null && convT) ? `<td class="num" style="font-weight:800;color:var(--muted)">${eur2(invT / convT)}</td>` : D}
+                    ${(() => {
+                        // Solo el gasto de los canales que SÍ declaran conversiones: dividir el gasto
+                        // total entre las conversiones de un solo canal daría un coste inventado.
+                        let iv = 0, cv = 0;
+                        [[am, tm], [ag, tg]].forEach(([a]) => { const c = convDe(a); if (c !== null) { iv += (a ? Number(a.total) || 0 : 0); cv += c; } });
+                        return cv > 0 ? `<td class="num" style="font-weight:800;color:var(--muted)" title="Solo cuenta el gasto de los canales que declaran conversiones (${cv === convT ? 'aquí, solo Google' : 'los que reportan el dato'}); Meta no las reporta y su inversión queda fuera de este cálculo.">${eur2(iv / cv)}</td>` : D;
+                    })()}
                     ${numB(nf0(ventasT), 'var(--green)')}
                     ${asisT !== null ? numB(nf0(asisT), 'var(--brand-soft)') : D}
                     ${cpaT !== null ? numB(eur2(cpaT)) : D}
