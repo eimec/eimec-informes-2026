@@ -31,8 +31,11 @@ function resolverCanal(nombre, api, manual, from, to) {
     if (api.currency) out.currency = api.currency;
     if (api.impressions !== undefined) out.impressions = Number(api.impressions) || 0;   // para el cuadro por canal
     if (api.clicks !== undefined) out.clicks = Number(api.clicks) || 0;
-    if (api.conversions !== undefined) out.conversions = Number(api.conversions) || 0;   // conversiones de la plataforma (Google)
+    if (api.conversions !== undefined) out.conversions = Number(api.conversions) || 0;   // solo acciones principales
     if (api.conversions_by_campaign) out.conversions_by_campaign = api.conversions_by_campaign;
+    // TODAS las conversiones declaradas (incluye WhatsApp y llamadas): es lo que enseña "Conv. plataforma"
+    if (api.all_conversions !== undefined) out.all_conversions = Number(api.all_conversions) || 0;
+    if (api.all_conversions_by_campaign) out.all_conversions_by_campaign = api.all_conversions_by_campaign;
     if (api.sin_pm) out.sin_pm = true;                        // Meta: sin campañas de paciente modelo
     if (api.parcial) out.parcial = true;                      // respuesta incompleta del canal → no cachear
     return out;

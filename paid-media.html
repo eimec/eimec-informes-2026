@@ -648,7 +648,11 @@
                     // una conversión de Google no es un trato (cuenta clics en el teléfono, envíos
                     // repetidos, formularios que nunca llegaron al CRM...) y eso falseaba tratos, CPL
                     // y trato→venta. Ahora las conversiones de la plataforma van en su propia columna.
-                    const conv = a && a.conversions !== undefined ? Number(a.conversions) : null;
+                    // Conv. plataforma = TODAS las que declara el canal (all_conversions incluye el clic
+                    // en WhatsApp y las llamadas; a.conversions solo cuenta las acciones principales).
+                    const conv = a && a.all_conversions !== undefined ? Number(a.all_conversions)
+                               : (a && a.conversions !== undefined ? Number(a.conversions) : null);
+                    const convPrin = a && a.conversions !== undefined ? Number(a.conversions) : null;
                     const tratosCanal = k.tratos;
                     const cplC = (inv !== null && tratosCanal > 0) ? inv / tratosCanal : null;
                     const cpaC = (inv !== null && k.ventas > 0) ? inv / k.ventas : null;
@@ -661,7 +665,7 @@
                     const tratosCell = num(nf0(tratosCanal), 'font-weight:700');
                     // Conversiones que declara la plataforma: dato de contraste, NUNCA se mezcla con los tratos
                     const convCell = conv === null ? D
-                        : `<td class="num" style="color:var(--muted)" title="Conversiones que declara ${k.nombre} en el periodo. NO son tratos: la plataforma cuenta también clics en el teléfono, envíos repetidos de la misma persona y formularios que no llegaron al CRM. Se enseña para contrastar: si se separa mucho de la columna Tratos, hay leads que no están llegando etiquetados al CRM.">${nf0(conv)}</td>`;
+                        : `<td class="num" style="color:var(--muted)" title="TODAS las conversiones que declara ${k.nombre} en el periodo, incluidas las secundarias: clic en el botón de WhatsApp, llamadas, envíos repetidos de la misma persona y formularios que no llegaron al CRM.${convPrin !== null && convPrin !== conv ? ` De ellas, ${nf0(convPrin)} son acciones principales.` : ''} NO son tratos: sirve de contraste — si se separa mucho de la columna Tratos, hay leads que no están llegando etiquetados al CRM.">${nf0(conv)}</td>`;
                     return `<tr>
                         <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente)</span>'}</td>
                         ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
@@ -686,7 +690,8 @@
                 const tm = C.meta, tg = C.google, am = adsDe('meta'), ag = adsDe('google');
                 const invT = (am || ag) ? ((am ? Number(am.total) || 0 : 0) + (ag ? Number(ag.total) || 0 : 0)) : null;
                 // El TOTAL usa las mismas cifras que las filas: tratos del CRM, conversiones aparte
-                const convDe = a => (a && a.conversions !== undefined) ? Number(a.conversions) : null;
+                const convDe = a => (a && a.all_conversions !== undefined) ? Number(a.all_conversions)
+                                  : ((a && a.conversions !== undefined) ? Number(a.conversions) : null);
                 const tratosT = tm.tratos + tg.tratos, ventasT = tm.ventas + tg.ventas;
                 const convT = (convDe(am) !== null || convDe(ag) !== null) ? (convDe(am) || 0) + (convDe(ag) || 0) : null;
                 const asisT = asisOk ? (asisDe('meta') + asisDe('google')) : null;
@@ -921,8 +926,10 @@
                             if (!spendRows[k]) spendRows[k] = { nombre: n, canal: tag, inv: 0, conv: null };
                             spendRows[k].inv += Number(v) || 0;
                         });
-                        // Conversiones únicas por campaña (Google): respaldo provisional mientras el CRM pierda el utm
-                        if (a && a.conversions_by_campaign) Object.entries(a.conversions_by_campaign).forEach(([n, v]) => {
+                        // Conversiones declaradas por campaña: las TODAS (incluye WhatsApp y llamadas),
+                        // con las principales como respaldo si el canal no devuelve el total.
+                        const convCamp = (a && a.all_conversions_by_campaign) || (a && a.conversions_by_campaign);
+                        if (convCamp) Object.entries(convCamp).forEach(([n, v]) => {
                             const k = normKey(n); if (!k) return;
                             // conv arranca en null: Meta no reporta conversiones por campaña y pintar un 0
                             // haría creer que esa campaña no convirtió. null se pinta como "—".

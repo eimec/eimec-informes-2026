@@ -60,7 +60,11 @@ export async function googleSpend(from, to, opts = {}) {
 
   try {
     const token = await accessToken(CID, CSEC, REF);
-    const query = `SELECT campaign.name, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, customer.currency_code${opts.byDay ? ', segments.date' : ''}
+    // metrics.conversions solo cuenta las acciones PRINCIPALES. Las secundarias (el clic en el
+    // boton de WhatsApp, las llamadas...) quedan fuera y por eso Google salia con 0 conversiones
+    // cuando en su panel habia 2. metrics.all_conversions las incluye TODAS: es lo que ensena la
+    // columna "Conv. plataforma" del informe.
+    const query = `SELECT campaign.name, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.all_conversions, customer.currency_code${opts.byDay ? ', segments.date' : ''}
                    FROM campaign
                    WHERE segments.date BETWEEN '${desde}' AND '${hasta}' AND metrics.cost_micros > 0`;
     const headers = { Authorization: 'Bearer ' + token, 'developer-token': DEV, 'Content-Type': 'application/json' };
@@ -82,9 +86,10 @@ export async function googleSpend(from, to, opts = {}) {
     if (!r.ok) throw new Error('ads: ' + JSON.stringify(j).slice(0, 200));
 
     const by_campaign = {};
-    const conversions_by_campaign = {};   // conversiones únicas por campaña (para el cuadro por campaña)
+    const conversions_by_campaign = {};       // solo acciones principales
+    const all_conversions_by_campaign = {};   // TODAS (incluye WhatsApp, llamadas y demás secundarias)
     const by_day = opts.byDay ? {} : null;
-    let total = 0, currency = null, impressions = 0, clicks = 0, conversions = 0;
+    let total = 0, currency = null, impressions = 0, clicks = 0, conversions = 0, allConversions = 0;
     const batches = Array.isArray(j) ? j : [j];
     batches.forEach(b => (b.results || []).forEach(row => {
       const spend = Number(row.metrics && row.metrics.costMicros || 0) / 1e6;
@@ -93,10 +98,13 @@ export async function googleSpend(from, to, opts = {}) {
       clicks += Number(row.metrics && row.metrics.clicks || 0);
       const convRow = Number(row.metrics && row.metrics.conversions || 0);
       conversions += convRow;
+      const allRow = Number(row.metrics && row.metrics.allConversions || 0);
+      allConversions += allRow;
       currency = currency || (row.customer && row.customer.currencyCode);
       const k = (row.campaign && row.campaign.name) || 'Sin campaña';
       by_campaign[k] = (by_campaign[k] || 0) + spend;
       if (convRow) conversions_by_campaign[k] = (conversions_by_campaign[k] || 0) + convRow;
+      if (allRow) all_conversions_by_campaign[k] = (all_conversions_by_campaign[k] || 0) + allRow;
       if (by_day) { const dia = row.segments && row.segments.date; if (dia) by_day[dia] = Math.round(((by_day[dia] || 0) + spend) * 100) / 100; }
     }));
 
@@ -135,8 +143,10 @@ export async function googleSpend(from, to, opts = {}) {
       ok: true, platform: 'google', currency,
       by_campaign, total: Math.round(total * 100) / 100,
       impressions, clicks,
-      conversions: Math.round(conversions),   // conversiones que reporta Google (formulario enviado)
-      conversions_by_campaign,                // por campaña, para el cuadro de campañas de Paid Media
+      conversions: Math.round(conversions),           // solo acciones PRINCIPALES
+      conversions_by_campaign,
+      all_conversions: Math.round(allConversions),    // TODAS: incluye WhatsApp, llamadas y demás secundarias
+      all_conversions_by_campaign,                    // es lo que enseña "Conv. plataforma"
       ...(by_day ? { by_day } : {}),
       ...(by_country ? { by_country } : {}),
       period: { from: desde, to: hasta }, ms: Date.now() - start
