@@ -664,14 +664,21 @@
                     const zz2 = v => v ? num(nf0(v)) : `<td class="cell-zero">·</td>`;
                     const tratosCell = num(nf0(tratosCanal), 'font-weight:700');
                     // Conversiones que declara la plataforma: dato de contraste, NUNCA se mezcla con los tratos
+                    // CPL de plataforma: inversión ÷ lo que declara el canal. Para Google, con 0 tratos
+                    // en el CRM, es la única referencia de coste que existe hoy — pero es coste por
+                    // CONVERSIÓN declarada (un clic en WhatsApp), no por lead real. Va en columna aparte.
+                    const cplPlat = (inv !== null && conv !== null && conv > 0) ? inv / conv : null;
+                    const cplPlatCell = cplPlat === null ? D
+                        : `<td class="num" style="color:var(--muted)" title="Inversión ÷ conversiones declaradas por ${k.nombre}. Es coste por conversión de plataforma, NO por lead del CRM: si esas conversiones no acaban en una ficha, el coste por lead real es peor (o infinito).">${eur2(cplPlat)}</td>`;
                     const convCell = conv === null ? D
                         : `<td class="num" style="color:var(--muted)" title="TODAS las conversiones que declara ${k.nombre} en el periodo, incluidas las secundarias: clic en el botón de WhatsApp, llamadas, envíos repetidos de la misma persona y formularios que no llegaron al CRM.${convPrin !== null && convPrin !== conv ? ` De ellas, ${nf0(convPrin)} son acciones principales.` : ''} NO son tratos: sirve de contraste — si se separa mucho de la columna Tratos, hay leads que no están llegando etiquetados al CRM.">${nf0(conv)}</td>`;
                     return `<tr>
                         <td class="cell-strong">${k.nombre}${a ? '' : ' <span style="font-weight:400;font-size:10px;color:var(--muted)">(pendiente)</span>'}</td>
                         ${inv !== null ? num(eur0(inv), 'font-weight:700;color:var(--brand)') : D}
                         ${tratosCell}
-                        ${convCell}
                         ${cplC !== null ? num(eur2(cplC), 'font-weight:600') : D}
+                        ${convCell}
+                        ${cplPlatCell}
                         ${(k.ventasEncuesta > 0)
                             ? `<td class="num" style="font-weight:700;color:${k.ventas ? 'var(--green)' : '#B9B2C0'}" title="Ventas del periodo atribuidas a ${k.nombre} (${fmtDate(params.from)} — ${fmtDate(params.to)}): ${nf0(k.ventas - k.ventasEncuesta)} por utm + ${nf0(k.ventasEncuesta)} por la encuesta '¿Cómo has conocido EIMEC?' (respaldo mientras el formulario web pierde el utm). Aun así puede quedar alguna venta sin atribuir.">${nf0(k.ventas)}<span style="color:var(--brand-soft)">*</span></td>`
                             : (k.ventas ? num(nf0(k.ventas), 'font-weight:700;color:var(--green)') : `<td class="cell-zero">0</td>`)}
@@ -709,8 +716,9 @@
                     <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
                     ${invT !== null ? numB(eur0(invT), 'var(--brand-dark)') : D}
                     ${numB(nf0(tratosT))}
-                    ${convT !== null ? `<td class="num" style="font-weight:800;color:var(--muted)">${nf0(convT)}</td>` : D}
                     ${cplT !== null ? numB(eur2(cplT)) : D}
+                    ${convT !== null ? `<td class="num" style="font-weight:800;color:var(--muted)">${nf0(convT)}</td>` : D}
+                    ${(invT !== null && convT) ? `<td class="num" style="font-weight:800;color:var(--muted)">${eur2(invT / convT)}</td>` : D}
                     ${numB(nf0(ventasT), 'var(--green)')}
                     ${asisT !== null ? numB(nf0(asisT), 'var(--brand-soft)') : D}
                     ${cpaT !== null ? numB(eur2(cpaT)) : D}
@@ -728,8 +736,9 @@
                         <th>Canal</th>
                         <th style="color:var(--brand)" title="Gasto publicitario del canal en el periodo. Meta: sin campañas de paciente modelo (solo formación).">Inversión</th>
                         <th style="color:var(--brand)" title="Leads REALES del periodo que entraron por este canal, según el origen utm que graba el CRM: los que siguen abiertos más los ya ganados. Es el dato del CRM, nunca el que declara la plataforma.">Tratos</th>
-                        <th style="color:var(--muted)" title="Conversiones que declara la propia plataforma (Meta / Google) en el periodo. NO son tratos: incluyen clics en el teléfono, envíos repetidos de la misma persona y formularios que no llegaron al CRM. Sirve de contraste: una diferencia grande contra la columna Tratos indica leads que no llegan etiquetados.">Conv. plataforma</th>
                         <th title="Inversión ÷ tratos REALES del CRM: lo que costó de media cada lead de este canal.">CPL</th>
+                        <th style="color:var(--muted)" title="Conversiones que declara la propia plataforma (Meta / Google) en el periodo, incluidas las secundarias: clic en el botón de WhatsApp, llamadas, envíos repetidos y formularios que no llegaron al CRM. NO son tratos. Sirve de contraste: una diferencia grande contra la columna Tratos indica leads que no llegan etiquetados.">Conv. plataforma</th>
+                        <th style="color:var(--muted)" title="Inversión ÷ conversiones declaradas por la plataforma. Es coste por conversión declarada, no por lead real: úsalo solo para comparar contra el CPL del CRM.">CPL plat.</th>
                         <th style="color:var(--green)" title="Ventas cerradas en estas fechas cuyo trato entró por este canal.">Ventas</th>
                         <th style="color:var(--brand-soft)" title="Ventas cerradas en estas fechas en las que este canal PARTICIPÓ sin ser el origen directo del trato ganado. Se cuenta si la persona tiene OTRO trato entrado por este canal, o si su ficha de contacto guarda el utm/gclid de este canal (el trato lo pierde cuando el comercial lo crea a mano).">Asistidas</th>
                         <th title="Inversión ÷ ventas del periodo del canal: coste de cada venta atribuida directamente.">CPA</th>
