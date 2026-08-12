@@ -442,7 +442,15 @@
                                 Object.entries(mj.days).forEach(([d, v]) => {
                                     if (d >= params.from && d <= params.to) { sum.f2 += v.f2||0; sum.f3 += v.f3||0; sum.f4 += v.f4||0; }
                                 });
-                                moves = { ok: true, partial: !(mj.oldest && mj.oldest <= params.from), moves: sum, hasta: mj.newest };
+                                // El fichero de movimientos debe cubrir el periodo por AMBOS lados.
+                                // Antes solo se comprobaba el inicio (oldest): con el fichero parado el
+                                // 17-jul y el filtro en agosto, la suma daba 0 y el embudo enseñaba
+                                // "F3 = 0" mientras las tablas de abajo enseñaban 5. Ahora, si no hay
+                                // solape, se marca parcial y el embudo cae al recuento por fases.
+                                const cubreInicio = !!(mj.oldest && mj.oldest <= params.from);
+                                const haySolape = !!(mj.newest && mj.newest >= params.from);
+                                moves = { ok: true, partial: !(cubreInicio && haySolape), moves: sum,
+                                          hasta: mj.newest, desfase: !(mj.newest && mj.newest >= params.to) };
                             }
                         }
                     } catch(_) {}
@@ -577,25 +585,51 @@
             // FUNNEL
             // Etiquetas en PASADO (acciones del periodo). En modo movimientos: "pasaron a cualificado" =
             // se movieron a esa fase en estas fechas, da igual cuándo entró el lead.
+            // TRES FORMAS DE CONTAR conviven en el informe y confundían: el embudo daba F3=0
+            // mientras la tabla de vendedores daba 5, porque no cuentan lo mismo. Cada tarjeta
+            // lleva ahora una etiqueta de color que dice CÓMO está contada.
+            const MET = METODOS;
+            const metF34 = hasMoves ? 'movieron' : 'hoy';
             const stages = [
-                {k:'F1', label:'Entraron', val:reachedF1, color:'#8A94A6'},
-                {k:'F2', label:'Cualificaron', val:reachedF2, color:'#1F2A4E'},
-                {k:'F3', label:'Pasaron a propuesta', val:reachedF3, color:'#2E5082'},
-                {k:'F4', label:'Pasaron a facturación', val:reachedF4, color:'#448497'},
-                {k:'VENTA', label:'Compraron', val:w, color:'#009B9B'}
+                {k:'F1', label:'Entraron', val:reachedF1, color:'#8A94A6', met:'entraron'},
+                {k:'F2', label:'Cualificaron', val:reachedF2, color:'#1F2A4E', met:'entraron'},
+                {k:'F3', label:'Pasaron a propuesta', val:reachedF3, color:'#2E5082', met:metF34},
+                {k:'F4', label:'Pasaron a facturación', val:reachedF4, color:'#448497', met:metF34},
+                {k:'VENTA', label:'Compraron', val:w, color:'#009B9B', met:'cerraron'}
             ];
             const maxV = Math.max(...stages.map(s=>s.val), 1);
-            let funnel = `<div class="funnel"><div class="funnel-head"><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="font-size:11.5px;color:var(--muted);max-width:520px;text-align:right;line-height:1.55"><b style="color:var(--brand)">F1 y F2 = leads CREADOS en el periodo</b> (entraron y cualificaron).<br><b style="color:var(--brand)">F3 y F4 = tratos que se MOVIERON a esa fase</b> en el periodo (entrara cuando entrara el lead).<br><b>Venta</b> = cerradas en estas fechas.${hasMoves&&moves.hasta?` <span style="opacity:.7">· movimientos hasta ${fmtDate(moves.hasta)}</span>`:''}</div></div><div class="funnel-steps">`;
+            const leyendaEmbudo = [
+                ['entraron', 'Entraron', 'Leads CREADOS en las fechas del filtro. Es una cohorte: siempre las mismas personas, mires cuando mires.'],
+                [metF34, metF34 === 'movieron' ? 'Se movieron' : 'Foto de hoy',
+                 metF34 === 'movieron'
+                   ? 'Tratos que PASARON a esa fase durante el periodo, entrara cuando entrara el lead. Un trato de junio que hoy pasa a propuesta cuenta aquí.'
+                   : 'No hay registro de movimientos para estas fechas, así que se enseña dónde están HOY los leads del periodo. No es lo mismo y por eso está marcado.'],
+                ['cerraron', 'Se cerraron', 'Ventas firmadas dentro del periodo, según la fecha de ganado del CRM.']
+            ].map(([m, t2, tip]) => `<span title="${tip}" style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);white-space:nowrap"><i style="width:9px;height:9px;border-radius:2px;background:${MET[m].col};display:inline-block"></i>${t2}</span>`).join('<span style="opacity:.35">·</span>');
+            const avisoMoves = (hasMoves && moves.desfase && moves.hasta)
+                ? `<div style="margin-top:6px;font-size:10.5px;color:#9A6B1F"><b>Movimientos registrados solo hasta el ${fmtDate(moves.hasta)}</b>: los días posteriores del filtro aún no cuentan en F3 y F4.</div>` : '';
+            let funnel = `<div class="funnel"><div class="funnel-head"><div><div class="section-title" style="margin:0;padding-left:12px">Embudo comercial · ${t} oportunidades del periodo</div><div style="padding-left:12px;margin-top:7px;display:flex;gap:9px;align-items:center;flex-wrap:wrap">${leyendaEmbudo}</div></div><div style="font-size:11.5px;color:var(--muted);max-width:480px;text-align:right;line-height:1.55">Cada tarjeta dice <b>cómo está contada</b>. Los cinco números <b>no son un mismo grupo que se va estrechando</b>: F1 y F2 miran a los leads que entraron, F3 y F4 al trabajo hecho en estas fechas sobre tratos de cualquier mes. Por eso F3 puede ser mayor o menor que F2 sin que haya ningún error.${avisoMoves}</div></div><div class="funnel-steps">`;
             stages.forEach((s,i)=>{
                 const h = 60 + Math.round((s.val/maxV)*90);
                 const prev = i>0 ? stages[i-1].val : null;
                 const conv = (prev && prev>0) ? Math.round(s.val/prev*100) : 100;
                 const share = t>0 ? Math.round(s.val/t*100) : 0;
+                const M = MET[s.met];
+                // El % "respecto al paso anterior" solo tiene sentido si ambos pasos cuentan igual.
+                // Entre F2 (cohorte) y F3 (movimientos) compara peras con manzanas: se oculta.
+                const mismoMetodo = i > 0 && stages[i-1].met === s.met;
                 funnel += `<div class="fstep">
                     <div class="fbar" style="background:linear-gradient(160deg,${s.color},${s.color}dd);height:${h}px">
                         <div class="fnum">${s.val}</div><div class="flabel">${s.k} · ${s.label}</div>
                     </div>
-                    <div class="fconv" title="${s.val} de ${t} · el ${share}% del total del periodo">${i===0 ? '<b>100%</b> · punto de partida' : '▸ <b>'+conv+'%</b> respecto al paso anterior'}</div>
+                    <div style="margin-top:7px;display:flex;align-items:center;gap:5px;font-size:10px;color:${M.col};line-height:1.35" title="${M.txt}">
+                        <i style="width:8px;height:8px;border-radius:2px;background:${M.col};flex:none"></i><span>${M.txt}</span>
+                    </div>
+                    <div class="fconv" title="${s.val} de ${t} · el ${share}% del total del periodo">${
+                        i===0 ? '<b>100%</b> · punto de partida'
+                              : (mismoMetodo ? '▸ <b>'+conv+'%</b> respecto al paso anterior'
+                                             : '<span style="opacity:.65">no comparable con el paso anterior</span>')
+                    }</div>
                 </div>`;
             });
             funnel += `</div></div>`;
@@ -1020,10 +1054,32 @@
                 };
             }).sort((a,b)=>b.total-a.total);
         }
+        // Las CUATRO formas de contar del informe. Mismo color = misma forma de contar, en el
+        // embudo y en las tablas. Es lo que evita que "F3" signifique dos cosas distintas.
+        const METODOS = {
+            entraron:  { txt:'leads creados en estas fechas',              col:'#5B6B8C' },
+            movieron:  { txt:'se movieron aquí en estas fechas',           col:'#2E5082' },
+            hoy:       { txt:'dónde están HOY (sin datos de movimientos)', col:'#9A6B1F' },
+            cerraron:  { txt:'ventas firmadas en estas fechas',            col:'#00796B' }
+        };
+        // Chips de color reutilizables: el MISMO color significa la MISMA forma de contar en todo
+        // el informe (embudo y tablas). Sin esto, "F3" quería decir dos cosas distintas según dónde.
+        function chipMetodo(col, txt, tip){
+            return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><i style="width:9px;height:9px;border-radius:2px;background:${col};display:inline-block;flex:none"></i>${txt}</span>`;
+        }
+        const NOTA_FASES_HOY = chipMetodo('#5B6B8C', '<b>Tratos</b> = entraron en estas fechas',
+              'Leads creados dentro del periodo del filtro, estén hoy donde estén (incluye ganados y perdidos).')
+            + '<span style="opacity:.35">·</span>'
+            + chipMetodo('#9A6B1F', '<b>F1-F4</b> = dónde están HOY',
+              'Foto del momento: de esos leads, los que a día de hoy siguen abiertos en cada fase. NO es "cuántos pasaron por ahí" — para eso está el embudo de arriba, que cuenta movimientos.')
+            + '<span style="opacity:.35">·</span>'
+            + chipMetodo('#00796B', '<b>Ventas</b> = firmadas en estas fechas',
+              'Ventas cerradas dentro del periodo, por fecha de ganado del CRM.');
+
         function bdTable(title, note, colLabel, rows, rateLabel){
             if(!rows.length) return '';
             const maxT = Math.max(...rows.map(r=>r.total),1);
-            let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>${title}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div class="table-wrap"><table class="table"><thead><tr><th>${colLabel}</th><th style="color:var(--brand)" title="Total de oportunidades: las que siguen abiertas (F1+F2+F3+F4) más las ventas cerradas">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — lead que acaba de entrar, sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — hay interés real y encaja">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta enviada">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas">Ventas</th><th style="color:var(--green)">${rateLabel}</th></tr></thead><tbody>`;
+            let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>${title}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin:-4px 0 12px">${NOTA_FASES_HOY}</div><div class="table-wrap"><table class="table"><thead><tr><th>${colLabel}</th><th style="color:var(--brand)" title="Leads que ENTRARON en estas fechas, cuenten hoy donde cuenten: los que siguen abiertos (F1+F2+F3+F4) más los ganados. Es la cohorte del periodo.">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — de los leads que entraron, los que HOY siguen sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — de los leads que entraron, los que HOY están cualificados y abiertos">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta — de los leads que entraron, los que HOY tienen propuesta enviada y siguen abiertos. Ojo: el embudo de arriba cuenta los que PASARON a propuesta en estas fechas, aunque el lead sea de otro mes; por eso los dos números no tienen por qué coincidir.">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación — de los leads que entraron, los que HOY están en facturación y siguen abiertos">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas (fecha de ganado del CRM)">Ventas</th><th style="color:var(--green)" title="Ventas ÷ tratos que entraron en el periodo. Ojo: muchos leads recientes aún no han tenido tiempo de comprar, así que en periodos cortos este % sale bajo.">${rateLabel}</th></tr></thead><tbody>`;
             rows.forEach((r,i)=>{
                 const rate = r.total>0?Math.round(r.won/r.total*100):0;
                 const z = v => v?`<td class="num">${v}</td>`:`<td class="cell-zero">·</td>`;
