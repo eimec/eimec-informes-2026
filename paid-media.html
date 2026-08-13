@@ -369,9 +369,14 @@
         // CONTIENE "google" → Google. Nada más (instagram/social/fb NO cuentan como Meta Ads).
         const RE_META = /meta/;
         const RE_GOOGLE = /google/;
+        // ac-extra reetiqueta el origen con el utm_medium cuando NO es de pago ("google (organic)").
+        // Como aquí la comparación es por CONTENIDO, sin esta guarda "googleorganic" seguiría
+        // contando como Google Ads — que es justo el error que se quería quitar.
+        const RE_NO_PAGO = /organic|referral|newsletter|email|whatsapp|none|direct/;
         function canalDe(origen) {
             const nk = normKey(origen);
             if (!nk) return null;
+            if (RE_NO_PAGO.test(nk)) return null;
             if (RE_META.test(nk)) return 'meta';
             if (RE_GOOGLE.test(nk)) return 'google';
             return null;

@@ -36,9 +36,13 @@ const C_GCLID = '172';       // campo de CONTACTO: gclid
 // "meta" → Meta, que CONTIENE "google" → Google. Nada más.
 const RE_META = /meta/;
 const RE_GOOGLE = /google/;
+// Mismo criterio que paid-media.html: el origen reetiquetado con un medium que NO es de pago
+// ("google (organic)") no cuenta como canal de pago aunque contenga "google".
+const RE_NO_PAGO = /organic|referral|newsletter|email|whatsapp|none|direct/;
 function canalDe(v) {
   const nk = normKey(v);
   if (!nk) return null;
+  if (RE_NO_PAGO.test(nk)) return null;
   if (RE_META.test(nk)) return 'meta';
   if (RE_GOOGLE.test(nk)) return 'google';
   return null;
