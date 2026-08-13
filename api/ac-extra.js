@@ -16,6 +16,7 @@ const M_PM_CAMPAIGN = '11';   // utm_campaign — SOLO para detectar "paciente m
 // >>> INTERRUPTOR: campo del DESGLOSE de la tabla UTM. Cambiar solo esta línea para testear otra dimensión:
 // 11=utm_campaign · 15=utm_source · 16=utm_medium · 17=utm_term · 18=utm_content
 const M_UTM = '15';
+const M_MEDIUM = '16';   // utm_medium: distingue el trafico PAGADO del organico
 const UTM_LABEL = { '11':'utm_campaign', '15':'utm_source', '16':'utm_medium', '17':'utm_term', '18':'utm_content' };
 const UTM_TITLE = { '11':'campaña', '15':'origen', '16':'medio', '17':'término', '18':'contenido' };
 const UTM_TITLE_PL = { '11':'campañas', '15':'orígenes', '16':'medios', '17':'términos', '18':'contenidos' };
@@ -32,6 +33,19 @@ function normUtm(v){
   if (!s) return '';
   const key = s.toLowerCase().replace(/[\s_\-]+/g, '');
   return UTM_ALIAS[key] || s;
+}
+// El canal se decidia SOLO por utm_source, asi que un lead que llego por una busqueda normal en
+// Google (utm_source=google, utm_medium=organic) se contaba como Google ADS: inflaba sus tratos y
+// le bajaba el CPL. Detectado 13-ago-2026: de 6 "tratos de Google" de agosto, 3 eran organicos.
+// Si el medium NO es de pago, el origen se reetiqueta ("Google (organico)") y deja de sumar al canal.
+const MEDIUM_PAGO = /^(cpc|ppc|paid|paidsocial|paid_social|display|video|shopping|pmax|performancemax|ads?)$/;
+function normUtmCanal(src, medium){
+  const s = normUtm(src);
+  if (!s) return '';
+  const m = String(medium || '').trim().toLowerCase().replace(/[\s_\-]+/g, '');
+  if (!m) return s;                       // sin medium: no podemos descartarlo, se deja como esta
+  if (MEDIUM_PAGO.test(m)) return s;      // pagado: cuenta para el canal
+  return s + ' (' + m + ')';              // organic / referral / email... fuera del canal de pago
 }
 
 // Origen PUBLICITARIO (Meta/Google) — MISMO criterio que paid-media.html (normKey + regex amplia),
@@ -189,7 +203,7 @@ export default async function handler(req, res) {
         if (isPM(pmCamp, ownerName)) return;   // excluir "paciente modelo" (formación, no ventas)
         add(by_owner, ownerName, sk);
         const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); add(by_curso, cu ? cu : 'Sin curso', sk);
-        const utm = normUtm(c[M_UTM]); add(by_campaign, utm || 'Sin dato', sk);
+        const utm = normUtmCanal(c[M_UTM], c[M_MEDIUM]); add(by_campaign, utm || 'Sin dato', sk);
         if (pmCamp) add(by_campana_fases, pmCamp.slice(0, 80), sk);   // fases F1-F4 por utm_campaign
         // Tratos con origen publicitario, por día de CREACIÓN (para el gráfico diario de Paid Media)
         if (d.cdate && isPaid(utm)) { const pd = dayES(d.cdate); paid_by_date[pd] = (paid_by_date[pd] || 0) + 1; }
@@ -290,12 +304,12 @@ export default async function handler(req, res) {
           const kc = cuC || 'Sin curso';
           creados_por_curso[kc] = (creados_por_curso[kc] || 0) + 1;
           // País × canal (solo los tratos con origen Meta/Google)
-          const canC = canalDeUtm(c[M_UTM]);
+          const canC = canalDeUtm(normUtmCanal(c[M_UTM], c[M_MEDIUM]));
           if (canC) {
             if (pvC && String(pvC).trim()) { const kp = normPais(pvC); creados_pais_canal[canC][kp] = (creados_pais_canal[canC][kp] || 0) + 1; }
             else sinPaisCanal.push({ contact: d.contact, canal: canC });
           }
-          const utm = normUtm(c[M_UTM]) || 'Sin dato';
+          const utm = normUtmCanal(c[M_UTM], c[M_MEDIUM]) || 'Sin dato';
           creados_por_utm[utm] = (creados_por_utm[utm] || 0) + 1;
           // utm_campaign (cf11) crudo → para el desglose POR CAMPAÑA de Paid Media (match por nombre)
           const camp = pmCamp;   // cf11 es el mismo campo M_PM_CAMPAIGN (utm_campaign)
@@ -381,7 +395,7 @@ export default async function handler(req, res) {
           won_group[x.id] = String(x.group || '');
           won_owner[x.id] = ownerName;
           const pmCamp = cf[x.id] && cf[x.id][M_PM_CAMPAIGN] && String(cf[x.id][M_PM_CAMPAIGN]).trim();
-          const utm = normUtm(cf[x.id] && cf[x.id][M_UTM]);
+          const utm = normUtmCanal(cf[x.id] && cf[x.id][M_UTM], cf[x.id] && cf[x.id][M_MEDIUM]);
           won_campaign[x.id] = utm || 'Sin dato';
           const conocio = cf[x.id] && cf[x.id]['9'] && String(cf[x.id]['9']).trim();
           if (conocio) won_conocio[x.id] = conocio;
@@ -442,7 +456,7 @@ export default async function handler(req, res) {
           won_creados++;
           addWonc(by_owner, ownerName);
           const cu = c[M_CURSO] && String(c[M_CURSO]).trim(); addWonc(by_curso, cu ? cu : 'Sin curso');
-          const utmWC = normUtm(c[M_UTM]);
+          const utmWC = normUtmCanal(c[M_UTM], c[M_MEDIUM]);
           addWonc(by_campaign, utmWC || 'Sin dato');
           // También cuentan en el gráfico diario: son tratos CREADOS en el periodo (ya ganados),
           // igual que la tarjeta "Tratos generados" (total + wonc). Sin esto, gráfico y tarjeta no cuadran.
