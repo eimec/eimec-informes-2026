@@ -1076,7 +1076,7 @@
             + chipMetodo('#00796B', '<b>Ventas</b> = firmadas en estas fechas',
               'Ventas cerradas dentro del periodo, por fecha de ganado del CRM.');
 
-        function bdTable(title, note, colLabel, rows, rateLabel){
+        function bdTable(title, note, colLabel, rows, rateLabel, totalLabel){
             if(!rows.length) return '';
             const maxT = Math.max(...rows.map(r=>r.total),1);
             let h = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>${title}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">${note}</span></div><div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin:-4px 0 12px">${NOTA_FASES_HOY}</div><div class="table-wrap"><table class="table"><thead><tr><th>${colLabel}</th><th style="color:var(--brand)" title="Leads que ENTRARON en estas fechas, cuenten hoy donde cuenten: los que siguen abiertos (F1+F2+F3+F4) más los ganados. Es la cohorte del periodo.">Tratos</th><th style="color:var(--slate)" title="Fase 1 · Solicitud — de los leads que entraron, los que HOY siguen sin cualificar">F1</th><th style="color:var(--brand)" title="Fase 2 · Cualificado — de los leads que entraron, los que HOY están cualificados y abiertos">F2</th><th style="color:var(--brand-soft)" title="Fase 3 · Propuesta — de los leads que entraron, los que HOY tienen propuesta enviada y siguen abiertos. Ojo: el embudo de arriba cuenta los que PASARON a propuesta en estas fechas, aunque el lead sea de otro mes; por eso los dos números no tienen por qué coincidir.">F3</th><th style="color:var(--gold)" title="Fase 4 · Facturación — de los leads que entraron, los que HOY están en facturación y siguen abiertos">F4</th><th style="color:var(--green)" title="Ventas cerradas en estas fechas (fecha de ganado del CRM)">Ventas</th><th style="color:var(--green)" title="Ventas ÷ tratos que entraron en el periodo. Ojo: muchos leads recientes aún no han tenido tiempo de comprar, así que en periodos cortos este % sale bajo.">${rateLabel}</th></tr></thead><tbody>`;
@@ -1089,14 +1089,16 @@
             // Fila TOTAL de totales
             const G = rows.reduce((a,r)=>({f1:a.f1+(r.f1||0),f2:a.f2+(r.f2||0),f3:a.f3+(r.f3||0),f4:a.f4+(r.f4||0),won:a.won+(r.won||0),total:a.total+(r.total||0)}),{f1:0,f2:0,f3:0,f4:0,won:0,total:0});
             const Grate = G.total>0?Math.round(G.won/G.total*100):0;
-            h+=`<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)"><td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td><td class="num" style="font-weight:800;color:var(--brand-dark)">${G.total}</td><td class="num" style="font-weight:800">${G.f1}</td><td class="num" style="font-weight:800">${G.f2}</td><td class="num" style="font-weight:800">${G.f3}</td><td class="num" style="font-weight:800">${G.f4}</td><td class="num cell-win" style="font-weight:800">${G.won}</td><td class="num" style="font-weight:800;color:var(--green)">${Grate}%</td></tr>`;
+            h+=`<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)"><td class="cell-strong" style="color:var(--brand-dark)" title="Suma de las filas que se ven en la tabla.">${totalLabel || 'TOTAL'}</td><td class="num" style="font-weight:800;color:var(--brand-dark)">${G.total}</td><td class="num" style="font-weight:800">${G.f1}</td><td class="num" style="font-weight:800">${G.f2}</td><td class="num" style="font-weight:800">${G.f3}</td><td class="num" style="font-weight:800">${G.f4}</td><td class="num cell-win" style="font-weight:800">${G.won}</td><td class="num" style="font-weight:800;color:var(--green)">${Grate}%</td></tr>`;
             return h + `</tbody></table></div></div>`;
         }
         function renderBreakdownTable(title, obj, colLabel){
             return bdTable(title, 'Todos los tratos por etapa', colLabel, bdRows(obj), '% Venta');
         }
         function renderTop10Paises(obj){
-            return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta');
+            // El TOTAL de esta tabla suma SOLO las 10 filas que se ven, no todos los países:
+            // se dice en el rótulo para que nadie lo lea como el total del periodo.
+            return bdTable('Top 10 países por tratos creados', 'Top 10 · todos los tratos por etapa', 'País', bdRows(obj).slice(0,10), '% Venta', 'TOTAL · solo estos 10');
         }
         function renderOwnerTable(obj, creadosOwner){
             // Owners que NO son vendedores comerciales → se agrupan en "Otros" (el TOTAL sigue cuadrando con país)
