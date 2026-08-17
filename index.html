@@ -393,12 +393,13 @@
                     const _hoy = new Date();
                     const _y0 = `${_hoy.getFullYear()}-01-01`;
                     const _hoyStr = ymd(_hoy);
-                    const [dataRes, extraRes, ytdRes, movesRes, stockRes] = await Promise.all([
+                    const [dataRes, extraRes, ytdRes, movesRes, stockRes, gastoRes] = await Promise.all([
                         fetch(`/api/ac-data?${query}`),
                         fetch(`/api/ac-extra?${query}`).catch(()=>null),
                         fetch(`/api/ac-data?from=${_y0}&to=${_hoyStr}`).catch(()=>null),
                         fetch(`/data/moves-daily.json?v=${Date.now()}`).catch(()=>null),
-                        fetch(`/api/ac-stock`).catch(()=>null)   // stock total del pipeline (no depende del filtro)
+                        fetch(`/api/ac-stock`).catch(()=>null),  // stock total del pipeline (no depende del filtro)
+                        fetch(`/api/ads-spend?${query}`).catch(()=>null)   // gasto diario Meta+Google (gráfico de inversión)
                     ]);
                     let data = await dataRes.json();
                     let extra = null;
@@ -456,6 +457,11 @@
                     } catch(_) {}
                     let stock = null;
                     try { if (stockRes) { const s = await stockRes.json(); if (s && s.ok) stock = s; } } catch(_) {}
+                    // Gasto diario por canal. Es opcional: si la API de anuncios falla, el resto del
+                    // informe sigue igual y el gráfico simplemente no se pinta.
+                    let gasto = null;
+                    try { if (gastoRes) { const g = await gastoRes.json(); if (g && g.ok) gasto = g; } } catch(_) {}
+                    window.__gasto = gasto;
                     if (!data.ok) throw new Error('respuesta sin ok');
                     renderDashboard(data, extra, ytd, moves, stock);
                     return;
@@ -838,6 +844,7 @@
             // Charts row  (los graficos "Ventas por curso" y "Ventas por dia" se retiraron el 29-jul-2026 a peticion de direccion)
             html += `
                 <div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Leads cualificados (F2) por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Tratos que <b>hoy están en Fase 2</b>, colocados en su <b>día de creación</b> (no es el día en que cualificaron)</span></div><div class="chart-container" style="height:260px"><canvas id="f2ByDateChart"></canvas></div></div>
+                <div class="section" id="gastoSection" style="display:none"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Inversión en anuncios por día</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0" id="gastoSub">Gasto real de Meta y Google en cada día del periodo</span></div><div class="chart-container" style="height:260px"><canvas id="gastoByDateChart"></canvas></div><p class="sub" style="margin:10px 0 0" id="gastoNota"></p></div>
             `;
 
             // Pipeline por País — tratos TOTALES (F1+F2+F3+F4+Won) por país, leyendo el campo País del TRATO (ac-extra), del periodo.
@@ -1278,6 +1285,47 @@
                     data:{ labels:Object.keys(f2bd), datasets:[{ label:'F2 cualificados', data:Object.values(f2bd), backgroundColor:'#1F2A4E', borderRadius:4, maxBarThickness:22 }] },
                     options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45}}, y:{grid:{color:'#F0EDF1'},ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2',precision:0}} } })
                 });
+            }
+
+            // GASTO POR DÍA (Meta + Google). Barras apiladas: se ve el total y quién lo pone.
+            const G = window.__gasto;
+            const secG = document.getElementById('gastoSection');
+            // by_day trae el TOTAL por día; el desglose por canal vive en by_channel.<canal>.by_day
+            const dMeta = (G && G.by_channel && G.by_channel.meta && G.by_channel.meta.by_day) || {};
+            const dGoog = (G && G.by_channel && G.by_channel.google && G.by_channel.google.by_day) || {};
+            const diasG = G && G.by_day ? Object.keys(G.by_day).filter(d => d >= data.period.from && d <= data.period.to).sort() : [];
+            if (secG && diasG.length) {
+                const meta = diasG.map(d => Number(dMeta[d]) || 0);
+                // Si un canal no da desglose diario, su gasto se deduce del total para no perderlo
+                const goog = diasG.map((d, i) => {
+                    const g = Number(dGoog[d]);
+                    if (!isNaN(g) && dGoog[d] !== undefined) return g;
+                    return Math.max(0, Math.round(((Number(G.by_day[d]) || 0) - meta[i]) * 100) / 100);
+                });
+                const tot = meta.reduce((a, b) => a + b, 0) + goog.reduce((a, b) => a + b, 0);
+                const eur = v => v.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' €';
+                secG.style.display = '';
+                if (charts.gastoByDate) charts.gastoByDate.destroy();
+                charts.gastoByDate = new Chart(document.getElementById('gastoByDateChart'), {
+                    type: 'bar',
+                    data: { labels: diasG, datasets: [
+                        { label:'Meta Ads', data:meta, backgroundColor:'#1F2A4E', borderRadius:3, maxBarThickness:22, stack:'g' },
+                        { label:'Google Ads', data:goog, backgroundColor:'#448497', borderRadius:3, maxBarThickness:22, stack:'g' }
+                    ] },
+                    options: baseOpts({
+                        plugins:{ legend:{ display:true, position:'top', align:'end', labels:{ boxWidth:10, boxHeight:10, font:{family:'Montserrat',size:11}, color:'#5B6B8C' } },
+                                  tooltip:{ callbacks:{ label: c => `${c.dataset.label}: ${eur(c.parsed.y)}` } } },
+                        scales:{ x:{ stacked:true, grid:{display:false}, ticks:{font:{family:'Montserrat',size:10},color:'#9A93A2',maxRotation:45} },
+                                 y:{ stacked:true, grid:{color:'#F0EDF1'}, ticks:{font:{family:'Montserrat',size:11},color:'#9A93A2', callback: v => eur(v)} } }
+                    })
+                });
+                const media = tot / diasG.length;
+                const iMax = meta.map((m, i) => m + goog[i]).reduce((best, v, i, arr) => v > arr[best] ? i : best, 0);
+                document.getElementById('gastoNota').innerHTML =
+                    `Total del periodo <b>${eur(tot)}</b> · media <b>${eur(media)}</b> al día · día de más gasto: <b>${diasG[iMax]}</b> (${eur(meta[iMax] + goog[iMax])}).`
+                    + ` Es el gasto que reportan las plataformas, sin las campañas de paciente modelo. Para el coste por lead y por venta, mira la hoja <b>Paid Media</b>.`;
+            } else if (secG) {
+                secG.style.display = 'none';
             }
         }
 
