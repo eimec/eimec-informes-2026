@@ -84,6 +84,11 @@ export async function metaSpend(from, to, opts = {}) {
     const byCampRows = sinPM(byCampRowsAll);
     const byCountryRows = sinPM(byCountryRowsAll);
     const byDayRows = byDayRowsAll ? sinPM(byDayRowsAll) : null;
+    // Si se PIDIO el desglose diario y vino vacio habiendo gasto, la respuesta esta incompleta.
+    // Marcarlo importa: ads-spend no cachea lo incompleto, asi que la siguiente carga reintenta.
+    // Sin esto (23-ago-2026) el grafico de inversion por dia se quedaba sin las barras de Meta
+    // durante una hora, con Meta declarando 2.015 EUR de gasto en el mismo periodo.
+    const byDayVacio = !!opts.byDay && Array.isArray(byDayRows) && byDayRows.length === 0;
 
     const by_campaign = {};
     let total = 0, impressions = 0, clicks = 0;
@@ -134,6 +139,7 @@ export async function metaSpend(from, to, opts = {}) {
       impressions, clicks,
       sin_pm: true,   // las campañas de "paciente modelo" están EXCLUIDAS de todas las cifras
       ...(parcial ? { parcial: true, nota: 'total tomado del desglose por pais; sin detalle por campana esta vez' } : {}),
+      ...(byDayVacio && total > 0 ? { parcial: true, nota_dia: 'Meta no devolvio el gasto por dia en esta llamada' } : {}),
       ...(by_day ? { by_day } : {}),
       period: { from: timeRange.since, to: timeRange.until }, ms: Date.now() - start
     };

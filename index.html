@@ -1321,9 +1321,20 @@
                 });
                 const media = tot / diasG.length;
                 const iMax = meta.map((m, i) => m + goog[i]).reduce((best, v, i, arr) => v > arr[best] ? i : best, 0);
+                // Si un canal declara gasto pero no da el detalle diario, hay que DECIRLO: si no, sus
+                // barras faltan y el total del gráfico parece el gasto real cuando no lo es.
+                const totMeta = Number(((G.by_channel || {}).meta || {}).total) || 0;
+                const totGoog = Number(((G.by_channel || {}).google || {}).total) || 0;
+                const faltan = [];
+                if (totMeta > 0 && !Object.keys(dMeta).length) faltan.push(`Meta (${eur(totMeta)})`);
+                if (totGoog > 0 && !Object.keys(dGoog).length) faltan.push(`Google (${eur(totGoog)})`);
+                const aviso = faltan.length
+                    ? ` <b style="color:#9A6B1F">Ojo: ${faltan.join(' y ')} no ha devuelto el desglose por día en esta carga, así que sus barras no aparecen y el total real del periodo es ${eur(totMeta + totGoog)}. Recarga en un minuto.</b>`
+                    : '';
                 document.getElementById('gastoNota').innerHTML =
                     `Total del periodo <b>${eur(tot)}</b> · media <b>${eur(media)}</b> al día · día de más gasto: <b>${diasG[iMax]}</b> (${eur(meta[iMax] + goog[iMax])}).`
-                    + ` Es el gasto que reportan las plataformas, sin las campañas de paciente modelo. Para el coste por lead y por venta, mira la hoja <b>Paid Media</b>.`;
+                    + ` Es el gasto que reportan las plataformas, sin las campañas de paciente modelo. Para el coste por lead y por venta, mira la hoja <b>Paid Media</b>.`
+                    + aviso;
             } else if (secG) {
                 secG.style.display = 'none';
             }

@@ -103,7 +103,11 @@ export default async function handler(req, res) {
 
     // CACHÉ SEGÚN RESULTADO: solo se cachea una respuesta COMPLETA y SANA. Cachear una degradada
     // (canal caído, total 0 con source api, parcial...) dejaba el informe "sin inversión" 1 hora.
-    const canalDegradado = c => c.source === 'none' || !!c.motivo || !!c.parcial || (c.source === 'api' && !(c.total > 0));
+    // "Degradado" incluye que falte el desglose DIARIO habiendo gasto: sin esta comprobacion,
+    // una respuesta con el total bien pero sin by_day se cacheaba 1h y el grafico de inversion
+    // por dia se quedaba sin ese canal (23-ago-2026: Meta con 2.015 EUR y cero barras).
+    const sinDetalleDiario = c => c.source === 'api' && c.total > 0 && (!c.by_day || Object.keys(c.by_day).length === 0);
+    const canalDegradado = c => c.source === 'none' || !!c.motivo || !!c.parcial || (c.source === 'api' && !(c.total > 0)) || sinDetalleDiario(c);
     const sana = !partial && !canalDegradado(meta) && !canalDegradado(google);
     res.setHeader('Cache-Control', sana ? 's-maxage=3600, stale-while-revalidate=7200' : 'no-store');
 
