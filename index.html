@@ -709,69 +709,7 @@
                         importe: (extra && extra.won_value && Number(extra.won_value[wd.id])) ? Number(extra.won_value[wd.id])/100 : 0
                     }))
                     .sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
-                // ── OBJETIVO vs REAL (nº de ventas cerradas) — INDEPENDIENTE del filtro de fechas ──
-                // Mensual = mes natural EN CURSO contra el objetivo completo del mes.
-                // Anual = lo que llevamos de AÑO contra el objetivo completo del año.
-                // La línea vertical marca "por dónde tocaría ir hoy". Datos: cierres del año (ytd), sin paciente modelo.
-                const OBJ_MENS = { 'Mef': 9, 'Personalizado': 5, 'Blefaroplastia': 2 };
-                const OBJ_ANUAL = { 'Mefo': 9, 'Posgrado': 18, 'Master': 15, 'Caame': 20 };
-                const OBJ_RESTO_MES = 7;   // "Cursos": todas las demás ventas (incluye las aún sin curso etiquetado)
-                let objetivoHtml = '';
-                if (ytd && Array.isArray(ytd.won_deals)) {
-                    const hoy = new Date();
-                    const mes0 = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`;
-                    const wonY = ytd.won_deals.filter(wd=>!pmWonSet.has(wd.id));
-                    const cursoDe = wd => ((wd.curso||'').trim()||'Sin curso').toLowerCase();
-                    const cntA = {}, cntM = {};
-                    wonY.forEach(wd=>{ const k=cursoDe(wd); cntA[k]=(cntA[k]||0)+1; if (String(wd.date||'')>=mes0) cntM[k]=(cntM[k]||0)+1; });
-                    // "Cursos" (decisión del usuario): ventas del mes de cursos que NO salen en este cuadro —
-                    // ni en los mensuales (Mef, Personalizado, Blefaroplastia) ni en los anuales (Mefo, Posgrado, Master, Caame).
-                    const nombrados = new Set([...Object.keys(OBJ_MENS),...Object.keys(OBJ_ANUAL)].map(s=>s.toLowerCase()));
-                    const restoMes = wonY.filter(wd=>String(wd.date||'')>=mes0 && !nombrados.has(cursoDe(wd))).length;
-                    const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-                    const diasMes = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0).getDate();
-                    const fracMes = hoy.getDate()/diasMes;
-                    const fracAno = ((hoy - new Date(hoy.getFullYear(),0,1))/86400000 + 1)/365.25;
-                    const fila = (nombre, obj, real, frac, nota) => {
-                        const pct = obj>0 ? Math.round(real/obj*100) : 0;
-                        const esperado = obj*frac;
-                        const ratio = esperado>0 ? real/esperado : 1;
-                        const col = ratio>=1 ? '#0E9F6E' : (ratio>=0.7 ? '#D89614' : '#C0392B');
-                        const emoji = ratio>=1 ? '🟢' : (ratio>=0.7 ? '🟡' : '🔴');
-                        return `<div style="margin-bottom:15px">
-                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-                                <span style="font-weight:700;font-size:13px;color:var(--ink)">${emoji} ${nombre}${nota?` <span style="font-weight:500;font-size:10px;color:var(--muted)">${nota}</span>`:''}</span>
-                                <span style="font-size:12px;color:var(--muted)"><b style="color:${col};font-size:16px">${real}</b> de ${obj} · <b style="color:${col}">${pct}%</b></span>
-                            </div>
-                            <div style="position:relative;height:11px;background:#EDF0F4;border-radius:6px">
-                                <div style="height:100%;width:${Math.min(100,pct)}%;background:linear-gradient(90deg,${col}B3,${col});border-radius:6px"></div>
-                                <div title="Por dónde tocaría ir hoy" style="position:absolute;top:-3px;left:${Math.min(100,Math.round(frac*100))}%;width:2px;height:17px;background:var(--brand);opacity:.5"></div>
-                            </div>
-                            <div style="font-size:10px;color:var(--muted);margin-top:3px">a día de hoy tocaría llevar ~${esperado<10?esperado.toFixed(1):Math.round(esperado)}</div>
-                        </div>`;
-                    };
-                    const colMens = Object.entries(OBJ_MENS).map(([k,o])=>fila(k,o,cntM[k.toLowerCase()]||0,fracMes,'')).join('')
-                        + fila('Cursos', OBJ_RESTO_MES, restoMes, fracMes, 'los que no salen en este cuadro');
-                    const colAnual = Object.entries(OBJ_ANUAL).map(([k,o])=>fila(k,o,cntA[k.toLowerCase()]||0,fracAno,'')).join('');
-                    const objM = Object.values(OBJ_MENS).reduce((a,b)=>a+b,0)+OBJ_RESTO_MES;
-                    const objA = Object.values(OBJ_ANUAL).reduce((a,b)=>a+b,0);
-                    const realM = Object.keys(OBJ_MENS).reduce((s,k)=>s+(cntM[k.toLowerCase()]||0),0)+restoMes;
-                    const realA = Object.keys(OBJ_ANUAL).reduce((s,k)=>s+(cntA[k.toLowerCase()]||0),0);
-                    const chip = (real,obj,frac) => { const esp=obj*frac; const rr=esp>0?real/esp:1; const c=rr>=1?'#0E9F6E':(rr>=0.7?'#D89614':'#C0392B'); return `<span style="background:${c}1A;color:${c};border:1px solid ${c}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800">${real} de ${obj}</span>`; };
-                    objetivoHtml = `
-                        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:4px 0 2px 2px">🎯 Objetivo vs Real · nº de ventas</div>
-                        <div style="font-size:11px;color:var(--muted);margin:0 0 12px 2px">Este cuadro <b>no depende del filtro de fechas</b>: compara el <b>mes en curso</b> y el <b>año ${hoy.getFullYear()}</b> contra su objetivo completo. La <b style="color:var(--brand)">línea azul</b> marca por dónde tocaría ir hoy (día ${hoy.getDate()} de ${diasMes}).</div>
-                        <div class="grid-2" style="margin-bottom:18px">
-                            <div style="background:#FAFBFC;border:1px solid #EDF0F4;border-radius:12px;padding:16px 18px">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVO DEL MES · ${MESES[hoy.getMonth()].toUpperCase()}</span>${chip(realM,objM,fracMes)}</div>
-                                ${colMens}
-                            </div>
-                            <div style="background:#FAFBFC;border:1px solid #EDF0F4;border-radius:12px;padding:16px 18px">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:11.5px;font-weight:800;letter-spacing:.5px;color:var(--brand)">OBJETIVO DEL AÑO · ${hoy.getFullYear()}</span>${chip(realA,objA,fracAno)}</div>
-                                ${colAnual}
-                            </div>
-                        </div>`;
-                }
+                // (El cuadro "Objetivo vs Real" se retiró el 27-ago-2026 a petición de dirección.)
                 if (ventas.length) {
                     const totalE = ventas.reduce((s,v)=>s+v.importe,0);
                     const conImp = ventas.filter(v=>v.importe>0).length;
@@ -800,7 +738,6 @@
                             <div class="card card--won"><div class="card-label">Ticket medio</div><div class="card-value">${eur(ticket)}</div><div class="card-foot">Importe total ÷ ${conImp} venta${conImp!==1?'s':''} con importe</div></div>
                             ${sinImp?`<div class="card card--trash"><div class="card-label">Sin importe</div><div class="card-value">${sinImp}</div><div class="card-foot">Ventas sin importe puesto en el CRM · no suman al total</div></div>`:''}
                         </div>
-                        ${objetivoHtml}
                         <div class="grid-2" style="margin-bottom:18px">
                             <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">💼 De dónde viene el dinero · por vendedor</div>${breakdown('vendedor','Vendedor')}</div>
                             <div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px">🎓 De dónde viene el dinero · por curso</div>${breakdown('curso','Curso')}</div>
@@ -827,9 +764,6 @@
                         html += `</tbody></table></div>`;
                     }
                     html += `</div>`;
-                } else if (objetivoHtml) {
-                    // Sin ventas en el rango filtrado, pero los objetivos (mes/año en curso) se muestran igual
-                    html += `<div class="section"><div class="section-title">💰 Ventas cerradas en el periodo</div><div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Sin ventas cerradas en las fechas del filtro.</div>${objetivoHtml}</div>`;
                 }
             }
             // Podio de países por ventas (F1)
