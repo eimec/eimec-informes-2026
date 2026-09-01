@@ -1107,6 +1107,109 @@
                 }
             }
 
+            // ── CUADRO POR CAMPAÑA Y PAÍS ──────────────────────────────────────────────────
+            // Cada campaña se abre en los países de donde vinieron sus leads. El gasto cruzado
+            // campaña×país lo dan las DOS plataformas: Meta lo trae en la misma llamada del
+            // desglose por país (que ya va a nivel campaña) y a Google se le pide campaign.name
+            // dentro de la consulta de geographic_view. No es un reparto estimado.
+            // Los leads salen de creados_pais_campana (CRM) y las ventas de cruzar
+            // won_campana × won_pais, dos mapas que ya venían indexados por id de trato.
+            let campPaisHtml = '';
+            {
+                const CP = {};   // normKey(campaña) -> { nombre, canal, paises:{ pais:{inv,leads,ventas} } }
+                const filaCP = (k, nombre, canal) => {
+                    if (!CP[k]) CP[k] = { nombre, canal: canal || 'Solo CRM', paises: {} };
+                    if (canal && CP[k].canal === 'Solo CRM') CP[k].canal = canal;
+                    return CP[k];
+                };
+                const celdaCP = (f, pais) => (f.paises[pais] = f.paises[pais] || { inv: 0, leads: 0, ventas: 0 });
+
+                // 1) gasto por campaña × país, de cada plataforma
+                if (bc) [['meta', 'Meta'], ['google', 'Google']].forEach(([ch, tag]) => {
+                    const a = bc[ch] && bc[ch].source === 'api' ? bc[ch] : null;
+                    if (!a || !a.by_campaign_country) return;
+                    Object.entries(a.by_campaign_country).forEach(([n, porPais]) => {
+                        const k = normKey(n); if (!k) return;
+                        const f = filaCP(k, n, tag);
+                        Object.entries(porPais || {}).forEach(([pais, v]) => {
+                            celdaCP(f, normPais(pais)).inv += Number(v) || 0;
+                        });
+                    });
+                });
+                // 2) leads del CRM por campaña × país
+                Object.entries((extra && extra.creados_pais_campana) || {}).forEach(([n, porPais]) => {
+                    const k = normKey(n); if (!k) return;
+                    const f = filaCP(k, n, null);
+                    Object.entries(porPais || {}).forEach(([pais, v]) => {
+                        celdaCP(f, normPais(pais)).leads += Number(v) || 0;
+                    });
+                });
+                // 3) ventas: cruce de los dos mapas por id de trato
+                if (data && Array.isArray(data.won_deals) && extra && extra.won_campana) {
+                    data.won_deals.forEach(wd => {
+                        if (pmSet.has(wd.id)) return;
+                        const n = extra.won_campana[wd.id]; if (!n) return;
+                        const k = normKey(n); if (!k) return;
+                        const pais = normPais((extra.won_pais && extra.won_pais[wd.id]) || 'Sin país');
+                        celdaCP(filaCP(k, n, null), pais).ventas += 1;
+                    });
+                }
+
+                const camps = Object.values(CP).map(f => {
+                    const paises = Object.entries(f.paises)
+                        .map(([pais, x]) => ({ pais, inv: Math.round(x.inv * 100) / 100, leads: x.leads, ventas: x.ventas }))
+                        .filter(x => x.inv > 0.005 || x.leads > 0 || x.ventas > 0)
+                        .sort((a, b) => b.inv - a.inv || b.leads - a.leads);
+                    const T = paises.reduce((a, x) => ({ inv: a.inv + x.inv, leads: a.leads + x.leads, ventas: a.ventas + x.ventas }), { inv: 0, leads: 0, ventas: 0 });
+                    return { nombre: f.nombre, canal: f.canal, paises, T };
+                }).filter(f => f.paises.length && (f.T.inv > 0.5 || f.T.leads > 0 || f.T.ventas > 0))
+                  .sort((a, b) => b.T.inv - a.T.inv || b.T.leads - a.T.leads);
+
+                if (camps.length) {
+                    const eurC = v => v > 0 ? eur0(v) : '·';
+                    let cuerpoCP = '';
+                    camps.slice(0, 14).forEach((f, i) => {
+                        const cplT = (f.T.leads > 0 && f.T.inv > 0) ? f.T.inv / f.T.leads : null;
+                        cuerpoCP += `<tr style="background:var(--brand-tint)">
+                            <td><span class="rank-badge">${i + 1}</span></td>
+                            <td class="cell-strong" colspan="2" style="max-width:320px;overflow:hidden;text-overflow:ellipsis" title="${f.nombre}">${f.nombre} <span style="font-weight:400;font-size:10px;color:var(--muted)">${f.canal}</span></td>
+                            <td class="num" style="font-weight:800;color:var(--brand)">${eurC(f.T.inv)}</td>
+                            <td class="num" style="font-weight:800">${f.T.leads || '·'}</td>
+                            <td class="num" style="font-weight:800">${cplT !== null ? eur2(cplT) : '—'}</td>
+                            <td class="num" style="font-weight:800;color:var(--green)">${f.T.ventas || '·'}</td>
+                        </tr>`;
+                        const vistos = f.paises.slice(0, 6);
+                        const resto = f.paises.slice(6);
+                        vistos.forEach(x => {
+                            const cpl = (x.leads > 0 && x.inv > 0) ? x.inv / x.leads : null;
+                            cuerpoCP += `<tr>
+                                <td></td>
+                                <td style="color:var(--muted);text-align:right;padding-right:0">↳</td>
+                                <td>${x.pais}</td>
+                                <td class="num" style="color:var(--brand)">${eurC(x.inv)}</td>
+                                <td class="num">${x.leads || '·'}</td>
+                                <td class="num">${cpl !== null ? eur2(cpl) : '—'}</td>
+                                <td class="num" style="color:${x.ventas ? 'var(--green)' : '#B9B2C0'}">${x.ventas || '·'}</td>
+                            </tr>`;
+                        });
+                        if (resto.length) {
+                            const R = resto.reduce((a, x) => ({ inv: a.inv + x.inv, leads: a.leads + x.leads, ventas: a.ventas + x.ventas }), { inv: 0, leads: 0, ventas: 0 });
+                            cuerpoCP += `<tr>
+                                <td></td><td style="color:var(--muted);text-align:right;padding-right:0">↳</td>
+                                <td style="color:var(--muted);font-style:italic" title="${resto.map(x => x.pais).join(', ')}">otros ${resto.length} países</td>
+                                <td class="num" style="color:var(--muted)">${eurC(R.inv)}</td>
+                                <td class="num" style="color:var(--muted)">${R.leads || '·'}</td>
+                                <td class="cell-zero">—</td>
+                                <td class="num" style="color:${R.ventas ? 'var(--green)' : '#B9B2C0'}">${R.ventas || '·'}</td>
+                            </tr>`;
+                        }
+                    });
+                    campPaisHtml = `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Rendimiento por campaña y país</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Cada campaña, abierta por los países de donde vinieron sus leads · ${Math.min(14, camps.length)} de ${camps.length} campañas</span></div><div class="table-wrap"><table class="table table--compact">
+                        <thead><tr><th>#</th><th></th><th>Campaña / país</th><th style="color:var(--brand)" title="Gasto de esa campaña EN ese país, tal y como lo reportan Meta y Google. No es un reparto estimado.">Inversión</th><th title="Tratos del CRM creados en el periodo con ese utm_campaign y ese país.">Tratos</th><th title="Inversión ÷ tratos, dentro de ese país.">CPL</th><th style="color:var(--green)" title="Ventas cerradas en el periodo de esa campaña en ese país.">Ventas</th></tr></thead><tbody>${cuerpoCP}</tbody></table></div>
+                        <div style="font-size:11px;color:var(--muted);margin-top:8px">El país de la <b>inversión</b> lo pone la plataforma (dónde se mostró el anuncio); el del <b>trato</b> lo pone el CRM (campo País y, si falta, el prefijo del teléfono). Son dos fuentes distintas: si una campaña gasta en un país y sus leads aparecen en otro, normalmente es que el lead entró sin país y se dedujo del teléfono.</div></div>`;
+                }
+            }
+
             document.getElementById('dashboardContent').innerHTML =
                 avisos +
                 `<div class="cards-grid">${cards}</div>` +
@@ -1114,6 +1217,7 @@
                 canalHtml +
                 paisHtml +
                 campHtml +
+                campPaisHtml +
                 regionHtml;
 
             if (hayDetalleDiario) renderPaidChart(serieDiaria, spendDia, params);

@@ -102,10 +102,17 @@ export async function metaSpend(from, to, opts = {}) {
     });
     sumaCampanas(byCampRows);
     const by_country = {};
+    // CRUCE campana x pais: la peticion con breakdowns=country ya viene a level=campaign, asi que
+    // cada fila trae campaign_name Y country. Antes se tiraba la dimension de campana al agregar.
+    // No cuesta ninguna llamada extra. Shape: { "<campana>": { "<pais>": gasto } }
+    const by_campaign_country = {};
     byCountryRows.forEach(x => {
       const s = parseFloat(x.spend || 0) || 0;
       const k = pais(x.country);
       by_country[k] = (by_country[k] || 0) + s;
+      const c = x.campaign_name || x.campaign_id || 'Sin campaña';
+      if (!by_campaign_country[c]) by_campaign_country[c] = {};
+      by_campaign_country[c][k] = Math.round(((by_campaign_country[c][k] || 0) + s) * 100) / 100;
     });
 
     // RESILIENCIA: a veces la Graph API devuelve transitoriamente 0 filas en la petición de campañas
@@ -141,6 +148,7 @@ export async function metaSpend(from, to, opts = {}) {
       ...(parcial ? { parcial: true, nota: 'total tomado del desglose por pais; sin detalle por campana esta vez' } : {}),
       ...(byDayVacio && total > 0 ? { parcial: true, nota_dia: 'Meta no devolvio el gasto por dia en esta llamada' } : {}),
       ...(by_day ? { by_day } : {}),
+      by_campaign_country,   // gasto cruzado campana x pais (cuadro "por campana y pais")
       period: { from: timeRange.since, to: timeRange.until }, ms: Date.now() - start
     };
   } catch (e) {

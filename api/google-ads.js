@@ -110,11 +110,14 @@ export async function googleSpend(from, to, opts = {}) {
 
     // Gasto por PAÍS (query aparte, NO-FATAL: si Google la rechaza, el total no se pierde).
     let by_country = null;
+    const by_campaign_country = {};   // gasto campana x pais (cuadro "por campana y pais")
     if (opts.byCountry) {
       try {
         // geographic_view NO admite segments.geo_target_country: el país sale de su propio campo
         // geographic_view.country_criterion_id (verificado contra la cuenta real).
-        const qPais = `SELECT geographic_view.country_criterion_id, metrics.cost_micros
+        // campaign.name en la MISMA consulta: asi el gasto por pais sale ya cruzado por campana
+        // (cuadro "por campana y pais") sin una peticion extra.
+        const qPais = `SELECT campaign.name, geographic_view.country_criterion_id, metrics.cost_micros
                        FROM geographic_view
                        WHERE segments.date BETWEEN '${desde}' AND '${hasta}' AND metrics.cost_micros > 0`;
         const rp = await fetch(`https://googleads.googleapis.com/${V}/customers/${CUST}/googleAds:searchStream`, {
@@ -130,6 +133,9 @@ export async function googleSpend(from, to, opts = {}) {
           const id = String((row.geographicView && row.geographicView.countryCriterionId) || '');
           const nombre = GEO_ID_PAIS[id] || 'Otros países';   // sin mapear → bucket, nunca se pierde
           by_country[nombre] = Math.round(((by_country[nombre] || 0) + spend) * 100) / 100;
+          const camp = (row.campaign && row.campaign.name) || 'Sin campaña';
+          if (!by_campaign_country[camp]) by_campaign_country[camp] = {};
+          by_campaign_country[camp][nombre] = Math.round(((by_campaign_country[camp][nombre] || 0) + spend) * 100) / 100;
           sumPais += spend;
         }));
         // Si el desglose geográfico no cubre todo el gasto (campañas sin atribución), el resto
@@ -149,6 +155,7 @@ export async function googleSpend(from, to, opts = {}) {
       all_conversions_by_campaign,                    // es lo que enseña "Conv. plataforma"
       ...(by_day ? { by_day } : {}),
       ...(by_country ? { by_country } : {}),
+      ...(Object.keys(by_campaign_country).length ? { by_campaign_country } : {}),
       period: { from: desde, to: hasta }, ms: Date.now() - start
     };
   } catch (e) {

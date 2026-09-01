@@ -27,6 +27,8 @@ function resolverCanal(nombre, api, manual, from, to) {
     const out = { total: Math.round((Number(api.total) || 0) * 100) / 100, source: 'api' };
     if (api.by_campaign) out.by_campaign = api.by_campaign;   // desglose para futuras tablas
     if (api.by_country) out.by_country = api.by_country;
+    // gasto cruzado campana x pais (cuadro "Rendimiento por campana y pais")
+    if (api.by_campaign_country) out.by_campaign_country = api.by_campaign_country;
     if (api.by_day) out.by_day = api.by_day;                  // gasto por día (gráfico diario)
     if (api.currency) out.currency = api.currency;
     if (api.impressions !== undefined) out.impressions = Number(api.impressions) || 0;   // para el cuadro por canal

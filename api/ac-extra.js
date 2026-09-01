@@ -265,6 +265,10 @@ export default async function handler(req, res) {
     // Cruce PAÍS × CANAL: para el cuadro "una tabla por canal, países dentro" (formato pedido por
     // dirección). {meta:{Spain:12,...}, google:{...}}. El canal sale del utm_source del trato.
     const creados_pais_canal = { meta: {}, google: {} };
+    // Leads cruzados CAMPANA x PAIS: { "<utm_campaign>": { "<pais>": n } }. Es lo que permite
+    // abrir cada campana del cuadro de Paid Media y ver de que paises vinieron sus leads.
+    const creados_pais_campana = {};
+    const sinPaisCampana = [];   // {contact, campana} -> pais por telefono, igual que el resto
     const sinPaisCanal = [];   // {contact, canal} → país por teléfono, igual que el resto
     const CANAL_META = /meta/, CANAL_GOOGLE = /google/;
     const canalDeUtm = v => { const k = normKey(v); if (!k) return null; return CANAL_META.test(k) ? 'meta' : (CANAL_GOOGLE.test(k) ? 'google' : null); };
@@ -316,6 +320,11 @@ export default async function handler(req, res) {
           if (camp) {
             const k = camp.slice(0, 80);
             creados_por_campana[k] = (creados_por_campana[k] || 0) + 1;
+            if (pvC && String(pvC).trim()) {
+              const kp = normPais(pvC);
+              if (!creados_pais_campana[k]) creados_pais_campana[k] = {};
+              creados_pais_campana[k][kp] = (creados_pais_campana[k][kp] || 0) + 1;
+            } else sinPaisCampana.push({ contact: d.contact, campana: k });
             if (String(d.status) === '2') perdidos_por_campana[k] = (perdidos_por_campana[k] || 0) + 1;
           }
         });
@@ -354,6 +363,11 @@ export default async function handler(req, res) {
       const inf = cid && phonePais[cid];
       const k = inf || 'Sin país';
       creados_por_pais[k] = (creados_por_pais[k] || 0) + 1;
+    });
+    sinPaisCampana.forEach(x => {
+      const k = (x.contact && phonePais[x.contact]) || 'Sin país';
+      if (!creados_pais_campana[x.campana]) creados_pais_campana[x.campana] = {};
+      creados_pais_campana[x.campana][k] = (creados_pais_campana[x.campana][k] || 0) + 1;
     });
     sinPaisCanal.forEach(x => {
       const k = (x.contact && phonePais[x.contact]) || 'Sin país';
@@ -493,7 +507,7 @@ export default async function handler(req, res) {
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, perdidos_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
       cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
-      creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, won_pais, won_curso, won_group, integridad,
+      creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, creados_pais_campana, won_pais, won_curso, won_group, integridad,
       won_periodo, won_periodo_total: won_periodo.length,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
