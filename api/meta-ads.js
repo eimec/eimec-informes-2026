@@ -8,6 +8,13 @@ export const config = { maxDuration: 60 };
 
 // Códigos ISO-2 -> nombre de país (idéntico al normPais del informe, para que cuadre con la tabla de país)
 const ISO2 = {
+  JO:'Jordan', KW:'Kuwait', OM:'Oman', BH:'Bahrain', LB:'Lebanon', IQ:'Iraq', SY:'Syria', YE:'Yemen',
+  SD:'Sudan', TN:'Tunisia', DZ:'Algeria', JP:'Japan', KR:'South Korea', CN:'China', TH:'Thailand',
+  VN:'Vietnam', ID:'Indonesia', MY:'Malaysia', SG:'Singapore', NZ:'New Zealand', FI:'Finland',
+  CZ:'Czechia', HU:'Hungary', BG:'Bulgaria', HR:'Croatia', RS:'Serbia', SK:'Slovakia', SI:'Slovenia',
+  EE:'Estonia', LV:'Latvia', LT:'Lithuania', LU:'Luxembourg', IS:'Iceland', CY:'Cyprus', GE:'Georgia',
+  AM:'Armenia', AZ:'Azerbaijan', KZ:'Kazakhstan', AL:'Albania', MK:'North Macedonia', BA:'Bosnia',
+  ME:'Montenegro', KE:'Kenya', GH:'Ghana', ET:'Ethiopia', TZ:'Tanzania', SN:'Senegal', CI:'Ivory Coast',
   ES:'Spain', MX:'Mexico', CL:'Chile', PE:'Peru', AR:'Argentina', CO:'Colombia', VE:'Venezuela', EC:'Ecuador',
   BO:'Bolivia', UY:'Uruguay', PY:'Paraguay', CR:'Costa Rica', GT:'Guatemala', SV:'El Salvador', HN:'Honduras',
   NI:'Nicaragua', PA:'Panama', DO:'Dominican Republic', CU:'Cuba', PR:'Puerto Rico', US:'United States',
