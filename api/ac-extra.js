@@ -184,6 +184,16 @@ export default async function handler(req, res) {
     const creados_owner_by_date = {}, f2_owner_by_date = {};
     const addDia = (b, owner, day) => { if (!b[owner]) b[owner] = {}; b[owner][day] = (b[owner][day] || 0) + 1; };
     const by_campana_fases = {};   // utm_campaign (cf11) -> {f1..f4}: fases comerciales por CAMPAÑA (cuadro de Paid Media)
+    // MISMO dato pero abierto tambien por PAIS: { campana: { pais: {f1..f4} } }.
+    // Lo consume el cuadro "Rendimiento por campana y pais", para que cada pais ensene
+    // en que fase estan hoy sus tratos y no solo cuantos entraron.
+    const fases_pais_campana = {};
+    const sinPaisFaseCamp = [];   // {contact, camp, sk} -> pais por telefono, como el resto de cruces
+    const addFPC = (camp, pais, sk) => {
+      if (!fases_pais_campana[camp]) fases_pais_campana[camp] = {};
+      const b = (fases_pais_campana[camp][pais] = fases_pais_campana[camp][pais] || { f1: 0, f2: 0, f3: 0, f4: 0 });
+      b[sk]++;
+    };
     const sinPais = [];   // tratos sin país → intentaremos inferirlo por teléfono
     const add = (b, k, s) => { if (!k) k = 'Sin dato'; if (!b[k]) b[k] = { f1:0,f2:0,f3:0,f4:0,won:0,total:0 }; b[k][s]++; b[k].total++; };
 
@@ -210,6 +220,11 @@ export default async function handler(req, res) {
         const pv = c[M_PAIS];
         if (pv && String(pv).trim()) add(by_pais, normPais(pv), sk);
         else sinPais.push({ contact: d.contact, sk });   // resolver luego por teléfono
+        if (pmCamp) {
+          const kFPC = pmCamp.slice(0, 80);
+          if (pv && String(pv).trim()) addFPC(kFPC, normPais(pv), sk);
+          else sinPaisFaseCamp.push({ contact: d.contact, camp: kFPC, sk });
+        }
         if (d.cdate) {
           const day = dayES(d.cdate);
           created_by_date[day] = (created_by_date[day] || 0) + 1;
@@ -364,6 +379,9 @@ export default async function handler(req, res) {
       const k = inf || 'Sin país';
       creados_por_pais[k] = (creados_por_pais[k] || 0) + 1;
     });
+    sinPaisFaseCamp.forEach(x => {
+      addFPC(x.camp, (x.contact && phonePais[x.contact]) || 'Sin país', x.sk);
+    });
     sinPaisCampana.forEach(x => {
       const k = (x.contact && phonePais[x.contact]) || 'Sin país';
       if (!creados_pais_campana[x.campana]) creados_pais_campana[x.campana] = {};
@@ -507,7 +525,7 @@ export default async function handler(req, res) {
       creados_total, creados_by_date, creados_por_utm, creados_por_campana, perdidos_por_campana, creados_por_owner, won_campana, by_campana_fases,
       creados_owner_by_date, f2_owner_by_date,
       cuali_total, cuali_por_owner, cuali_by_date, cuali_owner_by_date,
-      creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, creados_pais_campana, won_pais, won_curso, won_group, integridad,
+      creados_por_etapa, creados_por_pais, creados_por_curso, creados_pais_canal, creados_pais_campana, fases_pais_campana, won_pais, won_curso, won_group, integridad,
       won_periodo, won_periodo_total: won_periodo.length,
       sin_pais: sinPaisFinal, pais_recuperados, pm_won_ids: pmWonIds, won_creados, won_value, won_title,
       utm_field: M_UTM, utm_label: UTM_LABEL[M_UTM] || ('cf' + M_UTM),
