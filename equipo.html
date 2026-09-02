@@ -916,8 +916,9 @@
                             <tbody>${cuerpo}</tbody>
                         </table></div>
                         <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0;line-height:1.55">
-                            <b style="color:#9A6B1F">${pctSin} % de los tratos perdidos de este año (${P.sin_motivo || 0} de ${granTotal}) no tienen motivo anotado.</b>
-                            Mientras siga así, la tabla explica menos de la mitad de lo que se pierde: los ${conMotivo} restantes son la única muestra con la que se puede trabajar.
+${pctSin >= 15
+                                ? `<b style="color:#9A6B1F">Ojo: el ${pctSin} % de los perdidos de este año (${P.sin_motivo || 0} de ${granTotal}) no tiene motivo anotado</b>, así que la tabla solo explica ${conMotivo} de los ${granTotal}.`
+                                : `Los comerciales están anotando el motivo: solo ${P.sin_motivo || 0} de ${granTotal} tratos perdidos se han quedado sin él (${pctSin} %).`}
                             <br>El mes es el de <b>creación del trato</b>, no el día en que se marcó como perdido: el CRM no guarda fecha de perdido, y la de última modificación no sirve (hay ediciones masivas que la mueven de golpe). Se lee como “de los leads que entraron en este mes, cuántos acabaron perdidos y por qué”.
                         </p>
                     </div>`;
