@@ -706,6 +706,9 @@
             let yoyHtml = '';
             {
                 const A = window.__ant, AP = window.__antPeriodo;
+                // OJO: dentro de renderDashboard NO existe `params` (vive en loadDashboardData);
+                // el periodo del filtro llega en data.period.
+                const PER = (data && data.period) || { from: "", to: "" };
                 if (A && typeof A.creados_total === 'number' && A.creados_total > 0) {
                     const nf = n => (n || 0).toLocaleString('es-ES');
                     const pct1 = v => v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
@@ -727,7 +730,7 @@
                             <div class="yoy-pair">
                                 <div class="yoy-yr"><small>${AP.from.slice(0, 4)}</small><span class="yoy-a">${va}</span></div>
                                 <span class="yoy-ar">→</span>
-                                <div class="yoy-yr"><small>${params.from.slice(0, 4)}</small><span class="yoy-h">${vh}</span></div>
+                                <div class="yoy-yr"><small>${PER.from.slice(0, 4)}</small><span class="yoy-h">${vh}</span></div>
                             </div>
                             ${chip}
                             <div class="yoy-n">${nota}</div>
@@ -767,14 +770,14 @@
                     filas += `<tr class="yoy-tot"><td>TOTAL</td><td></td><td class="num">${nf(leadsA)}</td><td class="num">${nf(leadsH)}</td><td class="num">${dPct(leadsH, leadsA) !== null ? (dPct(leadsH, leadsA) > 0 ? '+' : '') + dPct(leadsH, leadsA) + ' %' : '·'}</td><td class="num">${venA}</td><td class="num">${venH}</td></tr>`;
 
                     yoyHtml = `<div class="section">
-                        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Comparativa con el año anterior</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Mismo periodo, un año antes: <b>${fmtDate(AP.from)} — ${fmtDate(AP.to)}</b> frente a <b>${fmtDate(params.from)} — ${fmtDate(params.to)}</b></span></div>
+                        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Comparativa con el año anterior</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Mismo periodo, un año antes: <b>${fmtDate(AP.from)} — ${fmtDate(AP.to)}</b> frente a <b>${fmtDate(PER.from)} — ${fmtDate(PER.to)}</b></span></div>
                         <div class="yoy-cards">
                             ${tarjeta('Leads entrados', nf(leadsA), nf(leadsH), chipY(dPct(leadsH, leadsA)), 'Tratos creados dentro del periodo, en cualquier etapa.')}
                             ${tarjeta('Ventas cerradas', nf(venA), nf(venH), chipY(dPct(venH, venA)), 'Firmadas dentro del periodo, por fecha de ganado.')}
                             ${tarjeta('Conversión lead → venta', pct1(convA), pct1(convH), chipY(convA > 0 ? Math.round((convH - convA) / convA * 100) : null), 'Ventas ÷ leads del mismo periodo.')}
                         </div>
                         <div class="table-wrap" style="margin-top:16px"><table class="table">
-                            <thead><tr><th>Curso</th><th>Leads</th><th class="num">Leads ${AP.from.slice(0, 4)}</th><th class="num">Leads ${params.from.slice(0, 4)}</th><th class="num">Δ</th><th class="num">Ventas ${AP.from.slice(0, 4)}</th><th class="num">Ventas ${params.from.slice(0, 4)}</th></tr></thead>
+                            <thead><tr><th>Curso</th><th>Leads</th><th class="num">Leads ${AP.from.slice(0, 4)}</th><th class="num">Leads ${PER.from.slice(0, 4)}</th><th class="num">Δ</th><th class="num">Ventas ${AP.from.slice(0, 4)}</th><th class="num">Ventas ${PER.from.slice(0, 4)}</th></tr></thead>
                             <tbody>${filas}</tbody></table></div>
                         <p class="sub" style="margin:12px 0 0"><b>Ojo con los cursos renombrados:</b> si un curso pasa de tener leads a cero, casi siempre es que hoy se etiqueta con otro nombre en el CRM, no que haya dejado de pedirse. Para comparar curso a curso hace falta decidir qué nombres antiguos equivalen a cuáles actuales.</p>
                     </div>`;
