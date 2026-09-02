@@ -151,6 +151,26 @@
         .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px 48px; }
 
         /* ---------- FUNNEL ---------- */
+  /* comparativa año contra año */
+  .yoy-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px}
+  .yoy-card{background:#FAFBFC; border:1px solid #EDF0F4; border-radius:12px; padding:16px 18px; display:flex; flex-direction:column; gap:10px}
+  .yoy-t{font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .yoy-pair{display:flex; align-items:flex-end; gap:12px}
+  .yoy-yr{display:flex; flex-direction:column}
+  .yoy-yr small{font-size:10px; font-weight:600; letter-spacing:.06em; color:var(--muted)}
+  .yoy-a{font-size:21px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums}
+  .yoy-h{font-size:30px; font-weight:800; color:var(--brand); letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+  .yoy-ar{color:#D6DCE6; font-size:18px; padding-bottom:5px}
+  .yoy-chip{align-self:flex-start; font-size:12px; font-weight:700; border-radius:20px; padding:3px 10px}
+  .yoy-up{color:#0E7C5A; background:#E7F5EF}
+  .yoy-dn{color:#B4474C; background:#FBEDEE}
+  .yoy-0{color:var(--muted); background:#EEF1F5}
+  .yoy-n{font-size:11.5px; color:var(--muted); line-height:1.4}
+  .yoy-bars{display:flex; flex-direction:column; gap:3px}
+  .yoy-b{height:7px; border-radius:4px; min-width:2px}
+  .yoy-b-a{background:#B9C2D4}
+  .yoy-b-h{background:var(--brand)}
+  .yoy-tot td{background:var(--brand-tint); font-weight:800; border-top:2px solid var(--brand)}
         .funnel {
             background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
             box-shadow: var(--shadow); padding: 24px 26px; margin-bottom: 22px;
@@ -393,13 +413,18 @@
                     const _hoy = new Date();
                     const _y0 = `${_hoy.getFullYear()}-01-01`;
                     const _hoyStr = ymd(_hoy);
-                    const [dataRes, extraRes, ytdRes, movesRes, stockRes, gastoRes] = await Promise.all([
+                    // Mismo periodo del ANO ANTERIOR (cuadro comparativo). Se pide en paralelo:
+                    // si tarda o falla, el informe sale igual y la seccion no se pinta.
+                    const menos1 = iso => { const [y, m, d] = iso.split('-').map(Number); return `${y - 1}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`; };
+                    const qAnt = `from=${menos1(params.from)}&to=${menos1(params.to)}`;
+                    const [dataRes, extraRes, ytdRes, movesRes, stockRes, gastoRes, antRes] = await Promise.all([
                         fetch(`/api/ac-data?${query}`),
                         fetch(`/api/ac-extra?${query}`).catch(()=>null),
                         fetch(`/api/ac-data?from=${_y0}&to=${_hoyStr}`).catch(()=>null),
                         fetch(`/data/moves-daily.json?v=${Date.now()}`).catch(()=>null),
                         fetch(`/api/ac-stock`).catch(()=>null),  // stock total del pipeline (no depende del filtro)
-                        fetch(`/api/ads-spend?${query}`).catch(()=>null)   // gasto diario Meta+Google (gráfico de inversión)
+                        fetch(`/api/ads-spend?${query}`).catch(()=>null),  // gasto diario Meta+Google (gráfico de inversión)
+                        fetch(`/api/ac-extra?${qAnt}`).catch(()=>null)     // mismo periodo del año anterior
                     ]);
                     let data = await dataRes.json();
                     let extra = null;
@@ -462,6 +487,10 @@
                     let gasto = null;
                     try { if (gastoRes) { const g = await gastoRes.json(); if (g && g.ok) gasto = g; } } catch(_) {}
                     window.__gasto = gasto;
+                    let ant = null;
+                    try { if (antRes) { const a = await antRes.json(); if (a && a.ok) ant = a; } } catch(_) {}
+                    window.__ant = ant;
+                    window.__antPeriodo = { from: menos1(params.from), to: menos1(params.to) };
                     if (!data.ok) throw new Error('respuesta sin ok');
                     renderDashboard(data, extra, ytd, moves, stock);
                     return;
@@ -670,7 +699,89 @@
                 <div style="font-size:11.5px;color:var(--muted);margin:0 0 10px 2px;line-height:1.5">Los ${t} leads que <b>entraron en el periodo</b>, repartidos según su situación actual — cada lead ocupa <b>un solo trozo</b> de la barra.</div>
                 <div style="display:flex;height:36px;border-radius:9px;overflow:hidden;margin:0 0 8px;box-shadow:0 1px 4px rgba(31,42,78,.12)">${barra}</div>
                 <div style="margin:0 0 18px 2px;line-height:2">${leyenda}</div>` : '';
-            let html = funnel + repartoHtml + `
+            // ── COMPARATIVA CON EL MISMO PERIODO DEL AÑO ANTERIOR ────────────────────
+            // Pedido por el equipo de ventas: las mismas métricas del periodo filtrado, al lado
+            // de las del año pasado. Ambas ventanas usan los MISMOS criterios (leads = tratos
+            // creados; ventas = por fecha de ganado), así que la comparación es homogénea.
+            let yoyHtml = '';
+            {
+                const A = window.__ant, AP = window.__antPeriodo;
+                if (A && typeof A.creados_total === 'number' && A.creados_total > 0) {
+                    const nf = n => (n || 0).toLocaleString('es-ES');
+                    const pct1 = v => v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+                    const leadsH = t, leadsA = A.creados_total;
+                    const venH = w, venA = Number(A.won_periodo_total) || 0;
+                    const convH = leadsH > 0 ? venH / leadsH * 100 : 0;
+                    const convA = leadsA > 0 ? venA / leadsA * 100 : 0;
+                    const dPct = (h, a) => a > 0 ? Math.round((h - a) / a * 100) : null;
+                    const chipY = (d, invertir) => {
+                        if (d === null) return '<span class="yoy-chip yoy-0">nuevo</span>';
+                        const bueno = invertir ? d < 0 : d > 0;
+                        const cls = d === 0 ? 'yoy-0' : (bueno ? 'yoy-up' : 'yoy-dn');
+                        const fl = d === 0 ? '=' : (d > 0 ? '▲ +' : '▼ −');
+                        return `<span class="yoy-chip ${cls}">${fl}${d === 0 ? '' : Math.abs(d) + ' %'}</span>`;
+                    };
+                    const tarjeta = (titulo, va, vh, chip, nota) => `
+                        <div class="yoy-card">
+                            <div class="yoy-t">${titulo}</div>
+                            <div class="yoy-pair">
+                                <div class="yoy-yr"><small>${AP.from.slice(0, 4)}</small><span class="yoy-a">${va}</span></div>
+                                <span class="yoy-ar">→</span>
+                                <div class="yoy-yr"><small>${params.from.slice(0, 4)}</small><span class="yoy-h">${vh}</span></div>
+                            </div>
+                            ${chip}
+                            <div class="yoy-n">${nota}</div>
+                        </div>`;
+
+                    // desglose por curso: leads de creados_por_curso, ventas de won_periodo
+                    const ventasCurso = arr => {
+                        const o = {};
+                        (arr || []).forEach(x => { const k = (x.curso || 'Sin curso'); o[k] = (o[k] || 0) + 1; });
+                        return o;
+                    };
+                    const lcA = A.creados_por_curso || {}, lcH = (extra && extra.creados_por_curso) || {};
+                    const vcA = ventasCurso(A.won_periodo), vcH = ventasCurso(extra && extra.won_periodo);
+                    const cursos = [...new Set([...Object.keys(lcA), ...Object.keys(lcH), ...Object.keys(vcA), ...Object.keys(vcH)])]
+                        .map(c => ({ c, lA: lcA[c] || 0, lH: lcH[c] || 0, vA: vcA[c] || 0, vH: vcH[c] || 0 }))
+                        .filter(x => x.lA + x.lH + x.vA + x.vH > 0)
+                        .sort((a, b) => (b.lH - a.lH) || (b.lA - a.lA));
+                    const maxL = Math.max(...cursos.map(x => Math.max(x.lA, x.lH)), 1);
+                    const vistos = cursos.slice(0, 14), resto = cursos.slice(14);
+                    let filas = '';
+                    vistos.forEach(x => {
+                        const d = dPct(x.lH, x.lA);
+                        filas += `<tr>
+                            <td class="cell-strong">${x.c}</td>
+                            <td style="width:130px"><div class="yoy-bars"><div class="yoy-b yoy-b-a" style="width:${(x.lA / maxL * 100).toFixed(1)}%"></div><div class="yoy-b yoy-b-h" style="width:${(x.lH / maxL * 100).toFixed(1)}%"></div></div></td>
+                            <td class="num">${x.lA || '·'}</td>
+                            <td class="num" style="font-weight:700">${x.lH || '·'}</td>
+                            <td class="num">${d === null ? (x.lH ? '<span style="color:var(--green);font-weight:700">nuevo</span>' : '·') : `<span style="color:${d >= 0 ? 'var(--green)' : 'var(--bad)'};font-weight:700">${d > 0 ? '+' : ''}${d} %</span>`}</td>
+                            <td class="num">${x.vA || '·'}</td>
+                            <td class="num" style="font-weight:700;color:${x.vH ? 'var(--green)' : '#D6D1DA'}">${x.vH || '·'}</td>
+                        </tr>`;
+                    });
+                    if (resto.length) {
+                        const R = resto.reduce((a, x) => ({ lA: a.lA + x.lA, lH: a.lH + x.lH, vA: a.vA + x.vA, vH: a.vH + x.vH }), { lA: 0, lH: 0, vA: 0, vH: 0 });
+                        filas += `<tr><td style="color:var(--muted);font-style:italic" title="${resto.map(x => x.c).join(', ')}">otros ${resto.length} cursos</td><td></td><td class="num" style="color:var(--muted)">${R.lA || '·'}</td><td class="num" style="color:var(--muted)">${R.lH || '·'}</td><td class="num">·</td><td class="num" style="color:var(--muted)">${R.vA || '·'}</td><td class="num" style="color:var(--muted)">${R.vH || '·'}</td></tr>`;
+                    }
+                    filas += `<tr class="yoy-tot"><td>TOTAL</td><td></td><td class="num">${nf(leadsA)}</td><td class="num">${nf(leadsH)}</td><td class="num">${dPct(leadsH, leadsA) !== null ? (dPct(leadsH, leadsA) > 0 ? '+' : '') + dPct(leadsH, leadsA) + ' %' : '·'}</td><td class="num">${venA}</td><td class="num">${venH}</td></tr>`;
+
+                    yoyHtml = `<div class="section">
+                        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Comparativa con el año anterior</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Mismo periodo, un año antes: <b>${fmtDate(AP.from)} — ${fmtDate(AP.to)}</b> frente a <b>${fmtDate(params.from)} — ${fmtDate(params.to)}</b></span></div>
+                        <div class="yoy-cards">
+                            ${tarjeta('Leads entrados', nf(leadsA), nf(leadsH), chipY(dPct(leadsH, leadsA)), 'Tratos creados dentro del periodo, en cualquier etapa.')}
+                            ${tarjeta('Ventas cerradas', nf(venA), nf(venH), chipY(dPct(venH, venA)), 'Firmadas dentro del periodo, por fecha de ganado.')}
+                            ${tarjeta('Conversión lead → venta', pct1(convA), pct1(convH), chipY(convA > 0 ? Math.round((convH - convA) / convA * 100) : null), 'Ventas ÷ leads del mismo periodo.')}
+                        </div>
+                        <div class="table-wrap" style="margin-top:16px"><table class="table">
+                            <thead><tr><th>Curso</th><th>Leads</th><th class="num">Leads ${AP.from.slice(0, 4)}</th><th class="num">Leads ${params.from.slice(0, 4)}</th><th class="num">Δ</th><th class="num">Ventas ${AP.from.slice(0, 4)}</th><th class="num">Ventas ${params.from.slice(0, 4)}</th></tr></thead>
+                            <tbody>${filas}</tbody></table></div>
+                        <p class="sub" style="margin:12px 0 0"><b>Ojo con los cursos renombrados:</b> si un curso pasa de tener leads a cero, casi siempre es que hoy se etiqueta con otro nombre en el CRM, no que haya dejado de pedirse. Para comparar curso a curso hace falta decidir qué nombres antiguos equivalen a cuáles actuales.</p>
+                    </div>`;
+                }
+            }
+
+            let html = funnel + yoyHtml + repartoHtml + `
                 <div class="cards-grid metrics">
                     <div class="card"><div class="card-label">Conversión F1 → F2</div><div class="card-value">${m1}%</div><div class="card-foot">De cada 100 solicitudes, cuántas cualifican</div></div>
                     <div class="card"><div class="card-label">Conversión F2 → Venta</div><div class="card-value">${m2}%</div><div class="card-foot">De cada 100 cualificados, cuántos compran</div></div>
