@@ -414,15 +414,18 @@
             const ytdTo   = ymd(new Date());
             const ytdQuery = new URLSearchParams({ from: ytdFrom, to: ytdTo }).toString();
 
-            const [extraRes, dataRes, ytdRes] = await Promise.all([
+            const [extraRes, dataRes, ytdRes, perdRes] = await Promise.all([
                 fetch(`/api/ac-extra?${query}`).catch(() => null),
                 fetch(`/api/ac-data?${query}`).catch(() => null),
-                fetch(`/api/ac-extra?${ytdQuery}`).catch(() => null)
+                fetch(`/api/ac-extra?${ytdQuery}`).catch(() => null),
+                // Motivos de perdido del AÑO EN CURSO, mes a mes. No depende del filtro de fechas.
+                fetch(`/api/ac-perdidos?${ytdQuery}`).catch(() => null)
             ]);
             let extra = null, data = null, ytd = null;
             try { if (extraRes) { const j = await extraRes.json(); if (j && j.ok) extra = j; } } catch(_) {}
             try { if (dataRes)  { const j = await dataRes.json();  if (j && j.ok) data  = j; } } catch(_) {}
             try { if (ytdRes)   { const j = await ytdRes.json();   if (j && j.ok) ytd   = j; } } catch(_) {}
+            try { if (perdRes)  { const j = await perdRes.json();  if (j && j.ok) window.__perdidos = j; } } catch(_) {}
             render(extra, data, params, ytd, ytdFrom, ytdTo);
         }
 
@@ -850,8 +853,79 @@
                 ownerChartsHtml = `<div class="section-title" style="margin-bottom:14px">Ficha por vendedor</div>` + fichas;
             }
 
+            // ── MOTIVOS DE PERDIDO · MES A MES (año en curso) ────────────────────────
+            // Filas = motivo del CRM (campo "Motivo de perdido"), columnas = meses.
+            // El mes es el de CREACIÓN del trato: ActiveCampaign no guarda fecha de perdido
+            // y mdate no vale (el 3-sep-2026 había 1.946 tratos "modificados" en julio de
+            // golpe, una edición masiva). Así que se lee: "de los leads que entraron en este
+            // mes, cuántos se perdieron y por qué".
+            let perdidosHtml = '';
+            {
+                const P = window.__perdidos;
+                if (P && P.motivos && P.meses && P.meses.length) {
+                    const MESL = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                    const mesCorto = m => MESL[parseInt(m.slice(5), 10) - 1] || m;
+                    const meses = P.meses;
+                    const filas = Object.entries(P.motivos).map(([motivo, porMes]) => {
+                        const total = meses.reduce((a, m) => a + (porMes[m] || 0), 0);
+                        return { motivo, porMes, total };
+                    }).filter(f => f.total > 0)
+                      .sort((a, b) => {
+                          // "Sin motivo anotado" siempre al final: no es un motivo, es un hueco
+                          const sa = /Sin motivo/.test(a.motivo), sb = /Sin motivo/.test(b.motivo);
+                          if (sa !== sb) return sa ? 1 : -1;
+                          return b.total - a.total;
+                      });
+                    const granTotal = filas.reduce((a, f) => a + f.total, 0);
+                    const maxCel = Math.max(...filas.flatMap(f => meses.map(m => f.porMes[m] || 0)), 1);
+                    const totMes = m => filas.reduce((a, f) => a + (f.porMes[m] || 0), 0);
+
+                    let cuerpo = '';
+                    filas.forEach(f => {
+                        const hueco = /Sin motivo/.test(f.motivo);
+                        cuerpo += `<tr>
+                            <td class="cell-strong" style="${hueco ? 'color:var(--muted);font-style:italic' : ''}">${f.motivo}</td>
+                            <td class="num" style="font-weight:800;color:var(--brand)">${f.total}</td>
+                            <td class="num" style="color:var(--muted)">${granTotal > 0 ? Math.round(f.total / granTotal * 100) + ' %' : '·'}</td>
+                            ${meses.map(m => {
+                                const v = f.porMes[m] || 0;
+                                if (!v) return '<td class="num cell-zero">·</td>';
+                                const op = (0.10 + 0.45 * (v / maxCel)).toFixed(2);
+                                return `<td class="num" style="background:rgba(31,42,78,${hueco ? 0.05 : op});font-weight:${hueco ? 400 : 600}">${v}</td>`;
+                            }).join('')}
+                        </tr>`;
+                    });
+                    cuerpo += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                        <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
+                        <td class="num" style="font-weight:800;color:var(--brand-dark)">${granTotal}</td>
+                        <td class="num" style="font-weight:800">100 %</td>
+                        ${meses.map(m => `<td class="num" style="font-weight:800">${totMes(m) || '·'}</td>`).join('')}
+                    </tr>`;
+
+                    const conMotivo = granTotal - (P.sin_motivo || 0);
+                    const pctSin = granTotal > 0 ? Math.round((P.sin_motivo || 0) / granTotal * 100) : 0;
+                    perdidosHtml = `<div class="section">
+                        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Motivos de perdido · mes a mes</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Año en curso completo, <b>no depende del filtro de fechas</b> · Cada trato cuenta en su <b>mes de creación</b> · Sin paciente modelo</span></div>
+                        <div class="table-wrap"><table class="table">
+                            <thead><tr>
+                                <th>Motivo de perdido</th>
+                                <th class="num" style="color:var(--brand)" title="Tratos perdidos con ese motivo en todo el año.">Total</th>
+                                <th class="num" title="Qué % de los perdidos del año corresponde a ese motivo.">%</th>
+                                ${meses.map(m => `<th class="num" title="${m}">${mesCorto(m)}</th>`).join('')}
+                            </tr></thead>
+                            <tbody>${cuerpo}</tbody>
+                        </table></div>
+                        <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0;line-height:1.55">
+                            <b style="color:#9A6B1F">${pctSin} % de los tratos perdidos de este año (${P.sin_motivo || 0} de ${granTotal}) no tienen motivo anotado.</b>
+                            Mientras siga así, la tabla explica menos de la mitad de lo que se pierde: los ${conMotivo} restantes son la única muestra con la que se puede trabajar.
+                            <br>El mes es el de <b>creación del trato</b>, no el día en que se marcó como perdido: el CRM no guarda fecha de perdido, y la de última modificación no sirve (hay ediciones masivas que la mueven de golpe). Se lee como “de los leads que entraron en este mes, cuántos acabaron perdidos y por qué”.
+                        </p>
+                    </div>`;
+                }
+            }
+
             document.getElementById('dashboardContent').innerHTML =
-                `<div class="cards-grid">${cards}</div>` + tablaHtml + tablaAcumHtml + semanaHtml + ownerChartsHtml;
+                `<div class="cards-grid">${cards}</div>` + tablaHtml + tablaAcumHtml + semanaHtml + ownerChartsHtml + perdidosHtml;
 
             if (ownerChartsHtml) {
                 const dias = diasDelRango(params.from, params.to);
