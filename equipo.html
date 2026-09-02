@@ -896,11 +896,41 @@
                         </tr>`;
                     });
                     cuerpo += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
-                        <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td>
+                        <td class="cell-strong" style="color:var(--brand-dark)">TOTAL PERDIDOS</td>
                         <td class="num" style="font-weight:800;color:var(--brand-dark)">${granTotal}</td>
                         <td class="num" style="font-weight:800">100 %</td>
                         ${meses.map(m => `<td class="num" style="font-weight:800">${totMes(m) || '·'}</td>`).join('')}
                     </tr>`;
+                    // DENOMINADOR: sin esto, el total por mes no dice nada. Los leads entrados
+                    // salen de ytd.creados_by_date (mismo rango: 1 de enero a hoy, sin paciente modelo).
+                    const leadsMes = {};
+                    Object.entries((ytd && ytd.creados_by_date) || {}).forEach(([dia, n]) => {
+                        const k = dia.slice(0, 7);
+                        leadsMes[k] = (leadsMes[k] || 0) + (Number(n) || 0);
+                    });
+                    const hayLeads = Object.keys(leadsMes).length > 0;
+                    if (hayLeads) {
+                        const totLeads = meses.reduce((a, m) => a + (leadsMes[m] || 0), 0);
+                        cuerpo += `<tr style="background:#FAFBFC">
+                            <td style="color:var(--muted)">Leads entrados ese mes</td>
+                            <td class="num" style="color:var(--muted);font-weight:700">${totLeads.toLocaleString('es-ES')}</td>
+                            <td class="num cell-zero">·</td>
+                            ${meses.map(m => `<td class="num" style="color:var(--muted)">${(leadsMes[m] || 0) || '·'}</td>`).join('')}
+                        </tr>`;
+                        const pctG = totLeads > 0 ? granTotal / totLeads * 100 : 0;
+                        const colorPct = v => v >= 15 ? '#B4474C' : (v >= 8 ? '#9A6B1F' : 'var(--muted)');
+                        cuerpo += `<tr style="background:#FAFBFC;border-bottom:2px solid var(--line)">
+                            <td style="color:var(--ink);font-weight:600">% de esos leads que se perdió</td>
+                            <td class="num" style="font-weight:800;color:${colorPct(pctG)}">${pctG.toFixed(1).replace('.', ',')} %</td>
+                            <td class="num cell-zero">·</td>
+                            ${meses.map(m => {
+                                const L = leadsMes[m] || 0, P = totMes(m);
+                                if (!L) return '<td class="num cell-zero">·</td>';
+                                const v = P / L * 100;
+                                return `<td class="num" style="font-weight:700;color:${colorPct(v)}">${v.toFixed(1).replace('.', ',')} %</td>`;
+                            }).join('')}
+                        </tr>`;
+                    }
 
                     const conMotivo = granTotal - (P.sin_motivo || 0);
                     const pctSin = granTotal > 0 ? Math.round((P.sin_motivo || 0) / granTotal * 100) : 0;
@@ -919,6 +949,7 @@
 ${pctSin >= 15
                                 ? `<b style="color:#9A6B1F">Ojo: el ${pctSin} % de los perdidos de este año (${P.sin_motivo || 0} de ${granTotal}) no tiene motivo anotado</b>, así que la tabla solo explica ${conMotivo} de los ${granTotal}.`
                                 : `Los comerciales están anotando el motivo: solo ${P.sin_motivo || 0} de ${granTotal} tratos perdidos se han quedado sin él (${pctSin} %).`}
+                            <br>Las dos últimas filas son el <b>denominador</b>: cuántos leads entraron ese mes y qué porcentaje acabó perdido. Sin eso, comparar meses engaña — un mes con más pérdidas puede ser simplemente un mes con más entradas.
                             <br>El mes es el de <b>creación del trato</b>, no el día en que se marcó como perdido: el CRM no guarda fecha de perdido, y la de última modificación no sirve (hay ediciones masivas que la mueven de golpe). Se lee como “de los leads que entraron en este mes, cuántos acabaron perdidos y por qué”.
                         </p>
                     </div>`;
