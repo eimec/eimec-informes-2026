@@ -92,6 +92,9 @@ export default async function handler(req, res) {
       'filters[created_after]': desde,
       'filters[created_before]': hastaExc,
       include: 'dealCustomFieldData',
+      // Orden FIJO por id: sin el, al paginar en paralelo AC mueve registros entre
+      // paginas y se pierden tratos (visto: 6.319 de 6.610 esperados).
+      'orders[id]': 'ASC',
       limit: 100
     };
     const first = await acGet(KEY, { ...base, offset: 0 });
