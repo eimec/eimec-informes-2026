@@ -335,12 +335,13 @@
             <div class="meta-line" id="metaLine">Cargando periodo…</div>
             <div class="filters">
                 <div class="seg">
-                    <button class="filter-btn active" data-range="mes" onclick="setDateRange('mes')" title="Del día 1 del mes hasta hoy">Este mes</button>
+                    <button class="filter-btn" data-range="mes" onclick="setDateRange('mes')" title="Del día 1 del mes hasta hoy">Este mes</button>
                     <button class="filter-btn" data-range="7d" onclick="setDateRange('7d')">7 días</button>
                     <button class="filter-btn" data-range="30d" onclick="setDateRange('30d')">30 días</button>
                     <button class="filter-btn" data-range="90d" onclick="setDateRange('90d')">90 días</button>
                     <button class="filter-btn" data-range="6m" onclick="setDateRange('6m')">6 meses</button>
                     <button class="filter-btn" data-range="1a" onclick="setDateRange('1a')">1 año</button>
+                    <button class="filter-btn active" data-range="ano" onclick="setDateRange('ano')" title="Del 1 de enero a hoy">Este año</button>
                 </div>
                 <div class="filter-divider"></div>
                 <input type="date" class="filter-input" id="fromDate" />
@@ -377,13 +378,46 @@
         const mesCorto = m => (MESL[parseInt(m.slice(5), 10) - 1] || m) + (m.slice(2,4) !== String(new Date().getFullYear()).slice(2) ? " '" + m.slice(2,4) : '');
 
         let CURSO = 'Master';
-        const desde = `${new Date().getFullYear()}-01-01`;
-        const hasta = new Date().toISOString().slice(0, 10);
+        // Rango por defecto: el año en curso. La barra de arriba lo cambia.
+        const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        let desde = `${new Date().getFullYear()}-01-01`;
+        let hasta = ymd(new Date());
         let chart = null;
 
+        // Los botones del subbar vienen de la plantilla y llaman a estas dos funciones.
+        // Sin ellas, pulsarlos daba error en consola y la hoja se quedaba igual.
+        function setDateRange(range) {
+            const hoy = new Date();
+            let f = new Date();
+            switch (range) {
+                case 'mes': f = new Date(hoy.getFullYear(), hoy.getMonth(), 1); break;
+                case '7d':  f.setDate(hoy.getDate() - 7); break;
+                case '30d': f.setDate(hoy.getDate() - 30); break;
+                case '90d': f.setDate(hoy.getDate() - 90); break;
+                case '6m':  f.setMonth(hoy.getMonth() - 6); break;
+                case '1a':  f.setFullYear(hoy.getFullYear() - 1); break;
+                case 'ano': f = new Date(hoy.getFullYear(), 0, 1); break;
+            }
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-range') === range));
+            const fi = document.getElementById('fromDate'), ti = document.getElementById('toDate');
+            if (fi) fi.value = ''; if (ti) ti.value = '';
+            desde = ymd(f); hasta = ymd(hoy);
+            cargar();
+        }
+        function applyCustomRange() {
+            const f = document.getElementById('fromDate').value, t = document.getElementById('toDate').value;
+            if (!f || !t) { alert('Selecciona las dos fechas'); return; }
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            desde = f; hasta = t;
+            cargar();
+        }
+        window.setDateRange = setDateRange;
+        window.applyCustomRange = applyCustomRange;
+
         async function cargar() {
+            const dmy = iso => iso.split('-').reverse().join('/');
             document.getElementById('metaLine').innerHTML =
-                `Curso <strong>${esc(CURSO)}</strong> · del <strong>${desde.split('-').reverse().join('/')}</strong> a hoy · cohorte de leads creados en ese rango`;
+                `Curso <strong>${esc(CURSO)}</strong> · del <strong>${dmy(desde)}</strong> al <strong>${dmy(hasta)}</strong> · cohorte de leads creados en ese rango`;
             document.getElementById('dashboardContent').innerHTML = '<div class="loading">Leyendo el CRM…</div>';
             let d = null;
             try {
@@ -489,7 +523,7 @@
             document.getElementById('dashboardContent').innerHTML =
                 `<div class="pc-chips">${chips}</div>` + kpis + embudo + grafico + tabla + heat +
                 `<p style="font-size:11.5px;color:var(--muted);margin:16px 0 0;line-height:1.55">
-                    <b>Todo en esta hoja es una cohorte:</b> se cuentan los leads de este curso <b>creados</b> desde el 1 de enero, y se mira dónde han acabado.
+                    <b>Todo en esta hoja es una cohorte:</b> se cuentan los leads de este curso <b>creados</b> dentro del rango de fechas de arriba, y se mira dónde han acabado.
                     Por eso el denominador siempre son los mismos tratos y los porcentajes se pueden comparar entre países.
                     Los meses son de <b>creación del lead</b>, no de la venta: un lead de marzo que compra en agosto cuenta en marzo.
                     Sin campañas de paciente modelo.
