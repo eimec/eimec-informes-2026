@@ -379,6 +379,19 @@
         const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         const mesCorto = m => (MESL[parseInt(m.slice(5), 10) - 1] || m) + (m.slice(2,4) !== String(new Date().getFullYear()).slice(2) ? " '" + m.slice(2,4) : '');
 
+        // ⚠️ MISMO mapa de regiones que paid-media.html. Si difieren, las dos hojas
+        // agrupan distinto y los totales por región dejan de cuadrar entre ellas.
+        const REGION_DE = {};
+        [
+            ['Latam', ['Argentina','Belize','Bolivia','Brazil','Chile','Colombia','Costa Rica','Cuba','Dominican Republic','Ecuador','El Salvador','Guatemala','Haiti','Honduras','Jamaica','Martinique','Mexico','Nicaragua','Panama','Paraguay','Peru','Puerto Rico','Trinidad and Tobago','Uruguay','Venezuela']],
+            ['Europa', ['Albania','Andorra','Austria','Belgium','Bosnia','Bosnia and Herzegovina','Bulgaria','Croatia','Cyprus','Czechia','Denmark','Deutschland','Estonia','Finland','France','Georgia','Germany','Greece','Hungary','Iceland','Ireland','Italy','Latvia','Lithuania','Luxembourg','Malta','Moldova','Monaco','Montenegro','Netherlands','North Macedonia','Norway','Poland','Portugal','Romania','Russia','Serbia','Slovakia','Slovenia','Spain','Sweden','Switzerland','Ukraine','United Kingdom']],
+            ['Norteamérica', ['Canada','United States']],
+            ['Asia', ['Afghanistan','Armenia','Azerbaijan','Bahrain','Bangladesh','Cambodia','China','Hong Kong','India','Indonesia','Iran','Iraq','Israel','Japan','Jordan','Kazakhstan','Kuwait','Kyrgyzstan','Lebanon','Malaysia','Mongolia','Myanmar','Nepal','Oman','Pakistan','Palestine','Philippines','Qatar','Saudi Arabia','Singapore','South Korea','Sri Lanka','Syria','Taiwan','Tajikistan','Thailand','Turkey','Turkmenistan','United Arab Emirates','Uzbekistan','Vietnam','Yemen']],
+            ['África', ['Algeria','Angola','Benin','Botswana','Burkina Faso','Cameroon','Cape Verde','Chad','Congo','Egypt','Ethiopia','Gabon','Gambia','Ghana','Guinea','Ivory Coast','Kenya','Libya','Madagascar','Malawi','Mali','Mauritania','Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Rwanda','Senegal','Somalia','South Africa','Sudan','Tanzania','Togo','Tunisia','Uganda','Zambia','Zimbabwe']],
+            ['Oceanía', ['Australia','Fiji','New Zealand']]
+        ].forEach(([reg, lista]) => lista.forEach(x => { REGION_DE[x] = reg; }));
+        const regionOf = x => REGION_DE[x] || 'Otros / sin país';
+
         let CURSO = 'Master';
         // Rango por defecto: el año en curso. La barra de arriba lo cambia.
         const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -553,21 +566,69 @@
                     <th class="num" style="color:var(--red)">Perdidos</th>
                 </tr></thead><tbody>${tf}</tbody></table></div></div>`;
 
-            // mapa de calor país × mes (tratos, con las ventas marcadas)
+            // ── POR REGIÓN ──────────────────────────────────────────────────────
+            // Arriba el detalle por país; aquí el agregado por región, que es lo que se
+            // puede leer de un vistazo: con 58 países la tabla de arriba no se abarca.
             const PM = d.pais_mes || {};
-            const maxCel = Math.max(...filas.flatMap(x => meses.map(m => ((PM[x.pais] || {})[m] || {}).tratos || 0)), 1);
-            let hf = '';
-            filas.slice(0, 18).forEach(x => {
-                hf += `<tr><td class="cell-strong">${esc(x.pais)}</td>` + meses.map(m => {
+            const REG = {};
+            filas.forEach(x => {
+                const r = regionOf(x.pais);
+                const R = (REG[r] = REG[r] || { tratos: 0, f1: 0, f2: 0, f3: 0, f4: 0, won: 0, perdidos: 0, paises: [], mes: {} });
+                R.tratos += x.tratos; R.f1 += x.f1; R.f2 += x.f2; R.f3 += x.f3; R.f4 += x.f4;
+                R.won += x.won; R.perdidos += x.perdidos; R.paises.push(x.pais);
+                meses.forEach(m => {
                     const c = (PM[x.pais] || {})[m] || { tratos: 0, won: 0 };
-                    if (!c.tratos) return '<td class="num cell-zero h">·</td>';
-                    const op = (0.08 + 0.44 * (c.tratos / maxCel)).toFixed(2);
-                    const win = c.won ? `<span style="color:var(--green);font-weight:800"> ●${c.won}</span>` : '';
-                    return `<td class="num h" style="background:rgba(31,42,78,${op})" title="${esc(x.pais)} · ${m}: ${c.tratos} tratos, ${c.won} ventas">${c.tratos}${win}</td>`;
-                }).join('') + '</tr>';
+                    const M = (R.mes[m] = R.mes[m] || { tratos: 0, won: 0 });
+                    M.tratos += c.tratos; M.won += c.won;
+                });
             });
-            const heat = meses.length ? `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>País × mes · ${esc(d.curso)}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Tratos por mes de creación · el <b style="color:var(--green)">●</b> marca las ventas · ${filas.length > 18 ? 'top 18 países' : 'todos los países'}</span></div>
-                <div class="table-wrap"><table class="table pc-heat"><thead><tr><th>País</th>${meses.map(m => `<th class="num">${mesCorto(m)}</th>`).join('')}</tr></thead><tbody>${hf}</tbody></table></div></div>` : '';
+            const regs = Object.entries(REG).map(([reg, x]) => ({ reg, ...x }))
+                .sort((a, b) => b.won - a.won || b.tratos - a.tratos);
+            const maxReg = Math.max(...regs.map(x => x.tratos), 1);
+            const maxCelR = Math.max(...regs.flatMap(x => meses.map(m => (x.mes[m] || {}).tratos || 0)), 1);
+
+            let rf = '';
+            regs.forEach(x => {
+                const cv = pct(x.won, x.tratos);
+                const z = v => v ? `<td class="num">${nf(v)}</td>` : '<td class="num cell-zero">·</td>';
+                rf += `<tr>
+                    <td class="cell-strong" title="${esc(x.paises.slice(0, 25).join(', '))}${x.paises.length > 25 ? '…' : ''}">${esc(x.reg)} <span style="font-weight:400;font-size:10.5px;color:var(--muted)">${x.paises.length} ${x.paises.length === 1 ? 'país' : 'países'}</span></td>
+                    <td style="width:100px"><div class="pc-bar"><i style="width:${(x.tratos / maxReg * 100).toFixed(1)}%"></i></div></td>
+                    <td class="num" style="font-weight:700">${nf(x.tratos)}</td>
+                    ${z(x.f1)}${z(x.f2)}${z(x.f3)}${z(x.f4)}
+                    <td class="num" style="font-weight:700;color:${x.won ? 'var(--green)' : '#D6D1DA'}">${nf(x.won)}</td>
+                    <td class="num" style="font-weight:700;color:${cv >= convG && x.won ? 'var(--green)' : 'var(--muted)'}">${x.tratos >= 5 ? pct1(cv) : '<span style="color:#C8CDD8">—</span>'}</td>
+                    <td class="num" style="color:var(--red)">${x.perdidos ? nf(x.perdidos) : '·'}</td>
+                    ${meses.map(m => {
+                        const c = x.mes[m] || { tratos: 0, won: 0 };
+                        if (!c.tratos) return '<td class="num cell-zero h">·</td>';
+                        const op = (0.08 + 0.44 * (c.tratos / maxCelR)).toFixed(2);
+                        const win = c.won ? `<span style="color:var(--green);font-weight:800"> ●${c.won}</span>` : '';
+                        return `<td class="num h" style="background:rgba(31,42,78,${op})" title="${esc(x.reg)} · ${m}: ${c.tratos} tratos, ${c.won} ventas">${c.tratos}${win}</td>`;
+                    }).join('')}
+                </tr>`;
+            });
+            const TR = regs.reduce((a, x) => ({ tratos: a.tratos + x.tratos, f1: a.f1 + x.f1, f2: a.f2 + x.f2, f3: a.f3 + x.f3, f4: a.f4 + x.f4, won: a.won + x.won, perdidos: a.perdidos + x.perdidos }), { tratos: 0, f1: 0, f2: 0, f3: 0, f4: 0, won: 0, perdidos: 0 });
+            rf += `<tr style="background:var(--brand-tint);border-top:2px solid var(--brand)">
+                <td class="cell-strong" style="color:var(--brand-dark)">TOTAL</td><td></td>
+                <td class="num" style="font-weight:800">${nf(TR.tratos)}</td>
+                <td class="num" style="font-weight:800">${nf(TR.f1)}</td><td class="num" style="font-weight:800">${nf(TR.f2)}</td>
+                <td class="num" style="font-weight:800">${nf(TR.f3)}</td><td class="num" style="font-weight:800">${nf(TR.f4)}</td>
+                <td class="num" style="font-weight:800;color:var(--green)">${nf(TR.won)}</td>
+                <td class="num" style="font-weight:800">${pct1(pct(TR.won, TR.tratos))}</td>
+                <td class="num" style="font-weight:800;color:var(--red)">${nf(TR.perdidos)}</td>
+                ${meses.map(m => { const t = regs.reduce((a, x) => a + ((x.mes[m] || {}).tratos || 0), 0); return `<td class="num" style="font-weight:800">${t || '·'}</td>`; }).join('')}
+            </tr>`;
+
+            const heat = regs.length ? `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Por región · ${esc(d.curso)}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Los mismos países de arriba, agrupados · A la derecha, tratos por mes con el <b style="color:var(--green)">●</b> marcando las ventas · Pasa el ratón por la región para ver qué países incluye</span></div>
+                <div class="table-wrap"><table class="table pc-heat"><thead><tr>
+                    <th>Región</th><th>Volumen</th><th class="num">Tratos</th>
+                    <th class="num" style="color:var(--slate)">F1</th><th class="num" style="color:var(--brand)">F2</th>
+                    <th class="num" style="color:var(--brand-soft)">F3</th><th class="num" style="color:var(--gold)">F4</th>
+                    <th class="num" style="color:var(--green)">Ganados</th><th class="num" style="color:var(--green)">% Venta</th>
+                    <th class="num" style="color:var(--red)">Perdidos</th>
+                    ${meses.map(m => `<th class="num" title="${m}">${mesCorto(m)}</th>`).join('')}
+                </tr></thead><tbody>${rf}</tbody></table></div></div>` : '';
 
             const grafico = meses.length ? `<div class="section"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span>Mes a mes · ${esc(d.curso)}</span><span style="font-weight:500;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0">Barras: tratos creados · Línea: ventas de esa cohorte</span></div><div class="chart-container" style="height:280px"><canvas id="pcChart"></canvas></div></div>` : '';
 
