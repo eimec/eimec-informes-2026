@@ -283,6 +283,8 @@
     .pc-k .l{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
     .pc-k .v{font-size:29px;font-weight:800;color:var(--brand);letter-spacing:-.02em;margin-top:5px;font-variant-numeric:tabular-nums}
     .pc-k .s{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+    .pc-ref{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:var(--muted);line-height:1.4}
+    .pc-ref b{color:var(--brand);font-weight:700}
     .pc-embudo{display:flex;gap:8px;align-items:stretch;margin:2px 0 22px;flex-wrap:wrap}
     .pc-e{flex:1;min-width:110px;border-radius:10px;padding:13px 15px;color:#fff}
     .pc-e .n{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
@@ -414,7 +416,25 @@
         window.setDateRange = setDateRange;
         window.applyCustomRange = applyCustomRange;
 
+        let peticion = 0;            // solo pinta la respuesta MAS RECIENTE
+        let ANIO = null;             // datos del año completo, como referencia fija
+        let anioCurso = null;        // de qué curso son esos datos del año
+
+        // Año completo del mismo curso, para tener la escala aunque filtres 3 días.
+        // Se cachea por curso: cambiar de rango no lo vuelve a pedir.
+        async function cargarAnio(curso) {
+            if (ANIO && anioCurso === curso) return ANIO;
+            const d0 = `${new Date().getFullYear()}-01-01`, d1 = ymd(new Date());
+            try {
+                const r = await fetch(`/api/ac-curso?curso=${encodeURIComponent(curso)}&from=${d0}&to=${d1}`);
+                const j = await r.json();
+                if (j && j.ok) { ANIO = j; anioCurso = curso; return j; }
+            } catch (_) {}
+            return null;
+        }
+
         async function cargar() {
+            const mio = ++peticion;
             const dmy = iso => iso.split('-').reverse().join('/');
             document.getElementById('metaLine').innerHTML =
                 `Curso <strong>${esc(CURSO)}</strong> · del <strong>${dmy(desde)}</strong> al <strong>${dmy(hasta)}</strong> · cohorte de leads creados en ese rango`;
@@ -425,8 +445,39 @@
                 const j = await r.json();
                 if (j && j.ok) d = j;
             } catch (_) {}
+            if (mio !== peticion) return;   // llegó tarde: ya hay otra petición más nueva
             if (!d) { document.getElementById('dashboardContent').innerHTML = '<div class="loading" style="color:var(--red)">No se pudo leer el CRM. Recarga en unos segundos.</div>'; return; }
             pintar(d);
+            // La referencia del año se pide después, sin bloquear: cuando llega, repinta las tarjetas.
+            const esAnioCompleto = desde === `${new Date().getFullYear()}-01-01` && hasta === ymd(new Date());
+            if (!esAnioCompleto) {
+                const A = await cargarAnio(d.curso);
+                if (A && mio === peticion) pintarRefAnio(A, d);
+            }
+        }
+
+        // Añade a cada tarjeta el dato del AÑO completo, para no perder la escala al filtrar.
+        function pintarRefAnio(A, d) {
+            const cont = document.querySelector('.pc-kpis');
+            if (!cont) return;
+            const tot = Object.values(A.por_pais || {}).reduce((a, x) => a + x.tratos, 0) || A.tratos || 0;
+            const wonA = A.won || 0;
+            const convA = pct(wonA, tot);
+            const paisesA = Object.values(A.por_pais || {}).filter(x => x.tratos > 0).length;
+            const ref = [
+                { v: nf(tot), extra: d.tratos > 0 && tot > 0 ? `· el rango es el ${pct1(pct(d.tratos, tot))} del año` : '' },
+                { v: nf(wonA), extra: '' },
+                { v: pct1(convA), extra: '' },
+                { v: nf(paisesA), extra: '' },
+                { v: nf(A.perdidos || 0), extra: '' }
+            ];
+            [...cont.querySelectorAll('.pc-k')].forEach((k, i) => {
+                if (!ref[i] || k.querySelector('.pc-ref')) return;
+                const e = document.createElement('div');
+                e.className = 'pc-ref';
+                e.innerHTML = `<b>${ref[i].v}</b> en todo el año ${ref[i].extra}`;
+                k.appendChild(e);
+            });
         }
 
         function pintar(d) {
