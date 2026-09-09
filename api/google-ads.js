@@ -215,11 +215,22 @@ export async function googleCampanas(from, to) {
   const out = { ok: true, periodo: { desde, hasta } };
 
   // 1) AJUSTES: estado, presupuesto diario, tipo de campaña y estrategia de puja
+  // Se prueban varios juegos de campos: si la version de la API no reconoce alguno,
+  // se cae al siguiente en vez de perder TODOS los ajustes por un campo.
+  const JUEGOS = [
+    `campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
+     campaign.bidding_strategy_type, campaign_budget.amount_micros, campaign.start_date, campaign.end_date`,
+    `campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
+     campaign.bidding_strategy_type, campaign_budget.amount_micros`,
+    `campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type`,
+  ];
   try {
-    const filas = await gaql(`SELECT campaign.id, campaign.name, campaign.status,
-        campaign.advertising_channel_type, campaign.bidding_strategy_type,
-        campaign_budget.amount_micros, campaign.start_date, campaign.end_date
-      FROM campaign WHERE campaign.status != 'REMOVED'`);
+    let filas = null, ultimo = null;
+    for (const campos of JUEGOS) {
+      try { filas = await gaql(`SELECT ${campos} FROM campaign WHERE campaign.status != 'REMOVED'`); break; }
+      catch (e) { ultimo = e; }
+    }
+    if (!filas) throw ultimo;
     out.campanas = filas.map(x => ({
       id: x.campaign?.id, nombre: x.campaign?.name,
       estado: ES_ESTADO[x.campaign?.status] || x.campaign?.status,
@@ -228,7 +239,7 @@ export async function googleCampanas(from, to) {
       presupuesto_dia: x.campaignBudget?.amountMicros ? Number(x.campaignBudget.amountMicros) / 1e6 : null,
       inicio: x.campaign?.startDate, fin: x.campaign?.endDate
     }));
-  } catch (e) { out.error_ajustes = e.message; }
+  } catch (e) { out.error_ajustes = String(e.message).slice(0, 900); }
 
   // 2) RENDIMIENTO + CUOTA DE IMPRESIONES (lo que decide dónde poner el dinero)
   try {
