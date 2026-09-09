@@ -262,6 +262,22 @@ export async function googleCampanas(from, to) {
     })).filter(x => x.impresiones > 0);
   } catch (e) { out.error_rendimiento = e.message; }
 
+  // 3bis) CONVERSIONES POR DIA Y POR TIPO DE ACCION.
+  // Sin el nombre de la accion no se puede separar "clic en WhatsApp" de "formulario",
+  // y sin la fecha no se puede cruzar con la fecha de creacion del trato en el CRM.
+  try {
+    const filas = await gaql(`SELECT campaign.name, segments.date,
+        segments.conversion_action_name, metrics.all_conversions, metrics.conversions
+      FROM campaign WHERE segments.date BETWEEN '${desde}' AND '${hasta}'
+        AND metrics.all_conversions > 0`);
+    out.conversiones_dia = filas.map(x => ({
+      fecha: x.segments?.date, campana: x.campaign?.name,
+      accion: x.segments?.conversionActionName,
+      n: Number(x.metrics?.allConversions || 0),
+      principales: Number(x.metrics?.conversions || 0)
+    }));
+  } catch (e) { out.error_conversiones = String(e.message).slice(0, 400); }
+
   // 3) TERMINOS DE BUSQUEDA mas caros: donde se va el dinero de las genericas
   try {
     const filas = await gaql(`SELECT search_term_view.search_term, campaign.name,
